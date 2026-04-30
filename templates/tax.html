@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Income Tax Calculator</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="nav">
+    <a href="./index.html">← Home</a>
+  </div>
+  <h1>Income Tax Calculator</h1>
+
+  <div id="msg-area"></div>
+
+  <script>
+    // Pre-fill annual income if the expense tracker sent one
+    window.addEventListener('DOMContentLoaded', () => {
+      const prefill = localStorage.getItem('fiapp_prefill_income');
+      const incomeInput = document.getElementById('income');
+      if (prefill && !incomeInput.value) {
+        incomeInput.value = prefill;
+        localStorage.removeItem('fiapp_prefill_income');
+      }
+    });
+  </script>
+
+  <form id="tax-form">
+    <div>
+      <label for="income">Annual Income (no $ sign) <small style="font-weight:400;color:#6b7280">— auto-filled from monthly income × 12 if set in Expense Tracker</small></label>
+      <input type="text" name="income" id="income" required>
+    </div>
+    <div>
+      <label for="status">Familial Status</label>
+      <select name="status" id="status" required>
+        <option value="">-- select --</option>
+        <option value="single">Single</option>
+        <option value="married">Married</option>
+        <option value="head of household">Head of Household</option>
+      </select>
+    </div>
+    <br>
+    <button class="btn" type="submit" id="calc-btn">Compute Tax</button>
+  </form>
+
+  <div class="result" id="result-box" style="display:none;">
+    <p><strong>Income:</strong> $<span id="res-income"></span></p>
+    <p><strong>Status:</strong> <span id="res-status"></span></p>
+    <p><strong>Federal Income Tax:</strong> $<span id="res-tax"></span></p>
+    <p style="margin-top:.75rem">
+      <a class="btn" href="./expenses.html" style="font-size:.85rem">
+        → Use in Expense Tracker
+      </a>
+    </p>
+  </div>
+
+<script>
+// ── 2024 US Federal Income Tax Brackets ───────────────────────────────────────
+const BRACKETS = {
+  single: [
+    [11600,  0.10],
+    [47150,  0.12],
+    [100525, 0.22],
+    [191950, 0.24],
+    [243725, 0.32],
+    [609350, 0.35],
+    [Infinity, 0.37],
+  ],
+  married: [
+    [23200,  0.10],
+    [94300,  0.12],
+    [201050, 0.22],
+    [383900, 0.24],
+    [487450, 0.32],
+    [731200, 0.35],
+    [Infinity, 0.37],
+  ],
+  'head of household': [
+    [16550,  0.10],
+    [63100,  0.12],
+    [100500, 0.22],
+    [191950, 0.24],
+    [243700, 0.32],
+    [609350, 0.35],
+    [Infinity, 0.37],
+  ],
+};
+
+function calcFederalTax(income, status){
+  const brackets = BRACKETS[status];
+  if(!brackets) throw new Error('Unknown filing status.');
+  let tax = 0, prev = 0;
+  for(const [limit, rate] of brackets){
+    if(income <= prev) break;
+    const taxable = Math.min(income, limit) - prev;
+    tax += taxable * rate;
+    prev = limit;
+    if(limit === Infinity) break;
+  }
+  return tax;
+}
+
+function showError(msg){
+  const area = document.getElementById('msg-area');
+  area.innerHTML = '<div class="error">' + msg + '</div>';
+  document.getElementById('result-box').style.display = 'none';
+}
+function clearMsg(){ document.getElementById('msg-area').innerHTML = ''; }
+
+document.getElementById('tax-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  clearMsg();
+
+  const incomeRaw = document.getElementById('income').value.trim().replace(/[$,]/g,'');
+  const status    = document.getElementById('status').value;
+  const income    = parseFloat(incomeRaw);
+
+  if(isNaN(income) || income < 0){
+    showError('Please enter a valid non-negative income amount.');
+    return;
+  }
+  if(!status){
+    showError('Please select a filing status.');
+    return;
+  }
+
+  let tax;
+  try{
+    tax = calcFederalTax(income, status);
+  }catch(err){
+    showError(err.message);
+    return;
+  }
+
+  const incomeStr = income.toFixed(2);
+  const taxStr    = tax.toFixed(2);
+  const statusStr = status.charAt(0).toUpperCase() + status.slice(1);
+
+  document.getElementById('res-income').textContent = Number(incomeStr).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('res-status').textContent = statusStr;
+  document.getElementById('res-tax').textContent    = Number(taxStr).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('result-box').style.display = 'block';
+
+  // Write to localStorage for the Expense Tracker to consume
+  try{
+    localStorage.setItem('fiapp_tax_result', JSON.stringify({
+      income:   incomeStr,
+      tax:      taxStr,
+      status:   status,
+      ts:       Date.now(),
+      consumed: false
+    }));
+  }catch(ex){}
+});
+</script>
+</body>
+</html>
