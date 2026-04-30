@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Income Tax Calculator</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="nav">
+    <a href="{{ url_for('home') }}">← Home</a>
+  </div>
+  <h1>Income Tax Calculator</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="{{ 'error' if category == 'error' else 'success' }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <script>
+    // Pre-fill annual income if the expense tracker sent one
+    window.addEventListener('DOMContentLoaded', () => {
+      const prefill = localStorage.getItem('fiapp_prefill_income');
+      const incomeInput = document.getElementById('income');
+      if (prefill && !incomeInput.value) {
+        incomeInput.value = prefill;
+        localStorage.removeItem('fiapp_prefill_income');
+      }
+    });
+  </script>
+
+  <form method="post">
+    <div>
+      <label for="income">Annual Income (no $ sign) <small style="font-weight:400;color:#6b7280">— auto-filled from monthly income × 12 if set in Expense Tracker</small></label>
+      <input type="text" name="income" id="income" required value="{{ request.form.get('income','') }}">
+    </div>
+    <div>
+      <label for="status">Familial Status</label>
+      <select name="status" id="status" required>
+        <option value="">-- select --</option>
+        <option value="single" {% if request.form.get('status')=='single' %}selected{% endif %}>Single</option>
+        <option value="married" {% if request.form.get('status')=='married' %}selected{% endif %}>Married</option>
+        <option value="head of household" {% if request.form.get('status')=='head of household' %}selected{% endif %}>Head of Household</option>
+      </select>
+    </div>
+    <br>
+    <button class="btn" type="submit">Compute Tax</button>
+  </form>
+
+  {% if result %}
+    <div class="result">
+      <p><strong>Income:</strong> ${{ result.income }}</p>
+      <p><strong>Status:</strong> {{ result.status }}</p>
+      <p><strong>Federal Income Tax:</strong> ${{ result.tax }}</p>
+      <p style="margin-top:.75rem">
+        <a class="btn" href="{{ url_for('expenses') }}" style="font-size:.85rem">
+          → Use in Expense Tracker
+        </a>
+      </p>
+    </div>
+    <script>
+      try {
+        localStorage.setItem('fiapp_tax_result', JSON.stringify({
+          income:   "{{ result.income }}",
+          tax:      "{{ result.tax }}",
+          status:   "{{ result.status }}",
+          ts:       Date.now(),
+          consumed: false
+        }));
+      } catch(e) {}
+    </script>
+  {% endif %}
+</body>
+</html>

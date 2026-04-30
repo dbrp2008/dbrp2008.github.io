@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Currency Converter</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="nav">
+    <a href="{{ url_for('home') }}">← Home</a>
+  </div>
+  <h1>Currency Converter</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="{{ category if category in ['error','success'] else 'error' }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post">
+    <div>
+      <label for="currency_i">From Currency (e.g: HKD, USD)</label>
+      <input name="currency_i" id="currency_i" required value="{{ request.form.get('currency_i', '') }}">
+    </div>
+    <div>
+      <label for="currency_a">Amount</label>
+      <input name="currency_a" id="currency_a" type="number" step="any" required value="{{ request.form.get('currency_a','') }}">
+    </div>
+    <div>
+      <label for="currency_o">To Currency (e.g: AED, EUR)</label>
+      <input name="currency_o" id="currency_o" required value="{{ request.form.get('currency_o','') }}">
+    </div>
+    <br>
+    <button class="btn" type="submit">Convert</button>
+  </form>
+
+  {% if result %}
+    <div class="result">
+      <p><strong>{{ request.form.get('currency_a') }} {{ request.form.get('currency_i') | upper }}</strong> = <strong>{{ converted }} {{ request.form.get('currency_o') | upper }}</strong></p>
+    </div>
+  {% endif %}
+
+
+</body>
+</html>

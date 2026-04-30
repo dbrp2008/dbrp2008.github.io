@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Subscription Tracker – FiApp</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .toolbar{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
+    .btn-sm{padding:.35rem .7rem;font-size:.85rem;}
+    .btn-ghost{background:#e5e7eb;color:#374151;border:none;border-radius:6px;cursor:pointer;padding:.35rem .7rem;font-size:.85rem;}
+    .btn-ghost:hover{background:#d1d5db;}
+    .month-nav{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+    .month-nav button{background:#e5e7eb;border:none;border-radius:6px;cursor:pointer;padding:.3rem .8rem;font-size:.9rem;}
+    .month-nav button:hover{background:#d1d5db;}
+    .month-nav button:disabled{opacity:.35;cursor:not-allowed;}
+    .month-label{font-size:1.1rem;font-weight:700;color:#374151;min-width:140px;text-align:center;}
+    .add-bar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;padding:.65rem 1rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:.6rem;}
+    .add-bar label{font-weight:600;font-size:.88rem;margin:0;}
+    .add-bar select,.add-bar input[type="text"]{padding:5px 9px;border:1px solid #d1d5db;border-radius:4px;font-size:.88rem;width:auto;}
+    #custom-inp{display:none;min-width:150px;}
+    .opts-bar{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.4rem .75rem;background:#fefce8;border:1px solid #fde68a;border-radius:6px;margin-bottom:.6rem;font-size:.85rem;}
+    .opts-bar label{display:flex;align-items:center;gap:.35rem;cursor:pointer;font-weight:500;}
+    .disc-box{font-size:.82rem;color:#4b5563;padding:.45rem .75rem;background:#fafafa;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:.6rem;}
+    .disc-box summary{cursor:pointer;font-weight:600;color:#374151;user-select:none;}
+    .disc-box p{margin:.3rem 0;line-height:1.5;}
+    .totals-panel{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.5rem;padding:.9rem 1.1rem;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px;margin-bottom:.75rem;}
+    .totals-panel h3{margin:0 0 .4rem;color:#0369a1;font-size:.9rem;grid-column:1/-1;}
+    .tot-field label{font-size:.75rem;font-weight:600;color:#374151;display:block;margin-bottom:2px;}
+    .tot-val{font-size:.95rem;font-weight:700;color:#0369a1;}
+    .curr-row{grid-column:1/-1;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+    .curr-row label{font-size:.8rem;font-weight:600;}
+    .curr-row select{padding:3px 7px;border:1px solid #d1d5db;border-radius:4px;font-size:.82rem;}
+    #curr-note{font-size:.75rem;color:#6b7280;}
+
+    /* Leaderboard */
+    .leaderboard{padding:.8rem 1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;margin-bottom:.75rem;}
+    .leaderboard h3{margin:0 0 .55rem;color:#92400e;font-size:.95rem;display:flex;justify-content:space-between;align-items:center;}
+    .lb-empty{color:#9ca3af;font-size:.85rem;text-align:center;padding:.5rem 0;}
+    .podium{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin-bottom:.55rem;}
+    .podium-card{background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;padding:.55rem .65rem;text-align:center;display:flex;flex-direction:column;gap:.2rem;}
+    .podium-medal{font-size:1.4rem;line-height:1;}
+    .podium-name{font-weight:700;font-size:.85rem;color:#1f2937;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .podium-cost{font-weight:700;color:#0369a1;font-size:.92rem;}
+    .podium-pct{font-size:.72rem;color:#6b7280;}
+    .medal-gold{border-color:#fbbf24;background:linear-gradient(180deg,#fef3c7 0%,#fff 60%);}
+    .medal-silver{border-color:#9ca3af;background:linear-gradient(180deg,#f1f5f9 0%,#fff 60%);}
+    .medal-bronze{border-color:#b45309;background:linear-gradient(180deg,#fed7aa 0%,#fff 60%);}
+    .lb-rest{margin:0;padding-left:1.5rem;font-size:.85rem;color:#374151;}
+    .lb-rest li{margin:.2rem 0;display:flex;justify-content:space-between;gap:.5rem;}
+    .lb-rest li span:first-child{font-weight:500;}
+    .lb-cost{font-weight:700;color:#0369a1;}
+
+    /* Chart */
+    .chart-section{display:none;margin-bottom:1rem;padding:.75rem 1rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;}
+    .chart-mode-btns{display:flex;gap:.4rem;margin-bottom:.5rem;}
+    .chart-mode-btn{padding:.28rem .65rem;font-size:.8rem;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;background:#f3f4f6;color:#374151;}
+    .chart-mode-btn.active{background:#0366d6;color:#fff;border-color:#0366d6;}
+    .chart-wrap{max-width:500px;margin:0 auto;}
+    .top3{margin-top:.75rem;}
+    .top3 h4{margin:0 0 .4rem;font-size:.88rem;color:#374151;}
+    .top3 ol{margin:0;padding-left:1.2rem;font-size:.85rem;}
+    .top3 li{margin-bottom:.2rem;color:#374151;}
+
+    /* Spreadsheet */
+    .sheet-wrap{overflow-x:auto;margin-top:.5rem;}
+    table.sheet{border-collapse:collapse;table-layout:fixed;min-width:max-content;}
+    table.sheet th,table.sheet td{border:1px solid #d1d5db;position:relative;overflow:hidden;padding:0;}
+    table.sheet th{background:#f3f4f6;user-select:none;}
+    .th-inner{display:flex;align-items:center;justify-content:center;padding:5px 6px;gap:4px;min-height:32px;}
+    .th-label{flex:1;outline:none;text-align:center;font-weight:600;min-width:30px;font-size:.85rem;}
+    .col-del{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:.9rem;padding:0 2px;line-height:1;}
+    .col-del:hover{color:#ef4444;}
+    .col-resize{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
+    .col-resize:hover,.col-resize.dragging{background:#93c5fd;}
+    .row-resize{position:absolute;left:0;right:0;bottom:0;height:5px;cursor:row-resize;z-index:2;}
+    .row-resize:hover,.row-resize.dragging{background:#93c5fd;}
+    .c-text{display:block;width:100%;outline:none;padding:4px 7px;box-sizing:border-box;min-height:32px;background:transparent;font-family:inherit;font-size:.85rem;border:none;}
+    .c-text:focus{background:#eff6ff;}
+
+    /* Cost cell — number + currency selector */
+    .cost-wrap{display:flex;height:100%;min-height:32px;align-items:stretch;}
+    .c-num{flex:1;min-width:0;border:none;outline:none;padding:4px 5px;box-sizing:border-box;background:transparent;font-family:inherit;font-size:.85rem;text-align:right;}
+    .c-num:focus{background:#eff6ff;}
+    .c-num::-webkit-inner-spin-button,.c-num::-webkit-outer-spin-button{opacity:0;}
+    .c-num:hover::-webkit-inner-spin-button{opacity:1;}
+    .cell-curr-sel{width:52px;flex-shrink:0;border:none;border-left:1px solid #e5e7eb;outline:none;background:#fafafa;font-family:inherit;font-size:.7rem;padding:0 2px;cursor:pointer;color:#6b7280;}
+    .cell-curr-sel:focus{background:#eff6ff;}
+
+    .c-sel{width:100%;height:100%;min-height:32px;border:none;outline:none;background:transparent;font-family:inherit;font-size:.85rem;padding:4px 4px;cursor:pointer;}
+    .c-sel:focus{background:#eff6ff;}
+    .c-date{width:100%;border:none;outline:none;padding:4px 6px;box-sizing:border-box;background:transparent;font-family:inherit;font-size:.82rem;min-height:32px;}
+    .c-date:focus{background:#eff6ff;}
+    .c-date:disabled{opacity:.35;cursor:not-allowed;}
+    .row-del{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:.9rem;padding:0 3px;}
+    .row-del:hover{color:#ef4444;}
+    .del-td{width:32px;text-align:center;background:#f9fafb;}
+    .btn-add-col{background:none;border:1px dashed #9ca3af;border-radius:4px;cursor:pointer;font-size:1rem;padding:3px 8px;color:#6b7280;white-space:nowrap;}
+    .btn-add-col:hover{background:#f3f4f6;}
+    .btn-add-row{background:none;border:1px dashed #9ca3af;border-radius:4px;cursor:pointer;font-size:.82rem;padding:4px 12px;color:#6b7280;margin-top:4px;}
+    .btn-add-row:hover{background:#f3f4f6;}
+    .empty-msg{text-align:center;padding:2rem;color:#9ca3af;border:1px dashed #d1d5db;font-size:.85rem;}
+    .cancelled-row td{opacity:.55;}
+    .cancelled-row .c-text,.cancelled-row .c-num{text-decoration:line-through;}
+  </style>
+</head>
+<body>
+  <div class="nav"><a href="{{ url_for('home') }}">← Home</a></div>
+  <h1>Subscription Tracker</h1>
+  <p style="color:#6b7280;font-size:.88rem;margin-top:0">Track subscriptions with accurate billing event counting. Each cost can be in its own currency. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
+
+  <div class="month-nav">
+    <button id="prev-btn" onclick="shiftMonth(-1)">◀ Prev</button>
+    <span class="month-label" id="month-label"></span>
+    <button id="next-btn" onclick="shiftMonth(1)">Next ▶</button>
+  </div>
+
+  <div class="add-bar">
+    <label>Add subscription:</label>
+    <select id="sub-sel" onchange="onPresetChange()">
+      <option value="">— select —</option>
+      <optgroup label="Streaming"><option>Netflix</option><option>Disney+</option><option>Amazon Prime</option><option>Apple TV+</option><option>Hulu</option><option>HBO Max</option><option>YouTube Premium</option><option>Paramount+</option></optgroup>
+      <optgroup label="Music"><option>Spotify</option><option>Apple Music</option><option>Tidal</option></optgroup>
+      <optgroup label="AI &amp; Productivity"><option>ChatGPT Plus</option><option>Claude Pro</option><option>Microsoft 365</option><option>Adobe Creative Cloud</option><option>Notion</option><option>Grammarly</option></optgroup>
+      <optgroup label="Cloud Storage"><option>iCloud+</option><option>Google One</option><option>Dropbox</option><option>OneDrive</option></optgroup>
+      <optgroup label="Gaming"><option>Xbox Game Pass</option><option>PlayStation Plus</option><option>Nintendo Switch Online</option></optgroup>
+      <optgroup label="Other"><option>Duolingo Plus</option><option>NordVPN</option><option value="__other__">Other…</option></optgroup>
+    </select>
+    <input type="text" id="custom-inp" placeholder="Service name"/>
+    <button class="btn btn-sm" onclick="addSubscription()">Add</button>
+  </div>
+
+  <div class="opts-bar">
+    <label><input type="checkbox" id="chk-cancelled" checked onchange="recalcTotals()"> Include cancelled (up to cancel date)</label>
+  </div>
+
+  <details class="disc-box">
+    <summary>ℹ️ How billing costs are calculated</summary>
+    <p><strong>Monthly</strong> — One charge per month, on the same day-of-month as your start date. Full cost only; no partial amounts.</p>
+    <p><strong>Weekly / Bi-Weekly</strong> — Every 7 or 14 days from start. Every event landing in the month is counted at full cost.</p>
+    <p><strong>Quarterly / Semi-Annual / Annual</strong> — Anniversary billing dates. Only events that fall within the displayed month count.</p>
+    <p><strong>Yearly total</strong> — Sum of all billing events across the 12 months of the year. Subscriptions starting Jul–Dec will show a lower yearly total for their start year (fewer events before year-end).</p>
+    <p><strong>Trial</strong> — Billing events during the trial window cost $0. <strong>Cancelled</strong> — Events after the cancel date are excluded.</p>
+    <p><strong>Per-cell currency</strong> — Each Cost cell can be in its own currency (USD/EUR/AED/HKD/…). All sums roll up to USD first, then convert to your chosen display currency.</p>
+  </details>
+
+  <div class="totals-panel">
+    <h3>Spending Summary — <span id="sum-label"></span></h3>
+    <div class="tot-field"><label>Monthly Cost (USD)</label><div class="tot-val" id="tot-m-usd">$0.00</div></div>
+    <div class="tot-field"><label>Yearly Cost (USD)</label><div class="tot-val" id="tot-y-usd">$0.00</div></div>
+    <div class="tot-field" id="conv-m-wrap" style="display:none"><label id="conv-m-lbl">Monthly</label><div class="tot-val" id="tot-m-conv">—</div></div>
+    <div class="tot-field" id="conv-y-wrap" style="display:none"><label id="conv-y-lbl">Yearly</label><div class="tot-val" id="tot-y-conv">—</div></div>
+    <div class="curr-row">
+      <label>Display currency:</label>
+      <select id="curr-sel" onchange="onCurrencyChange()">
+        <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
+        <option value="CAD">CAD</option><option value="AUD">AUD</option><option value="JPY">JPY</option>
+        <option value="CNY">CNY</option><option value="INR">INR</option><option value="MXN">MXN</option>
+        <option value="BRL">BRL</option><option value="SGD">SGD</option><option value="HKD">HKD</option>
+        <option value="CHF">CHF</option><option value="NZD">NZD</option><option value="ZAR">ZAR</option>
+        <option value="AED">AED</option><option value="KRW">KRW</option><option value="NOK">NOK</option>
+        <option value="SEK">SEK</option><option value="PKR">PKR</option><option value="NGN">NGN</option>
+        <option value="THB">THB</option><option value="MYR">MYR</option><option value="IDR">IDR</option>
+        <option value="__other__">Other…</option>
+      </select>
+      <input type="text" id="curr-other-inp" placeholder="e.g. VND" maxlength="5"
+        style="display:none;width:72px;padding:3px 7px;border:1px solid #d1d5db;border-radius:4px;font-size:.82rem;">
+      <button id="curr-other-btn" class="btn btn-sm" onclick="applyOtherCurrency()"
+        style="display:none;padding:.25rem .6rem;font-size:.8rem;">OK</button>
+      <span id="curr-note"></span>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="leaderboard" id="leaderboard">
+    <h3>🏆 Subscription Leaderboard <span id="lb-month-lbl" style="font-weight:500;font-size:.78rem;color:#92400e;"></span></h3>
+    <div id="lb-content"></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-sm" id="undo-btn" onclick="undo()" disabled>↩ Undo</button>
+    <button class="btn btn-sm" id="redo-btn" onclick="redo()" disabled>↪ Redo</button>
+    <button class="btn btn-sm" onclick="addCol()">+ Column</button>
+    <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
+    <button class="btn btn-sm" id="reset-btn" onclick="resetAll()" style="background:#dc2626">Reset</button>
+  </div>
+
+  <div class="chart-section" id="chart-section">
+    <div class="chart-mode-btns">
+      <button class="chart-mode-btn active" id="chart-mode-m" onclick="setChartMode('monthly')">Monthly</button>
+      <button class="chart-mode-btn" id="chart-mode-y" onclick="setChartMode('yearly')">Yearly</button>
+    </div>
+    <div class="chart-wrap"><canvas id="sub-chart"></canvas></div>
+    <div class="top3" id="top3"></div>
+  </div>
+
+  <div class="sheet-wrap"><table class="sheet" id="sheet"></table></div>
+
+<script>
+const STORAGE_KEY = 'fiapp_subs_v4';
+const UNDO_KEY    = 'fiapp_subs_undo_v4';
+const REDO_KEY    = 'fiapp_subs_redo_v4';
+const MONTHS_SHORT= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const BILLING_OPTS= ['Monthly','Quarterly','Semi-Annual','Annual','Weekly','Bi-Weekly'];
+const STATUS_OPTS = ['Active','Trial','Paused','Cancelled'];
+const TRIAL_OPTS  = [
+  {v:'none',  l:'No free trial'},
+  {v:'week',  l:'1st week free'},
+  {v:'2weeks',l:'1st 2 weeks free'},
+  {v:'month', l:'1st month free'},
+  {v:'2months',l:'1st 2 months free'},
+  {v:'3months',l:'1st 3 months free'},
+];
+const STATUS_CLR  = {Active:'#15803d',Trial:'#0369a1',Paused:'#b45309',Cancelled:'#dc2626'};
+const CHART_PAL   = ['#60a5fa','#34d399','#f97316','#a78bfa','#fb7185','#fbbf24','#2dd4bf','#e879f9','#4ade80','#38bdf8'];
+const CELL_CURRENCIES = ['USD','EUR','GBP','AED','HKD','SGD','CAD','AUD','JPY','CNY','INR','CHF','MYR','THB','KRW','BRL','MXN'];
+const MEDALS = ['🥇','🥈','🥉'];
+const MEDAL_CLS = ['medal-gold','medal-silver','medal-bronze'];
+
+function uid(){ return '_'+Math.random().toString(36).slice(2,9); }
+const msDay = 864e5;
+
+// ── Rate cache ─────────────────────────────────────────────────────────────────
+const ratesCache = {}; // 'AED' -> rate s.t. 1 USD = rate AED
+async function ensureRate(currency){
+  if(!currency||currency==='USD'||ratesCache[currency]) return;
+  try{
+    const r=await fetch('/api/exchange?from=USD&to='+currency);
+    const d=await r.json();
+    if(d.rate) ratesCache[currency]=d.rate;
+  }catch{}
+}
+function rowCurrency(rowId){ return (state.rowCurrencies||{})[rowId]||'USD'; }
+function setRowCurrency(rowId,cur){
+  if(!state.rowCurrencies) state.rowCurrencies={};
+  state.rowCurrencies[rowId]=cur; save();
+}
+function costToUSD(rawCost, rowId){
+  if(!rawCost) return 0;
+  const cur=rowCurrency(rowId);
+  if(cur==='USD') return rawCost;
+  const rate=ratesCache[cur];
+  return rate?rawCost/rate:rawCost; // fallback if rate not yet loaded
+}
+
+// ── State ──────────────────────────────────────────────────────────────────────
+function freshState(){
+  const c1=uid(),c2=uid(),c3=uid(),c4=uid(),c5=uid(),c6=uid(),c7=uid(),c8=uid();
+  const now=new Date();
+  return {
+    rows:[], cols:[
+      {id:c1,label:'Service',    width:155,ctype:'text'},
+      {id:c2,label:'Cost',       width:130,ctype:'number'},
+      {id:c3,label:'Billing',    width:120,ctype:'billing'},
+      {id:c4,label:'Start Date', width:135,ctype:'date'},
+      {id:c5,label:'Cancel Date',width:135,ctype:'canceldate'},
+      {id:c6,label:'Trial',      width:145,ctype:'trial'},
+      {id:c7,label:'Status',     width:105,ctype:'status'},
+      {id:c8,label:'Notes',      width:185,ctype:'text'},
+    ],
+    cells:{}, rowCurrencies:{},
+    currentYear:now.getFullYear(), currentMonth:now.getMonth(),
+    displayCurrency:'USD',
+  };
+}
+function loadState(){
+  try{
+    const r=localStorage.getItem(STORAGE_KEY);
+    if(r){
+      const s=JSON.parse(r);
+      if(!s.displayCurrency) s.displayCurrency='USD';
+      if(!s.rowCurrencies)   s.rowCurrencies={};
+      return s;
+    }
+  }catch{}
+  return freshState();
+}
+let state=loadState();
+function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+
+// ── Undo / Redo ────────────────────────────────────────────────────────────────
+let undoStack=[], redoStack=[];
+function loadHistory(){
+  try{
+    const u=sessionStorage.getItem(UNDO_KEY); if(u) undoStack=JSON.parse(u)||[];
+    const r=sessionStorage.getItem(REDO_KEY); if(r) redoStack=JSON.parse(r)||[];
+  }catch{}
+}
+function saveHistory(){
+  try{
+    sessionStorage.setItem(UNDO_KEY,JSON.stringify(undoStack.slice(-60)));
+    sessionStorage.setItem(REDO_KEY,JSON.stringify(redoStack.slice(-60)));
+  }catch{}
+}
+function snapshot(){ undoStack.push(JSON.stringify(state)); redoStack.length=0; if(undoStack.length>60) undoStack.shift(); saveHistory(); updateHistBtns(); }
+function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(state)); state=JSON.parse(undoStack.pop()); save(); saveHistory(); render(); recalcTotals(); renderChart(); updateHistBtns(); }
+function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(state)); state=JSON.parse(redoStack.pop()); save(); saveHistory(); render(); recalcTotals(); renderChart(); updateHistBtns(); }
+function updateHistBtns(){ document.getElementById('undo-btn').disabled=!undoStack.length; document.getElementById('redo-btn').disabled=!redoStack.length; }
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}
+  if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();}
+});
+
+// ── Cell helpers ───────────────────────────────────────────────────────────────
+function ck(rId,cId){ return rId+'|'+cId; }
+function getCell(rId,cId){ return state.cells[ck(rId,cId)]||''; }
+function setCell(rId,cId,v){ state.cells[ck(rId,cId)]=v; save(); }
+function colByType(t){ return state.cols.find(c=>c.ctype===t); }
+
+// ── Date helpers ───────────────────────────────────────────────────────────────
+function parseDate(str){ if(!str) return null; const d=new Date(str+'T00:00:00'); return isNaN(d.getTime())?null:d; }
+function toDateStr(d){ return d.toISOString().split('T')[0]; }
+function daysInMo(y,m){ return new Date(y,m+1,0).getDate(); }
+function firstOfViewedMonthStr(){
+  return state.currentYear+'-'+String(state.currentMonth+1).padStart(2,'0')+'-01';
+}
+
+function getTrialEnd(start,trial){
+  if(!trial||trial==='none') return null;
+  const d=new Date(start);
+  if(trial==='week'){   d.setDate(d.getDate()+6);          return d;}
+  if(trial==='2weeks'){ d.setDate(d.getDate()+13);         return d;}
+  if(trial==='month'){  d.setMonth(d.getMonth()+1);d.setDate(d.getDate()-1); return d;}
+  if(trial==='2months'){d.setMonth(d.getMonth()+2);d.setDate(d.getDate()-1); return d;}
+  if(trial==='3months'){d.setMonth(d.getMonth()+3);d.setDate(d.getDate()-1); return d;}
+  return null;
+}
+
+// ── Cost calculation (event-counting; returns USD) ─────────────────────────────
+function calcMonthCost(row, year, month){
+  const costCol  =colByType('number');
+  const billCol  =colByType('billing');
+  const startCol =colByType('date');
+  const cancelCol=colByType('canceldate');
+  const trialCol =colByType('trial');
+  const statusCol=colByType('status');
+  if(!costCol||!startCol) return 0;
+
+  const rawCost =Math.max(0,parseFloat(getCell(row.id,costCol.id))||0);
+  const cost    =costToUSD(rawCost,row.id);   // <-- USD-normalized cost
+  const billing =billCol?(getCell(row.id,billCol.id)||'Monthly'):'Monthly';
+  const startStr=getCell(row.id,startCol.id);
+  const cancelStr=cancelCol?getCell(row.id,cancelCol.id):'';
+  const trial   =trialCol?(getCell(row.id,trialCol.id)||'none'):'none';
+  const status  =statusCol?(getCell(row.id,statusCol.id)||'Active'):'Active';
+
+  if(!startStr||cost<=0) return 0;
+  if(status==='Paused') return 0;
+  const inclCancelled=document.getElementById('chk-cancelled').checked;
+  if(status==='Cancelled'&&!inclCancelled) return 0;
+
+  const start =parseDate(startStr); if(!start) return 0;
+  const cancel=cancelStr?parseDate(cancelStr):null;
+  const trialEnd=getTrialEnd(start,trial);
+
+  const firstDay=new Date(year,month,1);
+  const lastDay =new Date(year,month+1,0);
+  if(start>lastDay) return 0;
+  if(cancel&&cancel<firstDay) return 0;
+
+  function eventOk(d){ return d>=start&&(!cancel||d<=cancel)&&(!trialEnd||d>trialEnd); }
+
+  let count=0;
+
+  if(billing==='Monthly'){
+    const dim=daysInMo(year,month);
+    const ev=new Date(year,month,Math.min(start.getDate(),dim));
+    if(eventOk(ev)) count=1;
+  }
+  else if(billing==='Weekly'||billing==='Bi-Weekly'){
+    const itvMs=(billing==='Weekly'?7:14)*msDay;
+    let ev=new Date(start);
+    if(ev<firstDay){
+      const ahead=Math.ceil((firstDay-ev)/itvMs);
+      ev=new Date(start.getTime()+ahead*itvMs);
+    }
+    while(ev<=lastDay){ if(eventOk(ev)) count++; ev=new Date(ev.getTime()+itvMs); }
+  }
+  else{
+    const itvMo=billing==='Quarterly'?3:billing==='Semi-Annual'?6:12;
+    let eY=start.getFullYear(), eMo=start.getMonth();
+    while(eY<year-5){ eMo+=itvMo; while(eMo>=12){eY++;eMo-=12;} }
+    let safety=0;
+    while((eY<year||(eY===year&&eMo<=month))&&safety++<500){
+      if(eY===year&&eMo===month){
+        const dim=daysInMo(eY,eMo);
+        const ev=new Date(eY,eMo,Math.min(start.getDate(),dim));
+        if(eventOk(ev)) count++;
+      }
+      eMo+=itvMo; while(eMo>=12){eY++;eMo-=12;}
+    }
+  }
+  return cost*count;
+}
+
+function calcYearlyCost(row,year){
+  let t=0; for(let m=0;m<12;m++) t+=calcMonthCost(row,year,m); return t;
+}
+
+// ── Month navigation ───────────────────────────────────────────────────────────
+const today=new Date();
+const minY=today.getFullYear()-1, minM=today.getMonth();
+const maxY=today.getFullYear()+1, maxM=today.getMonth();
+function isAtMin(){ return state.currentYear<minY||(state.currentYear===minY&&state.currentMonth<=minM); }
+function isAtMax(){ return state.currentYear>maxY||(state.currentYear===maxY&&state.currentMonth>=maxM); }
+function shiftMonth(d){
+  let y=state.currentYear, m=state.currentMonth+d;
+  if(m<0){y--;m=11;} if(m>11){y++;m=0;}
+  state.currentYear=y; state.currentMonth=m;
+  save(); updateMonthNav(); recalcTotals(); renderChart(); render();
+}
+function updateMonthNav(){
+  const lbl=MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
+  document.getElementById('month-label').textContent=lbl;
+  document.getElementById('sum-label').textContent=MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  document.getElementById('lb-month-lbl').textContent='— '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  document.getElementById('prev-btn').disabled=isAtMin();
+  document.getElementById('next-btn').disabled=isAtMax();
+}
+
+// ── Totals ─────────────────────────────────────────────────────────────────────
+let currentRate=1;
+function recalcTotals(){
+  let mUSD=0,yUSD=0;
+  state.rows.forEach(r=>{ mUSD+=calcMonthCost(r,state.currentYear,state.currentMonth); yUSD+=calcYearlyCost(r,state.currentYear); });
+  document.getElementById('tot-m-usd').textContent='$'+mUSD.toFixed(2);
+  document.getElementById('tot-y-usd').textContent='$'+yUSD.toFixed(2);
+  if(currentRate!==1){
+    const cur=state.displayCurrency;
+    document.getElementById('tot-m-conv').textContent=cur+' '+(mUSD*currentRate).toFixed(2);
+    document.getElementById('tot-y-conv').textContent=cur+' '+(yUSD*currentRate).toFixed(2);
+  }
+  renderLeaderboard();
+}
+
+// ── Display Currency ───────────────────────────────────────────────────────────
+function showConvFields(cur,rate){
+  currentRate=rate;
+  document.getElementById('conv-m-lbl').textContent='Monthly ('+cur+')';
+  document.getElementById('conv-y-lbl').textContent='Yearly ('+cur+')';
+  document.getElementById('conv-m-wrap').style.display='';
+  document.getElementById('conv-y-wrap').style.display='';
+  recalcTotals();
+}
+function hideConvFields(){
+  currentRate=1;
+  document.getElementById('conv-m-wrap').style.display='none';
+  document.getElementById('conv-y-wrap').style.display='none';
+  document.getElementById('curr-note').textContent='';
+}
+function onCurrencyChange(){
+  const sel=document.getElementById('curr-sel');
+  const cur=sel.value;
+  const otherInp=document.getElementById('curr-other-inp');
+  const otherBtn=document.getElementById('curr-other-btn');
+  if(cur==='__other__'){
+    otherInp.style.display='inline-block'; otherBtn.style.display='inline-block';
+    document.getElementById('curr-note').textContent='Enter a currency code then click OK.';
+    return;
+  }
+  otherInp.style.display='none'; otherBtn.style.display='none';
+  state.displayCurrency=cur; save();
+  if(cur==='USD'){ hideConvFields(); recalcTotals(); return; }
+  document.getElementById('curr-note').textContent='Fetching…';
+  fetch('/api/exchange?from=USD&to='+cur)
+    .then(r=>r.json()).then(d=>{
+      if(d.error){document.getElementById('curr-note').textContent='Error: '+d.error;return;}
+      ratesCache[cur]=d.rate;
+      document.getElementById('curr-note').textContent='1 USD = '+d.rate.toFixed(4)+' '+cur;
+      showConvFields(cur,d.rate);
+    }).catch(()=>document.getElementById('curr-note').textContent='Rate unavailable');
+}
+function applyOtherCurrency(){
+  const raw=document.getElementById('curr-other-inp').value.trim().toUpperCase();
+  const note=document.getElementById('curr-note');
+  if(!raw){note.textContent='Enter a currency code.';return;}
+  if(!/^[A-Z]{2,5}$/.test(raw)){note.textContent='Use 2–5 letters (e.g. THB, VND).';return;}
+  note.textContent='Validating '+raw+'…';
+  fetch('/api/exchange?from=USD&to='+raw)
+    .then(r=>r.json()).then(d=>{
+      if(d.error){note.textContent='Unknown currency: '+raw+'. Check the code.';return;}
+      ratesCache[raw]=d.rate;
+      note.textContent='1 USD = '+d.rate.toFixed(4)+' '+raw;
+      state.displayCurrency=raw; save();
+      document.getElementById('curr-other-inp').style.display='none';
+      document.getElementById('curr-other-btn').style.display='none';
+      showConvFields(raw,d.rate);
+    }).catch(()=>note.textContent='Could not validate. Check your connection.');
+}
+
+// ── Leaderboard ────────────────────────────────────────────────────────────────
+function fmtCost(usd){
+  if(currentRate!==1){ return state.displayCurrency+' '+(usd*currentRate).toFixed(2); }
+  return '$'+usd.toFixed(2);
+}
+function renderLeaderboard(){
+  const wrap=document.getElementById('lb-content');
+  if(!state.rows.length){ wrap.innerHTML='<div class="lb-empty">No subscriptions yet — add one above to see the leaderboard.</div>'; return; }
+  const serviceCol=colByType('text');
+  const data=state.rows.map(r=>({
+    name: serviceCol?(getCell(r.id,serviceCol.id)||'(unnamed)'):'(unnamed)',
+    cost: calcMonthCost(r,state.currentYear,state.currentMonth)
+  })).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
+
+  if(!data.length){ wrap.innerHTML='<div class="lb-empty">No active charges this month.</div>'; return; }
+  const total=data.reduce((s,d)=>s+d.cost,0);
+
+  let html='';
+  // Podium top-3
+  html+='<div class="podium">';
+  for(let i=0;i<3;i++){
+    if(data[i]){
+      const pct=total>0?((data[i].cost/total)*100).toFixed(1):'0.0';
+      html+=`<div class="podium-card ${MEDAL_CLS[i]}">`
+        +`<div class="podium-medal">${MEDALS[i]}</div>`
+        +`<div class="podium-name" title="${data[i].name}">${data[i].name}</div>`
+        +`<div class="podium-cost">${fmtCost(data[i].cost)}</div>`
+        +`<div class="podium-pct">${pct}% of total</div>`
+        +`</div>`;
+    } else {
+      html+='<div class="podium-card" style="opacity:.45"><div class="podium-medal">—</div><div class="podium-name">—</div><div class="podium-cost">—</div><div class="podium-pct"></div></div>';
+    }
+  }
+  html+='</div>';
+
+  // Ranked list of the rest
+  if(data.length>3){
+    html+='<ol class="lb-rest" start="4">';
+    for(let i=3;i<data.length;i++){
+      const pct=total>0?((data[i].cost/total)*100).toFixed(1):'0.0';
+      html+=`<li><span>${data[i].name} <span style="color:#9ca3af;font-size:.78rem">(${pct}%)</span></span><span class="lb-cost">${fmtCost(data[i].cost)}</span></li>`;
+    }
+    html+='</ol>';
+  }
+  wrap.innerHTML=html;
+}
+
+// ── Chart ──────────────────────────────────────────────────────────────────────
+let chartInstance=null, chartVisible=false, chartMode='monthly';
+function toggleChart(){
+  chartVisible=!chartVisible;
+  document.getElementById('chart-section').style.display=chartVisible?'block':'none';
+  document.getElementById('chart-btn').textContent=chartVisible?'📊 Hide Chart':'📊 Chart';
+  if(chartVisible) renderChart();
+}
+function setChartMode(mode){
+  chartMode=mode;
+  document.getElementById('chart-mode-m').classList.toggle('active',mode==='monthly');
+  document.getElementById('chart-mode-y').classList.toggle('active',mode==='yearly');
+  renderChart();
+}
+function renderChart(){
+  if(!chartVisible) return;
+  const serviceCol=colByType('text');
+  let data, topLabel;
+  if(chartMode==='yearly'){
+    data=state.rows.map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcYearlyCost(r,state.currentYear)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
+    topLabel='Top Subscriptions — '+state.currentYear;
+  } else {
+    data=state.rows.map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcMonthCost(r,state.currentYear,state.currentMonth)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
+    topLabel='Top Subscriptions — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  }
+  if(chartInstance){chartInstance.destroy();chartInstance=null;}
+  if(!data.length){document.getElementById('sub-chart').style.display='none';renderTop3([],topLabel);return;}
+  document.getElementById('sub-chart').style.display='block';
+  chartInstance=new Chart(document.getElementById('sub-chart'),{
+    type:'doughnut',
+    data:{labels:data.map(d=>d.name),datasets:[{data:data.map(d=>parseFloat(d.cost.toFixed(2))),backgroundColor:CHART_PAL}]},
+    options:{plugins:{legend:{position:'right',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.toFixed(2)}}},responsive:true,maintainAspectRatio:true}
+  });
+  renderTop3(data,topLabel);
+}
+function renderTop3(data,label){
+  const top=(data||[]).slice(0,3);
+  const el=document.getElementById('top3');
+  if(!top.length){el.innerHTML='';return;}
+  el.innerHTML='<h4>'+(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${t.name}</strong> — $${t.cost.toFixed(2)}</li>`).join('')+'</ol>';
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────────
+let resetTimer=null;
+function resetAll(){
+  const btn=document.getElementById('reset-btn');
+  if(btn.dataset.arm){
+    clearTimeout(resetTimer); delete btn.dataset.arm; btn.textContent='Reset'; btn.style.background='#dc2626';
+    snapshot(); state=freshState(); save(); render(); recalcTotals(); renderChart();
+  } else {
+    btn.dataset.arm='1'; btn.textContent='Sure?'; btn.style.background='#991b1b';
+    resetTimer=setTimeout(()=>{delete btn.dataset.arm;btn.textContent='Reset';btn.style.background='#dc2626';},2500);
+  }
+}
+
+// ── Add subscription (with duplicate check) ────────────────────────────────────
+function onPresetChange(){ document.getElementById('custom-inp').style.display=document.getElementById('sub-sel').value==='__other__'?'inline-block':'none'; }
+function nameAlreadyExists(name){
+  const svc=colByType('text'); if(!svc) return false;
+  const lower=name.trim().toLowerCase();
+  return state.rows.some(r=>(getCell(r.id,svc.id)||'').trim().toLowerCase()===lower);
+}
+function addSubscription(){
+  const sel=document.getElementById('sub-sel'); let name=sel.value;
+  if(!name){alert('Please select a service.');return;}
+  if(name==='__other__'){
+    name=document.getElementById('custom-inp').value.trim();
+    if(!name){alert('Enter a service name.');return;}
+  }
+  // Duplicate check (case-insensitive, applies to both preset and Other)
+  if(nameAlreadyExists(name)){
+    if(!confirm(`You already track "${name}". Add another anyway?`)) return;
+  }
+  snapshot();
+  const rowId=uid(); state.rows.push({id:rowId,height:36});
+  state.rowCurrencies[rowId]='USD';
+  const svc=colByType('text'),status=colByType('status'),bill=colByType('billing');
+  if(svc)    setCell(rowId,svc.id,name);
+  if(status) setCell(rowId,status.id,'Active');
+  if(bill)   setCell(rowId,bill.id,'Monthly');
+  sel.value=''; document.getElementById('custom-inp').value=''; document.getElementById('custom-inp').style.display='none';
+  save(); render(); recalcTotals(); renderChart();
+}
+
+// ── Structural mutations ───────────────────────────────────────────────────────
+function addCol(){ snapshot(); state.cols.push({id:uid(),label:'New Column',width:120,ctype:'number'}); save(); render(); }
+function deleteRow(id){
+  snapshot(); state.rows=state.rows.filter(r=>r.id!==id);
+  Object.keys(state.cells).filter(k=>k.startsWith(id+'|')).forEach(k=>delete state.cells[k]);
+  if(state.rowCurrencies) delete state.rowCurrencies[id];
+  save(); render(); recalcTotals(); renderChart();
+}
+function deleteCol(id){
+  snapshot(); state.cols=state.cols.filter(c=>c.id!==id);
+  Object.keys(state.cells).filter(k=>k.endsWith('|'+id)).forEach(k=>delete state.cells[k]);
+  save(); render();
+}
+
+// ── Resize ─────────────────────────────────────────────────────────────────────
+function attachColResize(handle,col){
+  handle.addEventListener('mousedown',e=>{
+    e.preventDefault();handle.classList.add('dragging');
+    const sx=e.clientX,sw=col.width,cEl=document.getElementById('cg-'+col.id);
+    const mv=e=>{col.width=Math.max(55,sw+e.clientX-sx);if(cEl)cEl.style.width=col.width+'px';};
+    const up=()=>{handle.classList.remove('dragging');save();document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+  });
+}
+function attachRowResize(handle,row,tr){
+  handle.addEventListener('mousedown',e=>{
+    e.preventDefault();handle.classList.add('dragging');
+    const sy=e.clientY,sh=row.height||36;
+    const mv=e=>{row.height=Math.max(28,sh+e.clientY-sy);tr.style.height=row.height+'px';};
+    const up=()=>{handle.classList.remove('dragging');save();document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+  });
+}
+
+// ── Cell factory ───────────────────────────────────────────────────────────────
+function makeCellEl(row,col){
+  const v=getCell(row.id,col.id);
+  const ct=col.ctype||'text';
+
+  // Number / Cost — currency selector inline
+  if(ct==='number'){
+    const wrap=document.createElement('div'); wrap.className='cost-wrap';
+    const inp=document.createElement('input'); inp.type='number'; inp.min='0'; inp.step='0.01'; inp.className='c-num'; inp.value=v;
+    inp.addEventListener('focus',()=>snapshot());
+    inp.addEventListener('change',()=>{
+      if(parseFloat(inp.value)<0) inp.value='0';
+      setCell(row.id,col.id,inp.value);
+      ensureRate(rowCurrency(row.id)).then(()=>{ recalcTotals(); renderChart(); });
+    });
+    wrap.appendChild(inp);
+    const cur=rowCurrency(row.id);
+    const sel=document.createElement('select'); sel.className='cell-curr-sel'; sel.title='Cost currency for this subscription';
+    CELL_CURRENCIES.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; if(c===cur) o.selected=true; sel.appendChild(o); });
+    sel.addEventListener('change',()=>{
+      setRowCurrency(row.id,sel.value);
+      ensureRate(sel.value).then(()=>{ recalcTotals(); renderChart(); });
+    });
+    wrap.appendChild(sel);
+    return wrap;
+  }
+
+  if(ct==='status'){
+    const sel=document.createElement('select'); sel.className='c-sel';
+    STATUS_OPTS.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;if(v===o)opt.selected=true;sel.appendChild(opt);});
+    if(!v) sel.value='Active';
+    sel.style.color=STATUS_CLR[sel.value]||'inherit';
+    sel.addEventListener('change',()=>{
+      snapshot();
+      const newStatus=sel.value;
+      const prevStatus=getCell(row.id,col.id)||'Active';
+      setCell(row.id,col.id,newStatus);
+      // When leaving Cancelled → clear the cancel date
+      if(prevStatus==='Cancelled' && newStatus!=='Cancelled'){
+        const cc=colByType('canceldate');
+        if(cc) delete state.cells[ck(row.id,cc.id)];
+      }
+      // When entering Cancelled with no date → auto-fill today
+      if(newStatus==='Cancelled'){
+        const cc=colByType('canceldate');
+        if(cc&&!getCell(row.id,cc.id)){ setCell(row.id,cc.id,toDateStr(new Date())); }
+      }
+      save();
+      // Re-render so the row class, cancel-date enabled-state, and styling all update
+      render(); recalcTotals(); renderChart();
+    });
+    return sel;
+  }
+  if(ct==='billing'){
+    const sel=document.createElement('select'); sel.className='c-sel';
+    BILLING_OPTS.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;if(v===o)opt.selected=true;sel.appendChild(opt);});
+    if(!v) sel.value='Monthly';
+    sel.addEventListener('change',()=>{snapshot();setCell(row.id,col.id,sel.value);recalcTotals();renderChart();});
+    return sel;
+  }
+  if(ct==='trial'){
+    const sel=document.createElement('select'); sel.className='c-sel';
+    TRIAL_OPTS.forEach(o=>{const opt=document.createElement('option');opt.value=o.v;opt.textContent=o.l;if(v===o.v)opt.selected=true;sel.appendChild(opt);});
+    if(!v) sel.value='none';
+    sel.addEventListener('change',()=>{snapshot();setCell(row.id,col.id,sel.value);recalcTotals();renderChart();});
+    return sel;
+  }
+  if(ct==='date'){
+    const inp=document.createElement('input'); inp.type='date'; inp.className='c-date'; inp.value=v;
+    inp.min=firstOfViewedMonthStr(); // can't pick before viewed month
+    inp.addEventListener('focus',()=>snapshot());
+    inp.addEventListener('change',()=>{
+      // Validate min
+      if(inp.value && inp.value<inp.min){
+        alert('Start date can\'t be earlier than '+inp.min+' (the start of the viewed month). To back-date, navigate to that month first.');
+        inp.value=v; return;
+      }
+      setCell(row.id,col.id,inp.value);
+      // Re-render so the cancel-date input picks up the new min
+      render(); recalcTotals(); renderChart();
+    });
+    return inp;
+  }
+  if(ct==='canceldate'){
+    const statusCol=colByType('status'); const st=statusCol?getCell(row.id,statusCol.id):'Active';
+    const startCol=colByType('date'); const startStr=startCol?getCell(row.id,startCol.id):'';
+    const inp=document.createElement('input'); inp.type='date'; inp.className='c-date'; inp.value=v;
+    inp.disabled=(st!=='Cancelled'); inp.title=st!=='Cancelled'?'Set status to Cancelled to enable':'';
+    if(startStr) inp.min=startStr; // cancel ≥ start
+    inp.addEventListener('focus',()=>snapshot());
+    inp.addEventListener('change',()=>{
+      if(startStr && inp.value && inp.value<startStr){
+        alert('Cancel date can\'t be earlier than the start date ('+startStr+').');
+        inp.value=v; return;
+      }
+      setCell(row.id,col.id,inp.value); recalcTotals(); renderChart();
+    });
+    return inp;
+  }
+  // text
+  const div=document.createElement('div'); div.contentEditable='true'; div.className='c-text'; div.textContent=v;
+  div.addEventListener('focus',()=>snapshot());
+  div.addEventListener('blur',()=>setCell(row.id,col.id,div.textContent.trim()));
+  return div;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+function render(){
+  const table=document.getElementById('sheet'); table.innerHTML='';
+  const cg=document.createElement('colgroup');
+  state.cols.forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(col.width||120)+'px';cg.appendChild(c);});
+  const dc=document.createElement('col');dc.style.width='32px';cg.appendChild(dc);
+  table.appendChild(cg);
+
+  const thead=document.createElement('thead'),htr=document.createElement('tr');
+  state.cols.forEach(col=>{
+    const th=document.createElement('th');
+    const inner=document.createElement('div');inner.className='th-inner';
+    const lbl=document.createElement('span');lbl.className='th-label';lbl.contentEditable='true';lbl.textContent=col.label;
+    lbl.addEventListener('blur',()=>{col.label=lbl.textContent.trim()||col.label;save();});
+    lbl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbl.blur();}});
+    inner.appendChild(lbl);
+    const del=document.createElement('button');del.className='col-del';del.title='Delete column';del.textContent='×';del.addEventListener('click',()=>deleteCol(col.id));inner.appendChild(del);
+    th.appendChild(inner);
+    const cr=document.createElement('div');cr.className='col-resize';attachColResize(cr,col);th.appendChild(cr);
+    htr.appendChild(th);
+  });
+  const act=document.createElement('th');act.style.cssText='background:#f9fafb;border:1px dashed #d1d5db;';
+  const acb=document.createElement('button');acb.className='btn-add-col';acb.textContent='+';acb.addEventListener('click',addCol);act.appendChild(acb);htr.appendChild(act);
+  thead.appendChild(htr);table.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+  if(!state.rows.length){
+    const etr=document.createElement('tr');const etd=document.createElement('td');etd.colSpan=state.cols.length+1;etd.className='empty-msg';
+    etd.textContent='No subscriptions yet. Use the dropdown above to add one.';etr.appendChild(etd);tbody.appendChild(etr);
+  }
+  state.rows.forEach(row=>{
+    const statusCol=colByType('status');const st=statusCol?getCell(row.id,statusCol.id):'Active';
+    const tr=document.createElement('tr');tr.style.height=(row.height||36)+'px';
+    if(st==='Cancelled') tr.classList.add('cancelled-row');
+    state.cols.forEach((col,ci)=>{
+      const td=document.createElement('td');td.style.position='relative';
+      td.appendChild(makeCellEl(row,col));
+      if(ci===0){const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);td.appendChild(rr);}
+      tr.appendChild(td);
+    });
+    const delTd=document.createElement('td');delTd.className='del-td';
+    const delBtn=document.createElement('button');delBtn.className='row-del';delBtn.title='Delete row';delBtn.textContent='🗑';delBtn.addEventListener('click',()=>deleteRow(row.id));
+    delTd.appendChild(delBtn);tr.appendChild(delTd);tbody.appendChild(tr);
+  });
+  const atr=document.createElement('tr');const atd=document.createElement('td');atd.colSpan=state.cols.length+1;atd.style.cssText='border:none;padding:3px 0;';
+  const arb=document.createElement('button');arb.className='btn-add-row';arb.textContent='+ Add Blank Row';
+  arb.addEventListener('click',()=>{snapshot();const id=uid();state.rows.push({id,height:36});if(!state.rowCurrencies)state.rowCurrencies={};state.rowCurrencies[id]='USD';save();render();recalcTotals();});
+  atd.appendChild(arb);atr.appendChild(atd);tbody.appendChild(atr);
+  table.appendChild(tbody);
+
+  // restore display currency selector
+  const sel=document.getElementById('curr-sel');
+  const dc2=state.displayCurrency||'USD';
+  const optExists=[...sel.options].some(o=>o.value===dc2);
+  sel.value=optExists?dc2:'__other__';
+}
+
+// ── Pre-load rates for all row currencies + display currency ───────────────────
+async function preloadRates(){
+  const set=new Set();
+  Object.values(state.rowCurrencies||{}).forEach(c=>set.add(c));
+  if(state.displayCurrency&&state.displayCurrency!=='USD') set.add(state.displayCurrency);
+  for(const c of set){ await ensureRate(c); }
+  if(state.displayCurrency&&state.displayCurrency!=='USD'&&ratesCache[state.displayCurrency]){
+    showConvFields(state.displayCurrency,ratesCache[state.displayCurrency]);
+    const sel=document.getElementById('curr-sel');
+    if([...sel.options].some(o=>o.value===state.displayCurrency)) sel.value=state.displayCurrency;
+    else { sel.value='__other__'; document.getElementById('curr-other-inp').value=state.displayCurrency; }
+    document.getElementById('curr-note').textContent='1 USD = '+ratesCache[state.displayCurrency].toFixed(4)+' '+state.displayCurrency;
+  }
+  recalcTotals();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+loadHistory();
+render();
+updateMonthNav();
+recalcTotals();
+updateHistBtns();
+preloadRates();
+</script>
+</body>
+</html>

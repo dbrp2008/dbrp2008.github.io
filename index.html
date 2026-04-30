@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>FiApp</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    body { font-family: system-ui,-apple-system,BlinkMacSystemFont,sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .card { border: 1px solid #ddd; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+    a { text-decoration: none; color: #0366d6; }
+    .nav { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .btn-small { font-size:.9rem; padding:.35rem .75rem; }
+  </style>
+</head>
+<body>
+  <h1>FiApp</h1>
+  <p>Welcome to FiApp, the 5-in-1 financial app. Please choose a service:</p>
+  <div class="card">
+    <h2>1. Interest Calculator</h2>
+    <p><a class="btn" href="{{ url_for('interest') }}">Go to Interest Calculator</a></p>
+  </div>
+  <div class="card">
+    <h2>2. Income Tax Calculator</h2>
+    <p><a class="btn btn-tax" href="{{ url_for('tax') }}">Go to Tax Calculator</a></p>
+  </div>
+  <div class="card">
+    <h2>3. Currency Converter</h2>
+    <p><a class="btn btn-currency" href="{{ url_for('currency') }}">Go to Currency Converter</a></p>
+  </div>
+  <div class="card">
+    <h2>4. Expense Tracker</h2>
+    <p>Spreadsheet-style tracker with colour-coded categories, resizable rows &amp; columns.</p>
+    <p><a class="btn btn-expenses" href="{{ url_for('expenses') }}">Go to Expense Tracker</a></p>
+  </div>
+  <div class="card">
+    <h2>5. Subscription Tracker</h2>
+    <p>Track all your recurring subscriptions with a preset service dropdown.</p>
+    <p><a class="btn btn-subs" href="{{ url_for('subscriptions') }}">Go to Subscription Tracker</a></p>
+  </div>
+</body>
+</html>
