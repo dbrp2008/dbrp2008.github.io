@@ -110,6 +110,24 @@
     .btn-add-col:hover{background:#f3f4f6;}
     .btn-add-row{background:none;border:1px dashed #9ca3af;border-radius:4px;cursor:pointer;font-size:.82rem;padding:4px 12px;color:#6b7280;margin-top:4px;}
     .btn-add-row:hover{background:#f3f4f6;}
+
+    /* Text-colour swatch */
+    .text-color-swatch{width:13px;height:13px;flex-shrink:0;border-radius:3px;border:1px solid rgba(0,0,0,.2);background:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;line-height:1;}
+    .text-color-swatch:hover{border-color:#7c3aed;}
+
+    /* Export menu */
+    .export-menu{position:fixed;z-index:9999;background:#fff;border:1px solid #d1d5db;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:160px;}
+    .export-menu button{display:block;width:100%;text-align:left;padding:.45rem .8rem;font-size:.85rem;border:none;background:none;cursor:pointer;color:#374151;}
+    .export-menu button:hover{background:#f3f4f6;}
+    .export-menu button+button{border-top:1px solid #f3f4f6;}
+
+    /* Share modal */
+    .share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;}
+    .share-modal{background:#fff;border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:.6rem;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+    .share-modal h3{margin:0;font-size:1rem;color:#374151;}
+    .share-modal textarea{width:100%;min-height:200px;font-family:ui-monospace,Menlo,Monaco,'Cascadia Mono',monospace;font-size:.78rem;border:1px solid #d1d5db;border-radius:5px;padding:.5rem;resize:vertical;box-sizing:border-box;}
+    .share-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;}
+    .share-flash{font-size:.78rem;color:#15803d;font-weight:600;align-self:center;}
   </style>
 </head>
 <body>
@@ -165,6 +183,8 @@
     <button class="btn btn-sm btn-ghost" onclick="expandAll()">▾ Expand All</button>
     <button class="btn btn-sm btn-ghost" onclick="collapseAll()">▸ Collapse All</button>
     <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
+    <button class="btn btn-sm" id="export-btn" onclick="showExportMenu(event)">📥 Export</button>
+    <button class="btn btn-sm" id="share-btn" onclick="shareSheet()">📤 Share</button>
     <button class="btn btn-sm" id="reset-btn" onclick="resetAll()" style="background:#dc2626">Reset</button>
   </div>
 
@@ -214,10 +234,10 @@ function freshState(){
   const now=new Date(),y=now.getFullYear(),m=now.getMonth();
   return {
     rows:[
-      {id:uid(),label:'Groceries',    color:'#bbf7d0',height:36,parentId:null},
-      {id:uid(),label:'Entertainment',color:'#bfdbfe',height:36,parentId:null},
-      {id:uid(),label:'Travel',       color:'#fed7aa',height:36,parentId:null},
-      {id:uid(),label:'Savings',      color:'#e9d5ff',height:36,parentId:null},
+      {id:uid(),label:'Groceries',    color:'#bbf7d0',textColor:'#1f2937',height:36,parentId:null},
+      {id:uid(),label:'Entertainment',color:'#bfdbfe',textColor:'#1f2937',height:36,parentId:null},
+      {id:uid(),label:'Travel',       color:'#fed7aa',textColor:'#1f2937',height:36,parentId:null},
+      {id:uid(),label:'Savings',      color:'#e9d5ff',textColor:'#1f2937',height:36,parentId:null},
     ],
     cols:[
       {id:uid(),label:'Week 1',width:100},
@@ -505,7 +525,7 @@ function addRow(){
   snapshot();
   const usedLabels=state.rows.filter(r=>!r.parentId).map(r=>r.label);
   const nextCat=CAT_KEYS.find(k=>!usedLabels.includes(k))||'Groceries';
-  state.rows.push({id:uid(),label:nextCat,color:CAT_COLORS[nextCat]||'#e5e7eb',height:36,parentId:null});
+  state.rows.push({id:uid(),label:nextCat,color:CAT_COLORS[nextCat]||'#e5e7eb',textColor:'#1f2937',height:36,parentId:null});
   save(); render();
 }
 function addSubRow(parentRow, subLabel){
@@ -513,7 +533,7 @@ function addSubRow(parentRow, subLabel){
   const parentIdx=state.rows.findIndex(r=>r.id===parentRow.id);
   const kids=state.rows.reduce((acc,r,i)=>r.parentId===parentRow.id?[...acc,i]:acc,[]);
   const insertIdx=kids.length?Math.max(...kids)+1:parentIdx+1;
-  state.rows.splice(insertIdx,0,{id:uid(),label:subLabel,color:parentRow.color,height:32,parentId:parentRow.id});
+  state.rows.splice(insertIdx,0,{id:uid(),label:subLabel,color:parentRow.color,textColor:parentRow.textColor||'#1f2937',height:32,parentId:parentRow.id});
   state.collapsed[parentRow.id]=false;
   save(); render();
 }
@@ -680,12 +700,18 @@ function render(){
     const cInp=document.createElement('input');cInp.type='color';cInp.className='color-hidden';cInp.value=row.color;
     cInp.addEventListener('input',()=>{row.color=cInp.value;rhTd.style.backgroundColor=cInp.value;swatch.style.backgroundColor=cInp.value;});
     cInp.addEventListener('change',save);
-    const swatch=document.createElement('div');swatch.className='color-swatch';swatch.style.backgroundColor=row.color;swatch.title='Change colour';
+    const swatch=document.createElement('div');swatch.className='color-swatch';swatch.style.backgroundColor=row.color;swatch.title='Change background colour';
     swatch.addEventListener('click',()=>cInp.click());
+    const tcInp=document.createElement('input');tcInp.type='color';tcInp.className='color-hidden';tcInp.value=row.textColor||'#1f2937';
+    tcInp.addEventListener('input',()=>{row.textColor=tcInp.value;rowLabel.style.color=tcInp.value;textSwatch.style.color=tcInp.value;});
+    tcInp.addEventListener('change',save);
+    const textSwatch=document.createElement('div');textSwatch.className='text-color-swatch';textSwatch.title='Change text colour';textSwatch.textContent='A';textSwatch.style.color=row.textColor||'#1f2937';
+    textSwatch.addEventListener('click',()=>tcInp.click());
     const rowLabel=document.createElement('span');rowLabel.className='row-label';rowLabel.contentEditable='true';rowLabel.textContent=row.label;
+    rowLabel.style.color=row.textColor||'#1f2937';
     rowLabel.addEventListener('blur',()=>{row.label=rowLabel.textContent.trim()||row.label;save();});
     rowLabel.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();rowLabel.blur();}});
-    rhIn.appendChild(cInp);rhIn.appendChild(swatch);rhIn.appendChild(rowLabel);
+    rhIn.appendChild(cInp);rhIn.appendChild(swatch);rhIn.appendChild(tcInp);rhIn.appendChild(textSwatch);rhIn.appendChild(rowLabel);
     if(!isChild){
       const dd=document.createElement('div');dd.className='sub-dropdown';
       const addBtn=document.createElement('button');addBtn.className='sub-add-btn';addBtn.textContent='+Sub';addBtn.title='Add subcategory';
@@ -750,6 +776,192 @@ function render(){
 
   updateIncomeSummary();
   if(chartVisible) renderChart();
+}
+
+// ── Export / Share helpers ─────────────────────────────────────────────────────
+// (Duplicated in subscriptions.html — project intentionally keeps each HTML self-contained.)
+
+function expPad(s,n){ s=String(s); return s.length>=n?s:s+' '.repeat(n-s.length); }
+function expCsvEsc(v){
+  const s=String(v==null?'':v);
+  return /[,"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+}
+
+/** Build 2-D array: [header, ...rows, total-footer] */
+function buildRowsArray(){
+  const colLabels=state.cols.map(c=>c.label);
+  const header=['Category','Subcategory',...colLabels,'Total'];
+  const out=[header];
+  state.rows.filter(r=>!r.parentId).forEach(parent=>{
+    const kids=children(parent.id);
+    if(kids.length){
+      // parent summary row
+      const vals=state.cols.map(col=>{
+        const s=kids.reduce((t,c)=>t+getCell(c.id,col.id),0);
+        return s?s.toFixed(2):'';
+      });
+      out.push([parent.label,'',...vals,rowTotal(parent.id).toFixed(2)]);
+      kids.forEach(kid=>{
+        const kVals=state.cols.map(col=>{ const v=getCell(kid.id,col.id); return v?v.toFixed(2):''; });
+        out.push(['',kid.label,...kVals,rowTotal(kid.id).toFixed(2)]);
+      });
+    } else {
+      const vals=state.cols.map(col=>{ const v=getCell(parent.id,col.id); return v?v.toFixed(2):''; });
+      out.push([parent.label,'',...vals,rowTotal(parent.id).toFixed(2)]);
+    }
+  });
+  // footer TOTAL row
+  const totals=state.cols.map(col=>colTotal(col.id).toFixed(2));
+  out.push(['TOTAL','',...totals,grandTotal().toFixed(2)]);
+  return out;
+}
+
+function buildCsv(){
+  return buildRowsArray().map(r=>r.map(expCsvEsc).join(',')).join('\r\n');
+}
+
+function buildJson(){
+  const mk2=currentMK();
+  const topRows=state.rows.filter(r=>!r.parentId);
+  const rowsOut=topRows.map(parent=>{
+    const kids=children(parent.id);
+    const colVals={};
+    state.cols.forEach(col=>{ colVals[col.label]=getCell(parent.id,col.id)||undefined; });
+    return {
+      label:parent.label,
+      color:parent.color,
+      textColor:parent.textColor,
+      total:rowTotal(parent.id),
+      weeks:colVals,
+      subcategories:kids.map(kid=>{
+        const kv={};
+        state.cols.forEach(col=>{ kv[col.label]=getCell(kid.id,col.id)||undefined; });
+        return {label:kid.label,total:rowTotal(kid.id),weeks:kv};
+      })
+    };
+  });
+  const obj={
+    month:mk2,
+    monthName:MONTHS_FULL[state.currentMonth]+' '+state.currentYear,
+    columns:state.cols.map(c=>c.label),
+    rows:rowsOut,
+    totals:{
+      grand:grandTotal(),
+      perColumn:Object.fromEntries(state.cols.map(col=>[col.label,colTotal(col.id)]))
+    }
+  };
+  const obj2=state.income[mk2];
+  if(obj2) obj.income={gross:obj2.gross,tax:obj2.tax};
+  return JSON.stringify(obj,null,2);
+}
+
+function buildTxt(){
+  const rows=buildRowsArray();
+  const widths=rows[0].map((_,ci)=>Math.max(...rows.map(r=>String(r[ci]||'').length)));
+  const sep=widths.map(w=>'-'.repeat(w+2)).join('+');
+  return rows.map((r,ri)=>{
+    const line='|'+r.map((v,ci)=>' '+expPad(v,widths[ci])+' ').join('|')+'|';
+    return ri===0||ri===rows.length-1?sep+'\n'+line+'\n'+sep:line;
+  }).join('\n');
+}
+
+function downloadBlob(filename, blob){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+function downloadText(filename, text, mime){
+  downloadBlob(filename,new Blob([text],{type:mime||'text/plain;charset=utf-8'}));
+}
+
+// Lazy-load SheetJS only when XLSX is first requested
+let _xlsxLoaded=false,_xlsxLoading=null;
+function lazyLoadXlsx(){
+  if(_xlsxLoaded) return Promise.resolve();
+  if(_xlsxLoading) return _xlsxLoading;
+  _xlsxLoading=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=()=>{_xlsxLoaded=true;res();};
+    s.onerror=()=>rej(new Error('Failed to load XLSX library'));
+    document.head.appendChild(s);
+  });
+  return _xlsxLoading;
+}
+
+function exportXlsx(filename){
+  lazyLoadXlsx().then(()=>{
+    const ws=XLSX.utils.aoa_to_sheet(buildRowsArray());
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Expenses');
+    XLSX.writeFile(wb,filename);
+  }).catch(err=>alert('Could not load XLSX library: '+err.message));
+}
+
+// Export format-chooser menu (portal, position:fixed)
+let _openExportMenu=null;
+function closeExportMenu(){
+  if(_openExportMenu){_openExportMenu.remove();_openExportMenu=null;}
+  document.removeEventListener('click',closeExportMenu,true);
+}
+function showExportMenu(ev){
+  ev.stopPropagation();
+  if(_openExportMenu){closeExportMenu();return;}
+  const ym=String(state.currentYear)+'-'+String(state.currentMonth+1).padStart(2,'0');
+  const base='expenses-'+ym;
+  const menu=document.createElement('div');menu.className='export-menu';
+  const formats=[
+    {label:'📄 CSV',  fn:()=>downloadText(base+'.csv',buildCsv(),'text/csv;charset=utf-8')},
+    {label:'{ } JSON',fn:()=>downloadText(base+'.json',buildJson(),'application/json')},
+    {label:'📃 TXT',  fn:()=>downloadText(base+'.txt',buildTxt(),'text/plain;charset=utf-8')},
+    {label:'📊 XLSX', fn:()=>exportXlsx(base+'.xlsx')},
+  ];
+  formats.forEach(f=>{
+    const btn=document.createElement('button');btn.textContent=f.label;
+    btn.addEventListener('click',e=>{e.stopPropagation();closeExportMenu();f.fn();});
+    menu.appendChild(btn);
+  });
+  const rect=ev.currentTarget.getBoundingClientRect();
+  menu.style.top=(rect.bottom+4)+'px';
+  menu.style.left=rect.left+'px';
+  document.body.appendChild(menu);
+  _openExportMenu=menu;
+  setTimeout(()=>document.addEventListener('click',closeExportMenu,true),50);
+}
+
+// Share
+async function shareSheet(){
+  const text=buildTxt();
+  const title='FiApp Expenses — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  if(isMobile&&navigator.share){
+    try{await navigator.share({title,text});return;}catch(e){if(e.name==='AbortError')return;}
+  }
+  showShareModal(title,text);
+}
+function showShareModal(title,text){
+  const overlay=document.createElement('div');overlay.className='share-overlay';
+  const modal=document.createElement('div');modal.className='share-modal';
+  const h=document.createElement('h3');h.textContent='Share — '+title;
+  const ta=document.createElement('textarea');ta.readOnly=true;ta.value=text;
+  const actions=document.createElement('div');actions.className='share-actions';
+  const flash=document.createElement('span');flash.className='share-flash';
+  const copyBtn=document.createElement('button');copyBtn.className='btn btn-sm';copyBtn.textContent='📋 Copy';
+  copyBtn.addEventListener('click',()=>{
+    if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>{flash.textContent='Copied!';setTimeout(()=>flash.textContent='',1800);}).catch(()=>fallbackCopy());}
+    else fallbackCopy();
+    function fallbackCopy(){ta.select();try{document.execCommand('copy');flash.textContent='Copied!';}catch{flash.textContent='Copy failed';}setTimeout(()=>flash.textContent='',1800);}
+  });
+  const MAX_BODY=1500;
+  const bodyText=text.length>MAX_BODY?text.slice(0,MAX_BODY)+'\n…(truncated — use Export for full data)':text;
+  const emailBtn=document.createElement('a');emailBtn.className='btn btn-sm';emailBtn.textContent='📧 Email';
+  emailBtn.href='mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(bodyText);
+  const closeBtn=document.createElement('button');closeBtn.className='btn btn-sm btn-ghost';closeBtn.textContent='Close';
+  closeBtn.addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  actions.appendChild(flash);actions.appendChild(copyBtn);actions.appendChild(emailBtn);actions.appendChild(closeBtn);
+  modal.appendChild(h);modal.appendChild(ta);modal.appendChild(actions);
+  overlay.appendChild(modal);document.body.appendChild(overlay);
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────────
