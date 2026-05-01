@@ -126,8 +126,28 @@
     .share-modal{background:#fff;border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:.6rem;box-shadow:0 8px 32px rgba(0,0,0,.2);}
     .share-modal h3{margin:0;font-size:1rem;color:#374151;}
     .share-modal textarea{width:100%;min-height:200px;font-family:ui-monospace,Menlo,Monaco,'Cascadia Mono',monospace;font-size:.78rem;border:1px solid #d1d5db;border-radius:5px;padding:.5rem;resize:vertical;box-sizing:border-box;}
-    .share-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;}
+    .share-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
     .share-flash{font-size:.78rem;color:#15803d;font-weight:600;align-self:center;}
+    .share-hint{font-size:.74rem;color:#6b7280;font-style:italic;}
+
+    /* Apply-to-year inline flash */
+    .apply-flash{font-size:.78rem;color:#15803d;font-weight:600;background:#dcfce7;border:1px solid #86efac;padding:.25rem .55rem;border-radius:5px;opacity:0;transition:opacity .25s;}
+    .apply-flash.show{opacity:1;}
+
+    /* Export-menu post-action flash */
+    .export-flash{font-size:.78rem;color:#15803d;font-weight:600;background:#dcfce7;border:1px solid #86efac;padding:.25rem .55rem;border-radius:5px;margin-left:.5rem;opacity:0;transition:opacity .25s;}
+    .export-flash.show{opacity:1;}
+
+    /* Paste modal */
+    .paste-status{font-size:.83rem;padding:.4rem .55rem;border-radius:5px;background:#f3f4f6;color:#374151;}
+    .paste-status.ok{background:#dcfce7;border:1px solid #86efac;color:#15803d;}
+    .paste-status.bad{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
+    .month-picker{display:flex;flex-direction:column;gap:.3rem;max-height:260px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:5px;padding:.5rem;}
+    .month-picker label{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#374151;cursor:pointer;}
+    .month-picker input[type="checkbox"]{cursor:pointer;}
+    .picker-tools{display:flex;gap:.4rem;font-size:.78rem;}
+    .picker-tools button{background:#e5e7eb;border:none;border-radius:4px;padding:.2rem .55rem;cursor:pointer;color:#374151;}
+    .picker-tools button:hover{background:#d1d5db;}
   </style>
 </head>
 <body>
@@ -171,6 +191,7 @@
       </div>
       <div class="apply-row">
         <button class="btn-ghost btn-sm" id="apply-year-btn" onclick="applyIncomeToYear()" style="display:none;font-size:.78rem;" title="Copy this month's income/tax to all months in the same year">Apply to all months in <span id="apply-year-lbl"></span></button>
+        <span id="apply-flash" class="apply-flash"></span>
       </div>
     </div>
   </div>
@@ -185,6 +206,8 @@
     <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
     <button class="btn btn-sm" id="export-btn" onclick="showExportMenu(event)">📥 Export</button>
     <button class="btn btn-sm" id="share-btn" onclick="shareSheet()">📤 Share</button>
+    <button class="btn btn-sm" id="paste-btn" onclick="openPasteModal()">📋 Paste</button>
+    <span id="export-flash" class="export-flash"></span>
     <button class="btn btn-sm" id="reset-btn" onclick="resetAll()" style="background:#dc2626">Reset</button>
   </div>
 
@@ -404,7 +427,13 @@ function applyIncomeToYear(){
     state.income[k]={gross:obj.gross,tax:obj.tax};
   }
   save();
-  alert('Income applied to all months in '+state.currentYear+'.');
+  const f=document.getElementById('apply-flash');
+  if(f){
+    f.textContent='✓ Applied to all 12 months in '+state.currentYear+'.';
+    f.classList.add('show');
+    clearTimeout(window._applyFlashT);
+    window._applyFlashT=setTimeout(()=>f.classList.remove('show'),3500);
+  }
 }
 function updateIncomeSummary(){
   const gross=parseFloat(document.getElementById('inp-gross').value)||0;
@@ -864,6 +893,270 @@ function buildTxt(){
     return ri===0||ri===rows.length-1?sep+'\n'+line+'\n'+sep:line;
   }).join('\n');
 }
+function buildTsv(){
+  return buildRowsArray()
+    .map(r=>r.map(v=>String(v==null?'':v).replace(/[\t\r\n]/g,' ')).join('\t'))
+    .join('\r\n');
+}
+
+// Gmail compose URL helper (works in any browser as long as user is signed into Gmail)
+function gmailHref(subject, body){
+  return 'https://mail.google.com/mail/?view=cm&fs=1&tf=1'
+       + '&su='+encodeURIComponent(subject)
+       + '&body='+encodeURIComponent(body);
+}
+
+// Clipboard write with execCommand fallback. Returns Promise<boolean>.
+function clipboardWrite(text){
+  if(navigator.clipboard){
+    return navigator.clipboard.writeText(text).then(()=>true).catch(()=>fallback());
+  }
+  return Promise.resolve(fallback());
+  function fallback(){
+    const tmp=document.createElement('textarea');
+    tmp.value=text;tmp.style.position='fixed';tmp.style.opacity='0';
+    document.body.appendChild(tmp);tmp.select();
+    let ok=false;try{ok=document.execCommand('copy');}catch{}
+    tmp.remove();return ok;
+  }
+}
+
+// Tiny green flash next to the Export button
+function showExportFlash(msg){
+  const f=document.getElementById('export-flash');if(!f) return;
+  f.textContent=msg;f.classList.add('show');
+  clearTimeout(window._exportFlashT);
+  window._exportFlashT=setTimeout(()=>f.classList.remove('show'),2500);
+}
+
+// ── Copy / Paste blob format ───────────────────────────────────────────────────
+// FIAPP-<KIND>-V1:<base64(JSON)>     KIND ∈ {EXP-MONTH, EXP-FULL, SUBS}
+function encodeBlob(obj){
+  return 'FIAPP-'+obj.kind+'-V1:'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+}
+function decodeBlob(str){
+  const m=String(str).trim().match(/^FIAPP-([A-Z\-]+)-V1:([A-Za-z0-9+/=]+)\s*$/);
+  if(!m) throw new Error('Not a FiApp paste-blob.');
+  const obj=JSON.parse(decodeURIComponent(escape(atob(m[2]))));
+  if(obj.kind!==m[1]) throw new Error('Blob kind mismatch.');
+  return obj;
+}
+
+// Build single-month blob (only this month's cells)
+function buildExpMonthBlob(){
+  const mk2=currentMK();
+  const cells={};
+  Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) cells[k]=state.cells[k]; });
+  const inc=state.income[mk2]||{gross:'',tax:''};
+  return {
+    kind:'EXP-MONTH', v:1, monthKey:mk2,
+    rows:JSON.parse(JSON.stringify(state.rows)),
+    cols:JSON.parse(JSON.stringify(state.cols)),
+    cells, income:{gross:inc.gross||'',tax:inc.tax||''},
+    headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
+  };
+}
+// Build full-state blob
+function buildExpFullBlob(){
+  // Group cells by monthKey so the picker can offer them
+  const cellsByMonth={};
+  Object.keys(state.cells).forEach(k=>{
+    const mk2=k.split('|')[0];
+    (cellsByMonth[mk2]=cellsByMonth[mk2]||{})[k]=state.cells[k];
+  });
+  return {
+    kind:'EXP-FULL', v:1,
+    rows:JSON.parse(JSON.stringify(state.rows)),
+    cols:JSON.parse(JSON.stringify(state.cols)),
+    cellsByMonth,
+    income:JSON.parse(JSON.stringify(state.income||{})),
+    collapsed:JSON.parse(JSON.stringify(state.collapsed||{})),
+    headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
+    currentYear:state.currentYear, currentMonth:state.currentMonth,
+  };
+}
+
+// Merge a blob's rows/cols into state.rows/state.cols by label, returning id-maps.
+function _mergeRowsCols(blobRows, blobCols){
+  const labelToId={};
+  state.rows.forEach(r=>{ if(!r.parentId) labelToId[r.label]=r.id; });
+  // For child rows we use parentLabel|childLabel to disambiguate
+  const childKeyToId={};
+  state.rows.forEach(r=>{
+    if(r.parentId){
+      const parent=state.rows.find(x=>x.id===r.parentId);
+      if(parent) childKeyToId[parent.label+'|'+r.label]=r.id;
+    }
+  });
+  const blobRowIdMap={};
+  // First pass: parent rows
+  blobRows.filter(r=>!r.parentId).forEach(br=>{
+    if(labelToId[br.label]){
+      blobRowIdMap[br.id]=labelToId[br.label];
+    } else {
+      const newId=uid();
+      const nr=Object.assign({},br,{id:newId});
+      state.rows.push(nr);
+      blobRowIdMap[br.id]=newId;
+      labelToId[br.label]=newId;
+    }
+  });
+  // Second pass: child rows
+  blobRows.filter(r=>r.parentId).forEach(br=>{
+    const blobParent=blobRows.find(p=>p.id===br.parentId);
+    const parentLabel=blobParent?blobParent.label:'';
+    const localParentId=blobRowIdMap[br.parentId];
+    const key=parentLabel+'|'+br.label;
+    if(childKeyToId[key]){
+      blobRowIdMap[br.id]=childKeyToId[key];
+    } else {
+      const newId=uid();
+      const nr=Object.assign({},br,{id:newId,parentId:localParentId});
+      // insert after the parent's existing children
+      const parentIdx=state.rows.findIndex(r=>r.id===localParentId);
+      const lastKidIdx=state.rows.reduce((acc,r,i)=>r.parentId===localParentId?i:acc, parentIdx);
+      state.rows.splice(lastKidIdx+1,0,nr);
+      blobRowIdMap[br.id]=newId;
+      childKeyToId[key]=newId;
+    }
+  });
+  // Cols by label
+  const colLblToId={};
+  state.cols.forEach(c=>colLblToId[c.label]=c.id);
+  const blobColIdMap={};
+  blobCols.forEach(bc=>{
+    if(colLblToId[bc.label]) blobColIdMap[bc.id]=colLblToId[bc.label];
+    else {
+      const newId=uid();
+      const nc=Object.assign({},bc,{id:newId});
+      state.cols.push(nc);
+      blobColIdMap[bc.id]=newId;
+      colLblToId[bc.label]=newId;
+    }
+  });
+  return {blobRowIdMap, blobColIdMap};
+}
+
+function importExpMonth(blob){
+  const mk2=currentMK();
+  // Wipe just this month's cells
+  Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) delete state.cells[k]; });
+  const {blobRowIdMap, blobColIdMap}=_mergeRowsCols(blob.rows||[], blob.cols||[]);
+  Object.entries(blob.cells||{}).forEach(([k,v])=>{
+    const parts=k.split('|'); // bMK | rId | cId
+    const rId=blobRowIdMap[parts[1]], cId=blobColIdMap[parts[2]];
+    if(rId&&cId) state.cells[mk2+'|'+rId+'|'+cId]=v;
+  });
+  if(blob.income) state.income[mk2]={gross:blob.income.gross||'',tax:blob.income.tax||''};
+}
+
+function importExpFull(blob, selectedMonths){
+  const {blobRowIdMap, blobColIdMap}=_mergeRowsCols(blob.rows||[], blob.cols||[]);
+  selectedMonths.forEach(mk2=>{
+    // Wipe local cells for this month
+    Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) delete state.cells[k]; });
+    const blobMonthCells=(blob.cellsByMonth||{})[mk2]||{};
+    Object.entries(blobMonthCells).forEach(([k,v])=>{
+      const parts=k.split('|');
+      const rId=blobRowIdMap[parts[1]], cId=blobColIdMap[parts[2]];
+      if(rId&&cId) state.cells[mk2+'|'+rId+'|'+cId]=v;
+    });
+    // Income
+    if(blob.income && blob.income[mk2]) state.income[mk2]={gross:blob.income[mk2].gross||'',tax:blob.income[mk2].tax||''};
+  });
+}
+
+// ── Paste UI ───────────────────────────────────────────────────────────────────
+function openPasteModal(){
+  const overlay=document.createElement('div');overlay.className='share-overlay';
+  const modal=document.createElement('div');modal.className='share-modal';
+  const h=document.createElement('h3');h.textContent='Paste FiApp data';
+  const desc=document.createElement('span');desc.className='share-hint';desc.textContent='Paste a FIAPP-… block copied from another FiApp tracker. Pastes are undoable with Ctrl+Z.';
+  const ta=document.createElement('textarea');ta.placeholder='Paste FIAPP-EXP-… or FIAPP-SUBS-… block here';
+  const status=document.createElement('div');status.className='paste-status';status.textContent='Waiting for input…';
+  const actions=document.createElement('div');actions.className='share-actions';
+  const applyBtn=document.createElement('button');applyBtn.className='btn btn-sm';applyBtn.textContent='Apply';applyBtn.disabled=true;
+  const cancelBtn=document.createElement('button');cancelBtn.className='btn btn-sm btn-ghost';cancelBtn.textContent='Cancel';
+  let parsed=null;
+  function refresh(){
+    const v=ta.value.trim();
+    if(!v){ status.textContent='Waiting for input…'; status.className='paste-status'; applyBtn.disabled=true; parsed=null; return; }
+    try{
+      const obj=decodeBlob(v);
+      parsed=obj;
+      let label='';
+      if(obj.kind==='EXP-MONTH'){
+        const [yy,mm]=obj.monthKey.split('-');
+        label='This month — '+MONTHS_FULL[parseInt(mm,10)-1]+' '+yy;
+      } else if(obj.kind==='EXP-FULL'){
+        const months=Object.keys(obj.cellsByMonth||{}).filter(k=>Object.keys(obj.cellsByMonth[k]).length).length;
+        label='Full data — '+months+' month'+(months===1?'':'s');
+      } else if(obj.kind==='SUBS'){
+        label='Subscription tracker (open the Subscription Tracker page to paste)'; applyBtn.disabled=true; status.textContent='⚠ '+label; status.className='paste-status bad'; return;
+      } else { throw new Error('Unsupported kind: '+obj.kind); }
+      status.textContent='Detected: '+label;status.className='paste-status ok';applyBtn.disabled=false;
+    }catch(err){
+      status.textContent='⚠ '+err.message+' Make sure you copied the entire FIAPP-… line.';
+      status.className='paste-status bad';applyBtn.disabled=true;parsed=null;
+    }
+  }
+  ta.addEventListener('input',refresh);
+  ta.addEventListener('paste',()=>setTimeout(refresh,30));
+  applyBtn.addEventListener('click',()=>{
+    if(!parsed) return;
+    if(parsed.kind==='EXP-MONTH'){
+      snapshot();importExpMonth(parsed);save();render();syncIncomeInputs();
+      overlay.remove();showExportFlash('✓ Pasted (this month)');
+    } else if(parsed.kind==='EXP-FULL'){
+      overlay.remove();showMonthPicker(parsed);
+    }
+  });
+  cancelBtn.addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  actions.appendChild(applyBtn);actions.appendChild(cancelBtn);
+  modal.appendChild(h);modal.appendChild(desc);modal.appendChild(ta);modal.appendChild(status);modal.appendChild(actions);
+  overlay.appendChild(modal);document.body.appendChild(overlay);
+  setTimeout(()=>ta.focus(),20);
+}
+
+function showMonthPicker(blob){
+  const overlay=document.createElement('div');overlay.className='share-overlay';
+  const modal=document.createElement('div');modal.className='share-modal';
+  const h=document.createElement('h3');h.textContent='Choose months to overwrite';
+  const desc=document.createElement('span');desc.className='share-hint';desc.textContent='Pick which months from the pasted blob to apply. Months you don\'t pick stay untouched.';
+  const months=Object.keys(blob.cellsByMonth||{}).filter(k=>Object.keys(blob.cellsByMonth[k]).length).sort();
+  const tools=document.createElement('div');tools.className='picker-tools';
+  const allBtn=document.createElement('button');allBtn.textContent='All';
+  const noneBtn=document.createElement('button');noneBtn.textContent='None';
+  tools.appendChild(allBtn);tools.appendChild(noneBtn);
+  const list=document.createElement('div');list.className='month-picker';
+  const checks=[];
+  months.forEach(mk2=>{
+    const lbl=document.createElement('label');
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;cb.value=mk2;
+    const [yy,mm]=mk2.split('-');
+    const cellCount=Object.keys(blob.cellsByMonth[mk2]).length;
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' '+MONTHS_FULL[parseInt(mm,10)-1]+' '+yy+'   ('+cellCount+' values)'));
+    list.appendChild(lbl);checks.push(cb);
+  });
+  allBtn.addEventListener('click',()=>checks.forEach(c=>c.checked=true));
+  noneBtn.addEventListener('click',()=>checks.forEach(c=>c.checked=false));
+  const actions=document.createElement('div');actions.className='share-actions';
+  const applyBtn=document.createElement('button');applyBtn.className='btn btn-sm';applyBtn.textContent='Apply selected';
+  const cancelBtn=document.createElement('button');cancelBtn.className='btn btn-sm btn-ghost';cancelBtn.textContent='Cancel';
+  applyBtn.addEventListener('click',()=>{
+    const sel=checks.filter(c=>c.checked).map(c=>c.value);
+    if(!sel.length){ alert('Pick at least one month, or click Cancel.'); return; }
+    snapshot();importExpFull(blob,sel);save();render();syncIncomeInputs();
+    overlay.remove();showExportFlash('✓ Pasted '+sel.length+' month'+(sel.length===1?'':'s'));
+  });
+  cancelBtn.addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  actions.appendChild(applyBtn);actions.appendChild(cancelBtn);
+  modal.appendChild(h);modal.appendChild(desc);modal.appendChild(tools);modal.appendChild(list);modal.appendChild(actions);
+  overlay.appendChild(modal);document.body.appendChild(overlay);
+}
 
 function downloadBlob(filename, blob){
   const url=URL.createObjectURL(blob);
@@ -915,6 +1208,8 @@ function showExportMenu(ev){
     {label:'{ } JSON',fn:()=>downloadText(base+'.json',buildJson(),'application/json')},
     {label:'📃 TXT',  fn:()=>downloadText(base+'.txt',buildTxt(),'text/plain;charset=utf-8')},
     {label:'📊 XLSX', fn:()=>exportXlsx(base+'.xlsx')},
+    {label:'📋 Copy table — This month', fn:()=>clipboardWrite(encodeBlob(buildExpMonthBlob())).then(ok=>showExportFlash(ok?'✓ Copied (this month)':'Copy failed'))},
+    {label:'📋 Copy table — Full data',  fn:()=>clipboardWrite(encodeBlob(buildExpFullBlob())).then(ok=>showExportFlash(ok?'✓ Copied (full)':'Copy failed'))},
   ];
   formats.forEach(f=>{
     const btn=document.createElement('button');btn.textContent=f.label;
@@ -944,23 +1239,59 @@ function showShareModal(title,text){
   const modal=document.createElement('div');modal.className='share-modal';
   const h=document.createElement('h3');h.textContent='Share — '+title;
   const ta=document.createElement('textarea');ta.readOnly=true;ta.value=text;
-  const actions=document.createElement('div');actions.className='share-actions';
-  const flash=document.createElement('span');flash.className='share-flash';
-  const copyBtn=document.createElement('button');copyBtn.className='btn btn-sm';copyBtn.textContent='📋 Copy';
-  copyBtn.addEventListener('click',()=>{
-    if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>{flash.textContent='Copied!';setTimeout(()=>flash.textContent='',1800);}).catch(()=>fallbackCopy());}
-    else fallbackCopy();
-    function fallbackCopy(){ta.select();try{document.execCommand('copy');flash.textContent='Copied!';}catch{flash.textContent='Copy failed';}setTimeout(()=>flash.textContent='',1800);}
-  });
+  const hint=document.createElement('span');hint.className='share-hint';
+  hint.textContent='Copy puts a tab-separated version on your clipboard — pastes cleanly into Word, Docs, Excel and Sheets.';
+
+  const tsv=buildTsv();
   const MAX_BODY=1500;
   const bodyText=text.length>MAX_BODY?text.slice(0,MAX_BODY)+'\n…(truncated — use Export for full data)':text;
-  const emailBtn=document.createElement('a');emailBtn.className='btn btn-sm';emailBtn.textContent='📧 Email';
-  emailBtn.href='mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(bodyText);
+
+  const actions=document.createElement('div');actions.className='share-actions';
+  const flash=document.createElement('span');flash.className='share-flash';
+
+  // 📋 Copy (TSV)
+  const copyBtn=document.createElement('button');copyBtn.className='btn btn-sm';copyBtn.textContent='📋 Copy';
+  copyBtn.addEventListener('click',()=>{
+    clipboardWrite(tsv).then(ok=>{
+      flash.textContent=ok?'Copied (TSV)!':'Copy failed';
+      setTimeout(()=>flash.textContent='',1800);
+    });
+  });
+
+  // 📧 Email as Text
+  const emailTextBtn=document.createElement('a');emailTextBtn.className='btn btn-sm';emailTextBtn.textContent='📧 Email as Text';
+  emailTextBtn.href=gmailHref(title,bodyText);emailTextBtn.target='_blank';emailTextBtn.rel='noopener noreferrer';
+
+  // 📧 Email as XLSX (download + open Gmail)
+  const emailXlsxBtn=document.createElement('a');emailXlsxBtn.className='btn btn-sm';emailXlsxBtn.textContent='📧 Email as XLSX';
+  const ym=String(state.currentYear)+'-'+String(state.currentMonth+1).padStart(2,'0');
+  const xlsxBody='I\'m sharing my FiApp expenses spreadsheet — please find the attached XLSX file (saved to your Downloads folder).\n\nFile: expenses-'+ym+'.xlsx';
+  emailXlsxBtn.href=gmailHref(title,xlsxBody);emailXlsxBtn.target='_blank';emailXlsxBtn.rel='noopener noreferrer';
+  emailXlsxBtn.addEventListener('click',()=>{
+    // Trigger XLSX download first; the link still opens in the new tab
+    exportXlsx('expenses-'+ym+'.xlsx');
+    flash.textContent='XLSX downloading — drag it into Gmail to attach.';
+    setTimeout(()=>flash.textContent='',5000);
+  });
+
+  // 📧 Email as FiApp Paste-link
+  const emailPasteBtn=document.createElement('a');emailPasteBtn.className='btn btn-sm';emailPasteBtn.textContent='📧 Email as Paste-link';
+  const blob=encodeBlob(buildExpFullBlob());
+  const pasteBody='I\'m sharing my FiApp expense data. Paste this entire block into the FiApp Expense Tracker (📋 Paste button) to load everything:\n\n'+blob;
+  emailPasteBtn.href=gmailHref(title,pasteBody);emailPasteBtn.target='_blank';emailPasteBtn.rel='noopener noreferrer';
+
   const closeBtn=document.createElement('button');closeBtn.className='btn btn-sm btn-ghost';closeBtn.textContent='Close';
   closeBtn.addEventListener('click',()=>overlay.remove());
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-  actions.appendChild(flash);actions.appendChild(copyBtn);actions.appendChild(emailBtn);actions.appendChild(closeBtn);
-  modal.appendChild(h);modal.appendChild(ta);modal.appendChild(actions);
+
+  actions.appendChild(flash);
+  actions.appendChild(copyBtn);
+  actions.appendChild(emailTextBtn);
+  actions.appendChild(emailXlsxBtn);
+  actions.appendChild(emailPasteBtn);
+  actions.appendChild(closeBtn);
+
+  modal.appendChild(h);modal.appendChild(ta);modal.appendChild(hint);modal.appendChild(actions);
   overlay.appendChild(modal);document.body.appendChild(overlay);
 }
 
