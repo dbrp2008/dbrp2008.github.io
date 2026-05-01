@@ -103,6 +103,29 @@
     .empty-msg{text-align:center;padding:2rem;color:#9ca3af;border:1px dashed #d1d5db;font-size:.85rem;}
     .cancelled-row td{opacity:.55;}
     .cancelled-row .c-text,.cancelled-row .c-num{text-decoration:line-through;}
+
+    /* Inline custom-currency form (replaces cell-curr-sel when 'Other…' picked) */
+    .curr-other-cell{display:flex;align-items:center;gap:2px;padding:2px;background:#fff;}
+    .curr-other-cell input{width:48px;padding:2px 3px;border:1px solid #d1d5db;border-radius:3px;font-size:.72rem;text-transform:uppercase;outline:none;}
+    .curr-other-cell input:focus{border-color:#0366d6;}
+    .curr-other-cell button{border:none;background:#0366d6;color:#fff;font-size:.7rem;padding:2px 5px;border-radius:3px;cursor:pointer;}
+    .curr-other-cell .x{background:#9ca3af;}
+    .curr-other-err{position:absolute;right:0;top:100%;background:#fee2e2;color:#991b1b;font-size:.68rem;padding:1px 4px;border-radius:3px;border:1px solid #fca5a5;white-space:nowrap;z-index:10;}
+
+    /* Export menu */
+    .export-menu{position:fixed;z-index:9999;background:#fff;border:1px solid #d1d5db;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:170px;}
+    .export-menu button{display:block;width:100%;text-align:left;padding:.45rem .8rem;font-size:.85rem;border:none;background:none;cursor:pointer;color:#374151;}
+    .export-menu button:hover{background:#f3f4f6;}
+    .export-menu button + button{border-top:1px solid #f3f4f6;}
+
+    /* Share modal */
+    .share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;}
+    .share-modal{background:#fff;border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:.6rem;}
+    .share-modal h3{margin:0;font-size:1rem;color:#374151;}
+    .share-modal textarea{width:100%;min-height:200px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78rem;border:1px solid #d1d5db;border-radius:5px;padding:.5rem;resize:vertical;}
+    .share-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;}
+    .share-actions .btn{padding:.4rem .8rem;font-size:.85rem;}
+    .share-flash{font-size:.78rem;color:#15803d;font-weight:600;}
   </style>
 </head>
 <body>
@@ -183,6 +206,8 @@
     <button class="btn btn-sm" id="redo-btn" onclick="redo()" disabled>↪ Redo</button>
     <button class="btn btn-sm" onclick="addCol()">+ Column</button>
     <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
+    <button class="btn btn-sm" id="export-btn" onclick="showExportMenu(event)">📥 Export</button>
+    <button class="btn btn-sm" id="share-btn" onclick="shareSheet()">📤 Share</button>
     <button class="btn btn-sm" id="reset-btn" onclick="resetAll()" style="background:#dc2626">Reset</button>
   </div>
 
@@ -667,6 +692,212 @@ function attachRowResize(handle,row,tr){
   });
 }
 
+// ── Per-cell currency: helpers for custom codes ───────────────────────────────
+function getAllUsedCurrencies(){
+  const set=new Set(CELL_CURRENCIES);
+  Object.values(state.rowCurrencies||{}).forEach(c=>{ if(c) set.add(c); });
+  return [...set];
+}
+function showCellCurrencyOther(wrap, sel, row){
+  // Replace the select with an inline input + ✓ / ✕ buttons
+  sel.style.display='none';
+  const form=document.createElement('span'); form.className='curr-other-cell';
+  const inp=document.createElement('input'); inp.type='text'; inp.maxLength=5; inp.placeholder='VND';
+  const ok=document.createElement('button'); ok.textContent='✓'; ok.title='Apply';
+  const cancel=document.createElement('button'); cancel.textContent='✕'; cancel.title='Cancel'; cancel.className='x';
+  form.appendChild(inp); form.appendChild(ok); form.appendChild(cancel);
+  wrap.appendChild(form);
+  setTimeout(()=>inp.focus(),20);
+
+  function showErr(msg){
+    const old=form.querySelector('.curr-other-err'); if(old) old.remove();
+    const e=document.createElement('span'); e.className='curr-other-err'; e.textContent=msg;
+    form.style.position='relative';
+    form.appendChild(e);
+  }
+  function close(){ form.remove(); sel.style.display=''; sel.value=rowCurrency(row.id); }
+  async function apply(){
+    const code=inp.value.trim().toUpperCase();
+    if(!code){ showErr('Enter a code.'); return; }
+    if(!/^[A-Z]{2,5}$/.test(code)){ showErr('2–5 letters only.'); return; }
+    if(code==='USD'){ // USD doesn't need a rate
+      setRowCurrency(row.id,code); close(); render(); recalcTotals(); renderChart(); return;
+    }
+    ok.disabled=true; ok.textContent='…';
+    await ensureRate(code);
+    if(!ratesCache[code]){ showErr('Unknown currency: '+code); ok.disabled=false; ok.textContent='✓'; return; }
+    setRowCurrency(row.id,code);
+    close();
+    render(); recalcTotals(); renderChart();
+  }
+  ok.addEventListener('click',e=>{ e.stopPropagation(); apply(); });
+  cancel.addEventListener('click',e=>{ e.stopPropagation(); close(); });
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){ e.preventDefault(); apply(); }
+    if(e.key==='Escape'){ close(); }
+  });
+}
+
+// ── Export & Share helpers ─────────────────────────────────────────────────────
+// NOTE: these helpers are intentionally duplicated in templates copy/expenses.html
+// (each HTML file is self-contained for GitHub Pages — no shared JS file). Keep in sync.
+function pad(s,n){ s=String(s); return s.length>=n?s:s+' '.repeat(n-s.length); }
+function csvEsc(v){
+  v=v==null?'':String(v);
+  if(/[",\n]/.test(v)) return '"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+function buildSubsRowsArray(){
+  const colLabels=['Service','Cost','Cost Currency','Billing','Start Date','Cancel Date','Trial','Status','Notes','Monthly (USD)','Yearly (USD)'];
+  const out=[colLabels];
+  const svcCol=colByType('text'), costCol=colByType('number'), billCol=colByType('billing'),
+        startCol=colByType('date'), cancelCol=colByType('canceldate'),
+        trialCol=colByType('trial'), statusCol=colByType('status');
+  // Notes col = the second 'text' column (last in cols)
+  const notesCol=state.cols.filter(c=>c.ctype==='text')[1];
+  state.rows.forEach(r=>{
+    const m=calcMonthCost(r,state.currentYear,state.currentMonth);
+    const y=calcYearlyCost(r,state.currentYear);
+    out.push([
+      svcCol?getCell(r.id,svcCol.id):'',
+      costCol?getCell(r.id,costCol.id):'',
+      rowCurrency(r.id),
+      billCol?getCell(r.id,billCol.id):'',
+      startCol?getCell(r.id,startCol.id):'',
+      cancelCol?getCell(r.id,cancelCol.id):'',
+      trialCol?getCell(r.id,trialCol.id):'',
+      statusCol?getCell(r.id,statusCol.id):'',
+      notesCol?getCell(r.id,notesCol.id):'',
+      m.toFixed(2),
+      y.toFixed(2),
+    ]);
+  });
+  // Footer totals
+  let mUSD=0,yUSD=0;
+  state.rows.forEach(r=>{ mUSD+=calcMonthCost(r,state.currentYear,state.currentMonth); yUSD+=calcYearlyCost(r,state.currentYear); });
+  out.push(['TOTAL','','','','','','','','',mUSD.toFixed(2),yUSD.toFixed(2)]);
+  return out;
+}
+function buildCsv(){ return buildSubsRowsArray().map(r=>r.map(csvEsc).join(',')).join('\n'); }
+function buildJson(){
+  return JSON.stringify({
+    type:'fiapp_subscriptions_export', version:1,
+    month:state.currentMonth+1, year:state.currentYear,
+    displayCurrency:state.displayCurrency,
+    rowCurrencies:state.rowCurrencies||{},
+    rows:state.rows, cols:state.cols, cells:state.cells,
+  },null,2);
+}
+function buildTxt(){
+  const arr=buildSubsRowsArray();
+  // Compute per-column max width
+  const widths=arr[0].map((_,i)=>Math.max(...arr.map(r=>String(r[i]==null?'':r[i]).length)));
+  const lines=arr.map((r,ri)=>r.map((v,i)=>pad(v==null?'':v,widths[i])).join(' │ '));
+  const sep='─'.repeat(lines[0].length);
+  const title='FiApp Subscriptions — '+MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
+  return title+'\n'+sep+'\n'+lines[0]+'\n'+sep+'\n'+lines.slice(1,-1).join('\n')+'\n'+sep+'\n'+lines[lines.length-1]+'\n';
+}
+function downloadBlob(name,blob){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function downloadText(name,text,mime){
+  downloadBlob(name,new Blob([text],{type:mime||'text/plain;charset=utf-8'}));
+}
+let _xlsxLoading=null;
+function lazyLoadXlsx(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  if(_xlsxLoading) return _xlsxLoading;
+  _xlsxLoading=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=()=>resolve(window.XLSX);
+    s.onerror=()=>reject(new Error('Failed to load XLSX library'));
+    document.head.appendChild(s);
+  });
+  return _xlsxLoading;
+}
+async function exportXlsx(filename){
+  try{
+    const XLSX=await lazyLoadXlsx();
+    const ws=XLSX.utils.aoa_to_sheet(buildSubsRowsArray());
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Subscriptions');
+    XLSX.writeFile(wb,filename);
+  }catch(e){
+    alert('Could not download XLSX: '+e.message);
+  }
+}
+let _exportMenuEl=null;
+function closeExportMenu(){ if(_exportMenuEl){ _exportMenuEl.remove(); _exportMenuEl=null; } }
+document.addEventListener('click',e=>{ if(_exportMenuEl && !e.target.closest('#export-btn') && !e.target.closest('.export-menu')) closeExportMenu(); });
+function showExportMenu(ev){
+  if(_exportMenuEl){ closeExportMenu(); return; }
+  ev.stopPropagation();
+  const btn=ev.currentTarget||document.getElementById('export-btn');
+  const base='subscriptions-'+state.currentYear+'-'+String(state.currentMonth+1).padStart(2,'0');
+  const menu=document.createElement('div'); menu.className='export-menu';
+  const formats=[
+    {label:'📊 CSV',  fn:()=>downloadText(base+'.csv', buildCsv(), 'text/csv;charset=utf-8')},
+    {label:'📄 JSON', fn:()=>downloadText(base+'.json',buildJson(),'application/json;charset=utf-8')},
+    {label:'📝 TXT',  fn:()=>downloadText(base+'.txt', buildTxt(), 'text/plain;charset=utf-8')},
+    {label:'📈 XLSX (Excel)', fn:()=>exportXlsx(base+'.xlsx')},
+  ];
+  formats.forEach(f=>{
+    const b=document.createElement('button'); b.textContent=f.label;
+    b.addEventListener('click',e=>{ e.stopPropagation(); f.fn(); closeExportMenu(); });
+    menu.appendChild(b);
+  });
+  const rect=btn.getBoundingClientRect();
+  menu.style.top=(rect.bottom+4)+'px';
+  menu.style.left=rect.left+'px';
+  document.body.appendChild(menu);
+  _exportMenuEl=menu;
+}
+
+async function shareSheet(){
+  const text=buildTxt();
+  const title='FiApp Subscriptions — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  if(isMobile && navigator.share){
+    try{ await navigator.share({title,text}); return; }catch{}
+  }
+  showShareModal(title,text);
+}
+function showShareModal(title,text){
+  const overlay=document.createElement('div'); overlay.className='share-overlay';
+  const modal=document.createElement('div'); modal.className='share-modal';
+  modal.innerHTML=`
+    <h3>${title}</h3>
+    <textarea readonly></textarea>
+    <div class="share-actions">
+      <span class="share-flash" style="display:none">Copied!</span>
+      <button type="button" class="btn btn-sm" id="share-copy">📋 Copy</button>
+      <button type="button" class="btn btn-sm" id="share-email">📧 Email</button>
+      <button type="button" class="btn btn-sm" id="share-close" style="background:#9ca3af">Close</button>
+    </div>`;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  modal.querySelector('textarea').value=text;
+  const flash=modal.querySelector('.share-flash');
+  modal.querySelector('#share-copy').addEventListener('click',async()=>{
+    try{ await navigator.clipboard.writeText(text); flash.style.display=''; setTimeout(()=>flash.style.display='none',1500); }
+    catch{ modal.querySelector('textarea').select(); document.execCommand('copy'); flash.style.display=''; setTimeout(()=>flash.style.display='none',1500); }
+  });
+  modal.querySelector('#share-email').addEventListener('click',()=>{
+    const MAX=1500;
+    let body=text;
+    if(body.length>MAX) body=body.slice(0,MAX)+'\n…(truncated — use Export to send full data)';
+    window.location.href='mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);
+  });
+  function close(){ overlay.remove(); }
+  modal.querySelector('#share-close').addEventListener('click',close);
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) close(); });
+}
+
 // ── Cell factory ───────────────────────────────────────────────────────────────
 function makeCellEl(row,col){
   const v=getCell(row.id,col.id);
@@ -684,8 +915,17 @@ function makeCellEl(row,col){
     wrap.appendChild(inp);
     const cur=rowCurrency(row.id);
     const sel=document.createElement('select'); sel.className='cell-curr-sel'; sel.title='Cost currency for this subscription';
-    CELL_CURRENCIES.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; if(c===cur) o.selected=true; sel.appendChild(o); });
+    // Combined list: built-ins + any custom codes the user has used
+    const codes=getAllUsedCurrencies();
+    if(!codes.includes(cur)) codes.push(cur);
+    codes.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; if(c===cur) o.selected=true; sel.appendChild(o); });
+    const otherOpt=document.createElement('option'); otherOpt.value='__other__'; otherOpt.textContent='Other…'; sel.appendChild(otherOpt);
     sel.addEventListener('change',()=>{
+      if(sel.value==='__other__'){
+        // Inline-replace the select with a small custom-input form
+        showCellCurrencyOther(wrap, sel, row);
+        return;
+      }
       setRowCurrency(row.id,sel.value);
       ensureRate(sel.value).then(()=>{ recalcTotals(); renderChart(); });
     });
