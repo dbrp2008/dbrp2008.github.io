@@ -188,7 +188,7 @@
     <div class="income-grid" id="income-grid">
       <div class="income-field">
         <label>Gross Monthly Income ($)</label>
-        <input type="number" id="inp-gross" min="0" step="0.01" placeholder="0.00" oninput="onIncomeInput()">
+        <input type="number" id="inp-gross" min="0" step="0.01" placeholder="0.00" oninput="onGrossInput()">
       </div>
       <div class="income-field">
         <label>Monthly Tax / Deductions ($) <a href="./tax.html" id="tax-link" style="font-weight:400;font-size:.75rem">— calculate →</a></label>
@@ -463,6 +463,12 @@ function monthIncomeObj(){
   }
   return state.income[key];
 }
+function onGrossInput(){
+  // Changing gross wipes any previously-entered tax so the user starts fresh.
+  const taxEl=document.getElementById('inp-tax');
+  taxEl.value='';
+  onIncomeInput();
+}
 function onIncomeInput(){
   const gross=document.getElementById('inp-gross').value;
   const tax  =document.getElementById('inp-tax').value;
@@ -701,7 +707,10 @@ function resetAll(){
   const btn=document.getElementById('reset-btn');
   if(btn.dataset.arm){
     clearTimeout(resetTimer); delete btn.dataset.arm; btn.textContent='Reset'; btn.style.background='#dc2626';
-    snapshot(); state=freshState(); save(); render(); syncIncomeInputs();
+    snapshot(); state=freshState();
+    localStorage.removeItem(TAX_KEY);
+    localStorage.removeItem(PREFILL_KEY);
+    save(); render(); syncIncomeInputs();
   } else {
     btn.dataset.arm='1'; btn.textContent='Sure?'; btn.style.background='#991b1b';
     resetTimer=setTimeout(()=>{delete btn.dataset.arm;btn.textContent='Reset';btn.style.background='#dc2626';},2500);
