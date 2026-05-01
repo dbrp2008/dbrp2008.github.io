@@ -5,6 +5,12 @@
   <title>Currency Converter</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="./styles.css">
+  <style>
+    .curr-row{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.25rem;}
+    .curr-row select{padding:6px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:.92rem;}
+    .curr-row input[type="text"]{padding:6px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:.92rem;width:90px;text-transform:uppercase;}
+    .curr-row .other-btn{padding:.35rem .7rem;font-size:.85rem;}
+  </style>
 </head>
 <body>
   <div class="nav">
@@ -16,16 +22,26 @@
 
   <form id="currency-form">
     <div>
-      <label for="currency_i">From Currency (e.g: HKD, USD)</label>
-      <input name="currency_i" id="currency_i" required placeholder="e.g. USD">
+      <label for="currency_i">From Currency</label>
+      <div class="curr-row">
+        <select id="currency_i" required></select>
+        <input type="text" id="currency_i_other" placeholder="e.g. VND" maxlength="5" style="display:none;">
+        <button type="button" class="btn other-btn" id="currency_i_other_btn" onclick="applyOtherFrom()" style="display:none;">OK</button>
+        <span id="currency_i_note" style="font-size:.8rem;color:#6b7280;"></span>
+      </div>
     </div>
     <div>
       <label for="currency_a">Amount</label>
       <input name="currency_a" id="currency_a" type="number" step="any" required placeholder="e.g. 100">
     </div>
     <div>
-      <label for="currency_o">To Currency (e.g: AED, EUR)</label>
-      <input name="currency_o" id="currency_o" required placeholder="e.g. AED">
+      <label for="currency_o">To Currency</label>
+      <div class="curr-row">
+        <select id="currency_o" required></select>
+        <input type="text" id="currency_o_other" placeholder="e.g. VND" maxlength="5" style="display:none;">
+        <button type="button" class="btn other-btn" id="currency_o_other_btn" onclick="applyOtherTo()" style="display:none;">OK</button>
+        <span id="currency_o_note" style="font-size:.8rem;color:#6b7280;"></span>
+      </div>
     </div>
     <br>
     <button class="btn" type="submit" id="conv-btn">Convert</button>
@@ -38,78 +54,151 @@
 <script>
 const API_KEY = '081a97e88979627d1194f7ee';
 
-function showError(msg){
-  const area = document.getElementById('msg-area');
-  area.innerHTML = '<div class="error">' + msg + '</div>';
-  document.getElementById('result-box').style.display = 'none';
-}
-function clearMsg(){ document.getElementById('msg-area').innerHTML = ''; }
+const CURRENCIES = [
+  {code:'USD', name:'US Dollar'}, {code:'EUR', name:'Euro'},
+  {code:'GBP', name:'British Pound'}, {code:'JPY', name:'Japanese Yen'},
+  {code:'CNY', name:'Chinese Yuan'}, {code:'HKD', name:'Hong Kong Dollar'},
+  {code:'SGD', name:'Singapore Dollar'}, {code:'AED', name:'UAE Dirham'},
+  {code:'CAD', name:'Canadian Dollar'}, {code:'AUD', name:'Australian Dollar'},
+  {code:'NZD', name:'New Zealand Dollar'}, {code:'CHF', name:'Swiss Franc'},
+  {code:'INR', name:'Indian Rupee'}, {code:'KRW', name:'South Korean Won'},
+  {code:'THB', name:'Thai Baht'}, {code:'MYR', name:'Malaysian Ringgit'},
+  {code:'IDR', name:'Indonesian Rupiah'}, {code:'PHP', name:'Philippine Peso'},
+  {code:'VND', name:'Vietnamese Dong'}, {code:'TWD', name:'Taiwan Dollar'},
+  {code:'MXN', name:'Mexican Peso'}, {code:'BRL', name:'Brazilian Real'},
+  {code:'ARS', name:'Argentine Peso'}, {code:'ZAR', name:'South African Rand'},
+  {code:'EGP', name:'Egyptian Pound'}, {code:'NGN', name:'Nigerian Naira'},
+  {code:'TRY', name:'Turkish Lira'}, {code:'SEK', name:'Swedish Krona'},
+  {code:'NOK', name:'Norwegian Krone'}, {code:'DKK', name:'Danish Krone'},
+  {code:'PLN', name:'Polish Zloty'}, {code:'CZK', name:'Czech Koruna'},
+  {code:'PKR', name:'Pakistani Rupee'}, {code:'BDT', name:'Bangladeshi Taka'},
+  {code:'SAR', name:'Saudi Riyal'}, {code:'ILS', name:'Israeli Shekel'},
+];
 
+// Populate the two dropdowns
+function populateSelects(){
+  ['currency_i','currency_o'].forEach((id,idx)=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML='';
+    const placeholder=document.createElement('option');
+    placeholder.value=''; placeholder.textContent='— select —';
+    placeholder.disabled=true; placeholder.selected=true;
+    sel.appendChild(placeholder);
+    CURRENCIES.forEach(c=>{
+      const opt=document.createElement('option');
+      opt.value=c.code; opt.textContent=c.name+' — '+c.code;
+      sel.appendChild(opt);
+    });
+    const other=document.createElement('option');
+    other.value='__other__'; other.textContent='Other…';
+    sel.appendChild(other);
+    sel.addEventListener('change',()=>onSelChange(id));
+  });
+  // Sensible defaults
+  document.getElementById('currency_i').value='USD';
+  document.getElementById('currency_o').value='HKD';
+}
+populateSelects();
+
+function onSelChange(id){
+  const sel=document.getElementById(id);
+  const inp=document.getElementById(id+'_other');
+  const btn=document.getElementById(id+'_other_btn');
+  const note=document.getElementById(id+'_note');
+  if(sel.value==='__other__'){
+    inp.style.display='inline-block';
+    btn.style.display='inline-block';
+    note.textContent='Enter a code (2–5 letters) and click OK.';
+    inp.focus();
+  } else {
+    inp.style.display='none';
+    btn.style.display='none';
+    note.textContent='';
+  }
+}
+
+function applyOther(id){
+  const inp=document.getElementById(id+'_other');
+  const note=document.getElementById(id+'_note');
+  const sel=document.getElementById(id);
+  const raw=inp.value.trim().toUpperCase();
+  if(!raw){ note.textContent='Enter a currency code.'; note.style.color='#dc2626'; return; }
+  if(!/^[A-Z]{2,5}$/.test(raw)){
+    note.textContent='Use 2–5 letters (e.g. THB, VND).'; note.style.color='#dc2626'; return;
+  }
+  // Add as ad-hoc option (or select existing)
+  let opt=[...sel.options].find(o=>o.value===raw);
+  if(!opt){
+    opt=document.createElement('option');
+    opt.value=raw; opt.textContent=raw+' (custom)';
+    // insert before the __other__ option
+    sel.insertBefore(opt, sel.querySelector('option[value="__other__"]'));
+  }
+  sel.value=raw;
+  inp.style.display='none';
+  document.getElementById(id+'_other_btn').style.display='none';
+  note.textContent=''; note.style.color='#6b7280';
+  inp.value='';
+}
+function applyOtherFrom(){ applyOther('currency_i'); }
+function applyOtherTo(){ applyOther('currency_o'); }
+
+function showError(msg){
+  document.getElementById('msg-area').innerHTML='<div class="error">'+msg+'</div>';
+  document.getElementById('result-box').style.display='none';
+}
+function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
 function showInfo(msg){
-  const area = document.getElementById('msg-area');
-  area.innerHTML = '<div class="success">' + msg + '</div>';
+  document.getElementById('msg-area').innerHTML='<div class="success">'+msg+'</div>';
 }
 
 document.getElementById('currency-form').addEventListener('submit', async function(e){
   e.preventDefault();
   clearMsg();
 
-  const fromRaw = document.getElementById('currency_i').value.trim().toUpperCase();
-  const toRaw   = document.getElementById('currency_o').value.trim().toUpperCase();
-  const amount  = parseFloat(document.getElementById('currency_a').value);
+  const fromSel=document.getElementById('currency_i').value;
+  const toSel=document.getElementById('currency_o').value;
+  if(!fromSel||fromSel==='__other__'){ showError('Please select a "From" currency (or apply a custom code).'); return; }
+  if(!toSel||toSel==='__other__'){ showError('Please select a "To" currency (or apply a custom code).'); return; }
+  const amount=parseFloat(document.getElementById('currency_a').value);
+  if(isNaN(amount)||amount<0){ showError('Please enter a valid non-negative amount.'); return; }
 
-  // Validation
-  if(!/^[A-Z]{2,5}$/.test(fromRaw)){
-    showError('Invalid "From" currency code. Use 2–5 letters (e.g. USD, HKD).');
-    return;
-  }
-  if(!/^[A-Z]{2,5}$/.test(toRaw)){
-    showError('Invalid "To" currency code. Use 2–5 letters (e.g. AED, EUR).');
-    return;
-  }
-  if(isNaN(amount) || amount < 0){
-    showError('Please enter a valid non-negative amount.');
-    return;
-  }
+  const fromRaw=fromSel.toUpperCase();
+  const toRaw=toSel.toUpperCase();
 
-  const btn = document.getElementById('conv-btn');
-  btn.disabled = true;
-  btn.textContent = 'Fetching…';
+  const btn=document.getElementById('conv-btn');
+  btn.disabled=true; btn.textContent='Fetching…';
   showInfo('Fetching exchange rate…');
 
   try{
-    const url = 'https://v6.exchangerate-api.com/v6/' + API_KEY + '/latest/' + fromRaw;
-    const resp = await fetch(url);
-    const data = await resp.json();
+    const url='https://v6.exchangerate-api.com/v6/'+API_KEY+'/latest/'+fromRaw;
+    const resp=await fetch(url);
+    const data=await resp.json();
 
-    if(data.result !== 'success'){
-      const errType = data['error-type'] || 'unknown-error';
-      if(errType === 'unsupported-code'){
-        showError('Unknown currency code: "' + fromRaw + '". Please check and try again.');
-      } else {
-        showError('Exchange rate API error: ' + errType);
-      }
+    if(data.result!=='success'){
+      const errType=data['error-type']||'unknown-error';
+      if(errType==='unsupported-code') showError('Unknown currency code: "'+fromRaw+'". Please check and try again.');
+      else showError('Exchange rate API error: '+errType);
       return;
     }
 
-    const rate = data.conversion_rates[toRaw];
-    if(rate === undefined){
-      showError('Unknown target currency code: "' + toRaw + '". Please check and try again.');
+    const rate=data.conversion_rates[toRaw];
+    if(rate===undefined){
+      showError('Unknown target currency code: "'+toRaw+'". Please check and try again.');
       return;
     }
 
-    const converted = (amount * rate).toFixed(4);
+    const converted=(amount*rate).toFixed(4);
     clearMsg();
-    document.getElementById('result-text').innerHTML =
-      '<strong>' + amount + ' ' + fromRaw + '</strong> = <strong>' + converted + ' ' + toRaw + '</strong>'
-      + '<br><small style="color:#6b7280">Rate: 1 ' + fromRaw + ' = ' + rate.toFixed(6) + ' ' + toRaw + '</small>';
-    document.getElementById('result-box').style.display = 'block';
+    document.getElementById('result-text').innerHTML=
+      '<strong>'+amount+' '+fromRaw+'</strong> = <strong>'+converted+' '+toRaw+'</strong>'
+      +'<br><small style="color:#6b7280">Rate: 1 '+fromRaw+' = '+rate.toFixed(6)+' '+toRaw+'</small>';
+    document.getElementById('result-box').style.display='block';
 
   }catch(err){
     showError('Network error — could not fetch exchange rates. Check your connection.');
   }finally{
-    btn.disabled = false;
-    btn.textContent = 'Convert';
+    btn.disabled=false; btn.textContent='Convert';
   }
 });
 </script>
