@@ -131,6 +131,7 @@ function applyOther(id){
   if(!opt){
     opt=document.createElement('option');
     opt.value=raw; opt.textContent=raw+' (custom)';
+    opt.dataset.custom='1';
     // insert before the __other__ option
     sel.insertBefore(opt, sel.querySelector('option[value="__other__"]'));
   }
@@ -146,6 +147,12 @@ function applyOtherTo(){ applyOther('currency_o'); }
 function showError(msg){
   document.getElementById('msg-area').innerHTML='<div class="error">'+msg+'</div>';
   document.getElementById('result-box').style.display='none';
+}
+function dropBadCustom(selectId, code){
+  const s=document.getElementById(selectId);
+  const bad=[...s.options].find(o=>o.value===code && o.dataset.custom==='1');
+  if(bad) bad.remove();
+  if(s.value===''||s.value===code) s.value=(selectId==='currency_i'?'USD':'HKD');
 }
 function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
 function showInfo(msg){
@@ -177,14 +184,17 @@ document.getElementById('currency-form').addEventListener('submit', async functi
 
     if(data.result!=='success'){
       const errType=data['error-type']||'unknown-error';
-      if(errType==='unsupported-code') showError('Unknown currency code: "'+fromRaw+'". Please check and try again.');
-      else showError('Exchange rate API error: '+errType);
+      if(errType==='unsupported-code'){
+        showError('Unknown currency code: "'+fromRaw+'". Please check and try again.');
+        dropBadCustom('currency_i', fromRaw);
+      } else showError('Exchange rate API error: '+errType);
       return;
     }
 
     const rate=data.conversion_rates[toRaw];
     if(rate===undefined){
       showError('Unknown target currency code: "'+toRaw+'". Please check and try again.');
+      dropBadCustom('currency_o', toRaw);
       return;
     }
 
