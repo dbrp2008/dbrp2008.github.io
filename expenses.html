@@ -4,10 +4,21 @@
   <meta charset="utf-8"/>
   <title>Expense Tracker – FiApp</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <script>
+    (function(){
+      var pref=localStorage.getItem('fiapp_theme');
+      var dark = pref==='dark' || (!pref && matchMedia('(prefers-color-scheme: dark)').matches);
+      if(dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
   <link rel="stylesheet" href="./styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .toolbar{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
+    .toolbar-row-1,.toolbar-row-2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;}
+    .toolbar-row-1{margin-bottom:.4rem;}
+    .toolbar-row-2{margin-bottom:.75rem;}
+    .month-jump{padding:.3rem .55rem;border:1px solid var(--input-border);border-radius:6px;font-size:.95rem;font-weight:700;background:var(--input-bg);color:var(--fg);cursor:pointer;min-width:160px;}
     .btn-sm{padding:.35rem .7rem;font-size:.85rem;}
     .btn-ghost{background:#e5e7eb;color:#374151;border:none;border-radius:6px;cursor:pointer;padding:.35rem .7rem;font-size:.85rem;}
     .btn-ghost:hover{background:#d1d5db;}
@@ -151,13 +162,24 @@
   </style>
 </head>
 <body>
-  <div class="nav"><a href="./index.html">← Home</a></div>
+  <div class="nav">
+    <a href="./index.html">← Home</a>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+  </div>
+  <script>
+  function toggleTheme(){
+    const d=document.documentElement.classList.toggle('dark');
+    localStorage.setItem('fiapp_theme', d?'dark':'light');
+    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+  }
+  if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  </script>
   <h1>Expense Tracker</h1>
   <p style="color:#6b7280;font-size:.88rem;margin-top:0">Monthly expenses by category. Click "+Sub" on a row to add a subcategory. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
 
   <div class="month-nav">
     <button id="prev-btn" onclick="shiftMonth(-1)">◀ Prev</button>
-    <span class="month-label" id="month-label"></span>
+    <select id="month-jump" class="month-jump" onchange="jumpToMonth(this.value)"></select>
     <button id="next-btn" onclick="shiftMonth(1)">Next ▶</button>
   </div>
 
@@ -196,13 +218,15 @@
     </div>
   </div>
 
-  <div class="toolbar">
+  <div class="toolbar-row-1">
     <button class="btn btn-sm" id="undo-btn" onclick="undo()" disabled>↩ Undo</button>
     <button class="btn btn-sm" id="redo-btn" onclick="redo()" disabled>↪ Redo</button>
     <button class="btn btn-sm" onclick="addRow()">+ Row</button>
     <button class="btn btn-sm" onclick="addCol()">+ Column</button>
-    <button class="btn btn-sm btn-ghost" onclick="expandAll()">▾ Expand All</button>
-    <button class="btn btn-sm btn-ghost" onclick="collapseAll()">▸ Collapse All</button>
+    <button class="btn btn-sm btn-ghost" id="expand-btn" onclick="expandAll()" style="display:none">▾ Expand All</button>
+    <button class="btn btn-sm btn-ghost" id="collapse-btn" onclick="collapseAll()" style="display:none">▸ Collapse All</button>
+  </div>
+  <div class="toolbar-row-2">
     <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
     <button class="btn btn-sm" id="export-btn" onclick="showExportMenu(event)">📥 Export</button>
     <button class="btn btn-sm" id="share-btn" onclick="shareSheet()">📤 Share</button>
@@ -231,6 +255,18 @@ const PREFILL_KEY = 'fiapp_prefill_income';
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTHS_SHORT= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+const SUBS_KEY='fiapp_subs_v4';
+const EXPENSE_API_KEY='081a97e88979627d1194f7ee';
+const expRatesCache={};
+async function fetchExpRates(){
+  if(Object.keys(expRatesCache).length) return;
+  try{
+    const r=await fetch('https://v6.exchangerate-api.com/v6/'+EXPENSE_API_KEY+'/latest/USD');
+    const d=await r.json();
+    if(d.result==='success') Object.assign(expRatesCache,d.conversion_rates);
+  }catch{}
+}
+
 const CATEGORIES = {
   'Groceries':    ['Fresh Produce','Dairy & Eggs','Meat & Seafood','Bakery','Frozen Foods','Snacks & Candy','Beverages','Household Supplies','Pet Supplies'],
   'Entertainment':['Streaming Services','Movies & Cinema','Concerts & Events','Sports Events','Video Games','Books & Magazines','Hobbies','Nightlife'],
@@ -258,7 +294,7 @@ function freshState(){
   return {
     rows:[
       {id:uid(),label:'Groceries',    color:'#bbf7d0',textColor:'#1f2937',height:36,parentId:null},
-      {id:uid(),label:'Entertainment',color:'#bfdbfe',textColor:'#1f2937',height:36,parentId:null},
+      {id:uid(),label:'Subscriptions',color:'#bfdbfe',textColor:'#1f2937',height:36,parentId:null,linked:'subscriptions'},
       {id:uid(),label:'Travel',       color:'#fed7aa',textColor:'#1f2937',height:36,parentId:null},
       {id:uid(),label:'Savings',      color:'#e9d5ff',textColor:'#1f2937',height:36,parentId:null},
     ],
@@ -283,6 +319,10 @@ function loadState(){
       if(!s.collapsed) s.collapsed={};
       if(!s.lastTaxTs) s.lastTaxTs=0;
       delete s.cellCurrencies; delete s.displayCurrency;
+      // Migration: add linked Subscriptions row if missing
+      if(!s.rows.some(row=>row.linked==='subscriptions')){
+        s.rows.push({id:uid(),label:'Subscriptions',color:'#bfdbfe',textColor:'#1f2937',height:36,parentId:null,linked:'subscriptions'});
+      }
       return s;
     }
   }catch{}
@@ -328,13 +368,34 @@ function shiftMonth(d){
   state.currentYear=y; state.currentMonth=m;
   save(); updateMonthNav(); render(); syncIncomeInputs();
 }
+function populateMonthJump(){
+  const sel=document.getElementById('month-jump'); if(!sel) return;
+  const curMk=mk(state.currentYear,state.currentMonth);
+  const startY=Math.min(minY,today.getFullYear()-1);
+  const endY=Math.max(maxY,today.getFullYear()+1);
+  sel.innerHTML='';
+  for(let y=startY;y<=endY;y++){
+    for(let m2=0;m2<12;m2++){
+      const opt=document.createElement('option');
+      opt.value=mk(y,m2); opt.textContent=MONTHS_FULL[m2]+' '+y;
+      if(mk(y,m2)===curMk) opt.selected=true;
+      sel.appendChild(opt);
+    }
+  }
+}
+function jumpToMonth(mkStr){
+  const parts=mkStr.split('-');
+  state.currentYear=parseInt(parts[0],10);
+  state.currentMonth=parseInt(parts[1],10)-1;
+  save(); updateMonthNav(); render(); syncIncomeInputs();
+}
 function updateMonthNav(){
   const label=MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
-  document.getElementById('month-label').textContent=label;
   document.getElementById('budget-month').textContent=label;
   document.getElementById('apply-year-lbl').textContent=state.currentYear;
   document.getElementById('prev-btn').disabled=isAtMin();
   document.getElementById('next-btn').disabled=isAtMax();
+  populateMonthJump();
 }
 
 // ── Cell helpers ───────────────────────────────────────────────────────────────
@@ -350,6 +411,8 @@ function isCollapsed(rId){ return state.collapsed[rId]===true; }
 
 // ── Calculations (USD only) ────────────────────────────────────────────────────
 function rowTotal(rId){
+  const row=state.rows.find(r=>r.id===rId);
+  if(row&&row.linked==='subscriptions') return virtualSubChildren().reduce((s,c)=>s+c.cost,0);
   const kids=children(rId);
   if(kids.length) return kids.reduce((s,c)=>s+rowTotal(c.id),0);
   return state.cols.reduce((s,col)=>s+getCell(rId,col.id),0);
@@ -675,6 +738,85 @@ function attachRowResize(handle,row,tr){
   });
 }
 
+// ── Linked Subscriptions (Fix 7) ──────────────────────────────────────────────
+function loadSubsState(){ try{ return JSON.parse(localStorage.getItem(SUBS_KEY))||null; }catch{ return null; } }
+
+function calcSubMonthCostInExp(r, subs, yr, mo){
+  const costCol=subs.cols.find(c=>c.ctype==='number');
+  const billCol=subs.cols.find(c=>c.ctype==='billing');
+  const startCol=subs.cols.find(c=>c.ctype==='date');
+  const cancelCol=subs.cols.find(c=>c.ctype==='canceldate');
+  const trialCol=subs.cols.find(c=>c.ctype==='trial');
+  const statusCol=subs.cols.find(c=>c.ctype==='status');
+  if(!costCol||!startCol) return 0;
+  function gsc(rId,cId){ return subs.cells[rId+'|'+cId]||''; }
+  const rawCost=Math.max(0,parseFloat(gsc(r.id,costCol.id))||0);
+  const billing=billCol?(gsc(r.id,billCol.id)||'Monthly'):'Monthly';
+  const startStr=gsc(r.id,startCol.id);
+  if(!startStr) return 0;
+  const start=new Date(startStr+'T00:00:00');
+  const cancelStr=cancelCol?gsc(r.id,cancelCol.id):'';
+  const cancel=cancelStr?new Date(cancelStr+'T00:00:00'):null;
+  const trialV=trialCol?(gsc(r.id,trialCol.id)||'none'):'none';
+  const status=statusCol?(gsc(r.id,statusCol.id)||'Active'):'Active';
+  if(status==='Paused') return 0;
+  const mStart=new Date(yr,mo,1), mEnd=new Date(yr,mo+1,0,23,59,59);
+  if(start>mEnd) return 0;
+  if(cancel&&cancel<mStart) return 0;
+  // trial end
+  let trialEnd=null;
+  if(trialV!=='none'){
+    const td2=new Date(start);
+    if(trialV==='week')     {td2.setDate(td2.getDate()+6);trialEnd=td2;}
+    else if(trialV==='2weeks'){td2.setDate(td2.getDate()+13);trialEnd=td2;}
+    else if(trialV==='month'){td2.setMonth(td2.getMonth()+1);td2.setDate(td2.getDate()-1);trialEnd=td2;}
+    else if(trialV==='2months'){td2.setMonth(td2.getMonth()+2);td2.setDate(td2.getDate()-1);trialEnd=td2;}
+    else if(trialV==='3months'){td2.setMonth(td2.getMonth()+3);td2.setDate(td2.getDate()-1);trialEnd=td2;}
+  }
+  // Count billing events
+  let events=0;
+  if(billing==='Monthly'){
+    const chargeDay=start.getDate();
+    const dIM=new Date(yr,mo+1,0).getDate();
+    const actualDay=Math.min(chargeDay,dIM);
+    const chargeDate=new Date(yr,mo,actualDay);
+    if(chargeDate>=mStart&&chargeDate<=mEnd&&chargeDate>=start){
+      if(!cancel||chargeDate<=cancel){
+        if(!(trialEnd&&chargeDate<=trialEnd)) events=1;
+      }
+    }
+  } else if(billing==='Weekly'||billing==='Bi-Weekly'){
+    const interval=(billing==='Weekly'?7:14)*864e5;
+    let d=new Date(start);
+    while(d<=mEnd){
+      if(d>=mStart&&(!cancel||d<=cancel)&&!(trialEnd&&d<=trialEnd)) events++;
+      d=new Date(d.getTime()+interval);
+    }
+  } else {
+    const months=billing==='Quarterly'?3:billing==='Semi-Annual'?6:12;
+    let d=new Date(start);
+    while(d<=mEnd){
+      if(d>=mStart&&(!cancel||d<=cancel)&&!(trialEnd&&d<=trialEnd)) events++;
+      const nm=d.getMonth()+months;
+      d=new Date(d.getFullYear()+Math.floor(nm/12),nm%12,d.getDate());
+    }
+  }
+  // Currency → USD
+  const cur=(subs.rowCurrencies||{})[r.id]||'USD';
+  const usdCost=cur==='USD'?rawCost:(expRatesCache[cur]?rawCost/expRatesCache[cur]:rawCost);
+  return events*usdCost;
+}
+
+function virtualSubChildren(){
+  const subs=loadSubsState(); if(!subs||!subs.rows||!subs.cols) return [];
+  const svcCol=subs.cols.find(c=>c.ctype==='text');
+  return subs.rows.map(r=>{
+    const label=svcCol?subs.cells[r.id+'|'+svcCol.id]||'—':'—';
+    const cost=calcSubMonthCostInExp(r,subs,state.currentYear,state.currentMonth);
+    return {id:r.id,label,cost};
+  }).filter(c=>c.cost>0);
+}
+
 // ── Render ─────────────────────────────────────────────────────────────────────
 function render(){
   const table=document.getElementById('sheet'); table.innerHTML='';
@@ -741,11 +883,17 @@ function render(){
     rowLabel.addEventListener('blur',()=>{row.label=rowLabel.textContent.trim()||row.label;save();});
     rowLabel.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();rowLabel.blur();}});
     rhIn.appendChild(cInp);rhIn.appendChild(swatch);rhIn.appendChild(tcInp);rhIn.appendChild(textSwatch);rhIn.appendChild(rowLabel);
-    if(!isChild){
+    if(!isChild && !row.linked){
       const dd=document.createElement('div');dd.className='sub-dropdown';
       const addBtn=document.createElement('button');addBtn.className='sub-add-btn';addBtn.textContent='+Sub';addBtn.title='Add subcategory';
       addBtn.addEventListener('click',e=>{e.stopPropagation();showSubMenu(addBtn,row);});
       dd.appendChild(addBtn);rhIn.appendChild(dd);
+    }
+    if(row.linked==='subscriptions'){
+      const badge=document.createElement('span');
+      badge.style.cssText='font-size:.72rem;margin-left:3px;opacity:.7;';
+      badge.textContent='🔗'; badge.title='Auto-linked from Subscription Tracker';
+      rhIn.appendChild(badge);
     }
     rhTd.appendChild(rhIn);
     const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);rhTd.appendChild(rr);
@@ -780,7 +928,32 @@ function render(){
     delBtn.addEventListener('click',()=>deleteRow(row.id));delTd.appendChild(delBtn);tr.appendChild(delTd);
 
     tbody.appendChild(tr);
-    if(!isChild&&!collapsed) children(row.id).forEach(renderRow);
+    if(!isChild&&!collapsed){
+      children(row.id).forEach(renderRow);
+      // Linked subscriptions virtual children
+      if(row.linked==='subscriptions'){
+        virtualSubChildren().forEach(vc=>{
+          const vtr=document.createElement('tr'); vtr.style.height='30px'; vtr.classList.add('child-row'); vtr.style.opacity='.88';
+          const vrhTd=document.createElement('td'); vrhTd.className='rh-cell'; vrhTd.style.backgroundColor=row.color;
+          const vrhIn=document.createElement('div'); vrhIn.className='rh-inner'; vrhIn.style.paddingLeft='22px';
+          const vbadge=document.createElement('span'); vbadge.style.cssText='font-size:.7rem;margin-right:3px;'; vbadge.textContent='🔗'; vbadge.title='From Subscription Tracker';
+          const vlbl=document.createElement('span'); vlbl.className='row-label'; vlbl.style.cssText='font-weight:500;font-size:.83rem;color:'+(row.textColor||'#1f2937')+';cursor:default;pointer-events:none;'; vlbl.textContent=vc.label;
+          vrhIn.appendChild(vbadge); vrhIn.appendChild(vlbl); vrhTd.appendChild(vrhIn); vtr.appendChild(vrhTd);
+          state.cols.forEach((col,idx)=>{
+            const vtd=document.createElement('td');
+            if(idx===0){
+              const vs=document.createElement('span'); vs.className='parent-sum'; vs.style.cssText='display:block;padding:4px 7px;text-align:right;font-size:.83rem;min-height:30px;line-height:22px;';
+              vs.textContent=vc.cost>0?fmt(vc.cost):''; vtd.appendChild(vs);
+            }
+            vtr.appendChild(vtd);
+          });
+          const vtotTd=document.createElement('td'); vtotTd.className='th-total';
+          const vtotSpan=document.createElement('span'); vtotSpan.className='total-val'; vtotSpan.textContent=fmt(vc.cost); vtotTd.appendChild(vtotSpan); vtr.appendChild(vtotTd);
+          vtr.appendChild(document.createElement('td'));
+          tbody.appendChild(vtr);
+        });
+      }
+    }
   }
   state.rows.filter(r=>!r.parentId).forEach(renderRow);
 
@@ -805,7 +978,23 @@ function render(){
 
   updateIncomeSummary();
   if(chartVisible) renderChart();
+  adjustBodyWidth();
+  // Show/hide expand-collapse buttons based on whether any subcategories exist
+  const hasSubcats=state.rows.some(r=>r.parentId);
+  const eb=document.getElementById('expand-btn'), cb2=document.getElementById('collapse-btn');
+  if(eb) eb.style.display=hasSubcats?'':'none';
+  if(cb2) cb2.style.display=hasSubcats?'':'none';
 }
+
+// ── Body-width adjuster (Fix 11) ──────────────────────────────────────────────
+function adjustBodyWidth(){
+  const naturalWidth=(state.headerColWidth||185)
+    +state.cols.reduce((s,c)=>s+(c.width||100),0)
+    +(state.totalColWidth||110)+32;
+  const cap=Math.min(window.innerWidth*0.95,1500);
+  document.body.style.maxWidth=naturalWidth>900?Math.min(naturalWidth+60,cap)+'px':'';
+}
+window.addEventListener('resize',adjustBodyWidth);
 
 // ── Export / Share helpers ─────────────────────────────────────────────────────
 // (Duplicated in subscriptions.html — project intentionally keeps each HTML self-contained.)
@@ -1302,6 +1491,10 @@ updateHistBtns();
 updateMonthNav();
 syncIncomeInputs();
 render();
+// Fetch exchange rates for currency conversion of linked subscriptions
+fetchExpRates().then(()=>{ if(state.rows.some(r=>r.linked==='subscriptions')) render(); });
+// Cross-tab sync: re-render if subscriptions change in another tab
+window.addEventListener('storage',e=>{ if(e.key===SUBS_KEY) render(); });
 </script>
 </body>
 </html>
