@@ -123,9 +123,19 @@
     .share-modal{background:#fff;border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:.6rem;}
     .share-modal h3{margin:0;font-size:1rem;color:#374151;}
     .share-modal textarea{width:100%;min-height:200px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78rem;border:1px solid #d1d5db;border-radius:5px;padding:.5rem;resize:vertical;}
-    .share-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;}
+    .share-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
     .share-actions .btn{padding:.4rem .8rem;font-size:.85rem;}
     .share-flash{font-size:.78rem;color:#15803d;font-weight:600;}
+    .share-hint{font-size:.74rem;color:#6b7280;font-style:italic;}
+
+    /* Export-menu post-action flash */
+    .export-flash{font-size:.78rem;color:#15803d;font-weight:600;background:#dcfce7;border:1px solid #86efac;padding:.25rem .55rem;border-radius:5px;margin-left:.5rem;opacity:0;transition:opacity .25s;}
+    .export-flash.show{opacity:1;}
+
+    /* Paste modal */
+    .paste-status{font-size:.83rem;padding:.4rem .55rem;border-radius:5px;background:#f3f4f6;color:#374151;}
+    .paste-status.ok{background:#dcfce7;border:1px solid #86efac;color:#15803d;}
+    .paste-status.bad{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
   </style>
 </head>
 <body>
@@ -208,6 +218,8 @@
     <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
     <button class="btn btn-sm" id="export-btn" onclick="showExportMenu(event)">📥 Export</button>
     <button class="btn btn-sm" id="share-btn" onclick="shareSheet()">📤 Share</button>
+    <button class="btn btn-sm" id="paste-btn" onclick="openPasteModal()">📋 Paste</button>
+    <span id="export-flash" class="export-flash"></span>
     <button class="btn btn-sm" id="reset-btn" onclick="resetAll()" style="background:#dc2626">Reset</button>
   </div>
 
@@ -797,6 +809,122 @@ function buildTxt(){
   const title='FiApp Subscriptions — '+MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
   return title+'\n'+sep+'\n'+lines[0]+'\n'+sep+'\n'+lines.slice(1,-1).join('\n')+'\n'+sep+'\n'+lines[lines.length-1]+'\n';
 }
+function buildTsv(){
+  return buildSubsRowsArray()
+    .map(r=>r.map(v=>String(v==null?'':v).replace(/[\t\r\n]/g,' ')).join('\t'))
+    .join('\r\n');
+}
+
+// Gmail compose URL helper
+function gmailHref(subject, body){
+  return 'https://mail.google.com/mail/?view=cm&fs=1&tf=1'
+       + '&su='+encodeURIComponent(subject)
+       + '&body='+encodeURIComponent(body);
+}
+
+// Clipboard write with fallback. Returns Promise<boolean>.
+function clipboardWrite(text){
+  if(navigator.clipboard){
+    return navigator.clipboard.writeText(text).then(()=>true).catch(()=>fallback());
+  }
+  return Promise.resolve(fallback());
+  function fallback(){
+    const tmp=document.createElement('textarea');
+    tmp.value=text;tmp.style.position='fixed';tmp.style.opacity='0';
+    document.body.appendChild(tmp);tmp.select();
+    let ok=false;try{ok=document.execCommand('copy');}catch{}
+    tmp.remove();return ok;
+  }
+}
+
+function showExportFlash(msg){
+  const f=document.getElementById('export-flash');if(!f) return;
+  f.textContent=msg;f.classList.add('show');
+  clearTimeout(window._exportFlashT);
+  window._exportFlashT=setTimeout(()=>f.classList.remove('show'),2500);
+}
+
+// ── Copy / Paste blob format ───────────────────────────────────────────────────
+function encodeBlob(obj){
+  return 'FIAPP-'+obj.kind+'-V1:'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+}
+function decodeBlob(str){
+  const m=String(str).trim().match(/^FIAPP-([A-Z\-]+)-V1:([A-Za-z0-9+/=]+)\s*$/);
+  if(!m) throw new Error('Not a FiApp paste-blob.');
+  const obj=JSON.parse(decodeURIComponent(escape(atob(m[2]))));
+  if(obj.kind!==m[1]) throw new Error('Blob kind mismatch.');
+  return obj;
+}
+function buildSubsBlob(){
+  return {
+    kind:'SUBS', v:1,
+    rows:JSON.parse(JSON.stringify(state.rows)),
+    cols:JSON.parse(JSON.stringify(state.cols)),
+    cells:JSON.parse(JSON.stringify(state.cells||{})),
+    rowCurrencies:JSON.parse(JSON.stringify(state.rowCurrencies||{})),
+    displayCurrency:state.displayCurrency||'USD',
+    currentYear:state.currentYear, currentMonth:state.currentMonth,
+  };
+}
+function importSubs(blob){
+  state.rows=JSON.parse(JSON.stringify(blob.rows||[]));
+  state.cols=JSON.parse(JSON.stringify(blob.cols||[]));
+  state.cells=JSON.parse(JSON.stringify(blob.cells||{}));
+  state.rowCurrencies=JSON.parse(JSON.stringify(blob.rowCurrencies||{}));
+  if(blob.displayCurrency) state.displayCurrency=blob.displayCurrency;
+}
+
+function openPasteModal(){
+  const overlay=document.createElement('div');overlay.className='share-overlay';
+  const modal=document.createElement('div');modal.className='share-modal';
+  const h=document.createElement('h3');h.textContent='Paste FiApp data';
+  const desc=document.createElement('span');desc.className='share-hint';desc.textContent='Paste a FIAPP-SUBS-… block copied from another FiApp Subscription Tracker. Pastes are undoable with Ctrl+Z.';
+  const ta=document.createElement('textarea');ta.placeholder='Paste FIAPP-SUBS-V1:… block here';
+  const status=document.createElement('div');status.className='paste-status';status.textContent='Waiting for input…';
+  const actions=document.createElement('div');actions.className='share-actions';
+  const applyBtn=document.createElement('button');applyBtn.className='btn btn-sm';applyBtn.textContent='Apply';applyBtn.disabled=true;
+  const cancelBtn=document.createElement('button');cancelBtn.className='btn btn-sm';cancelBtn.style.background='#9ca3af';cancelBtn.textContent='Cancel';
+  let parsed=null;
+  function refresh(){
+    const v=ta.value.trim();
+    if(!v){ status.textContent='Waiting for input…';status.className='paste-status';applyBtn.disabled=true;parsed=null;return; }
+    try{
+      const obj=decodeBlob(v);
+      parsed=obj;
+      if(obj.kind==='SUBS'){
+        const n=(obj.rows||[]).length;
+        status.textContent='Detected: Subscription tracker — '+n+' subscription'+(n===1?'':'s');
+        status.className='paste-status ok';applyBtn.disabled=false;
+      } else if(obj.kind==='EXP-MONTH'||obj.kind==='EXP-FULL'){
+        status.textContent='⚠ This blob is for the Expense Tracker. Paste it there instead.';
+        status.className='paste-status bad';applyBtn.disabled=true;parsed=null;
+      } else {
+        throw new Error('Unsupported kind: '+obj.kind);
+      }
+    }catch(err){
+      status.textContent='⚠ '+err.message+' Make sure you copied the entire FIAPP-… line.';
+      status.className='paste-status bad';applyBtn.disabled=true;parsed=null;
+    }
+  }
+  ta.addEventListener('input',refresh);
+  ta.addEventListener('paste',()=>setTimeout(refresh,30));
+  applyBtn.addEventListener('click',async()=>{
+    if(!parsed) return;
+    snapshot();importSubs(parsed);save();
+    // Re-fetch rates for any new currencies
+    if(state.displayCurrency&&state.displayCurrency!=='USD') await ensureRate(state.displayCurrency);
+    const codes=new Set(Object.values(state.rowCurrencies||{}));
+    for(const c of codes){ if(c&&c!=='USD'&&!ratesCache[c]) await ensureRate(c); }
+    render();recalcTotals();renderChart();
+    overlay.remove();showExportFlash('✓ Pasted subscriptions');
+  });
+  cancelBtn.addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  actions.appendChild(applyBtn);actions.appendChild(cancelBtn);
+  modal.appendChild(h);modal.appendChild(desc);modal.appendChild(ta);modal.appendChild(status);modal.appendChild(actions);
+  overlay.appendChild(modal);document.body.appendChild(overlay);
+  setTimeout(()=>ta.focus(),20);
+}
 function downloadBlob(name,blob){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -845,6 +973,7 @@ function showExportMenu(ev){
     {label:'📄 JSON', fn:()=>downloadText(base+'.json',buildJson(),'application/json;charset=utf-8')},
     {label:'📝 TXT',  fn:()=>downloadText(base+'.txt', buildTxt(), 'text/plain;charset=utf-8')},
     {label:'📈 XLSX (Excel)', fn:()=>exportXlsx(base+'.xlsx')},
+    {label:'📋 Copy table',   fn:()=>clipboardWrite(encodeBlob(buildSubsBlob())).then(ok=>showExportFlash(ok?'✓ Copied subscriptions':'Copy failed'))},
   ];
   formats.forEach(f=>{
     const b=document.createElement('button'); b.textContent=f.label;
@@ -870,32 +999,58 @@ async function shareSheet(){
 function showShareModal(title,text){
   const overlay=document.createElement('div'); overlay.className='share-overlay';
   const modal=document.createElement('div'); modal.className='share-modal';
-  modal.innerHTML=`
-    <h3>${title}</h3>
-    <textarea readonly></textarea>
-    <div class="share-actions">
-      <span class="share-flash" style="display:none">Copied!</span>
-      <button type="button" class="btn btn-sm" id="share-copy">📋 Copy</button>
-      <button type="button" class="btn btn-sm" id="share-email">📧 Email</button>
-      <button type="button" class="btn btn-sm" id="share-close" style="background:#9ca3af">Close</button>
-    </div>`;
+  const tsv=buildTsv();
+  const MAX=1500;
+  const bodyText=text.length>MAX?text.slice(0,MAX)+'\n…(truncated — use Export to send full data)':text;
+  const ym=state.currentYear+'-'+String(state.currentMonth+1).padStart(2,'0');
+  const xlsxFile='subscriptions-'+ym+'.xlsx';
+  const xlsxBody='I\'m sharing my FiApp subscriptions spreadsheet — please find the attached XLSX file (saved to your Downloads folder).\n\nFile: '+xlsxFile;
+  const blob=encodeBlob(buildSubsBlob());
+  const pasteBody='I\'m sharing my FiApp subscription data. Paste this entire block into the FiApp Subscription Tracker (📋 Paste button) to load everything:\n\n'+blob;
+
+  const h=document.createElement('h3');h.textContent=title;
+  const ta=document.createElement('textarea');ta.readOnly=true;ta.value=text;
+  const hint=document.createElement('span');hint.className='share-hint';
+  hint.textContent='Copy puts a tab-separated version on your clipboard — pastes cleanly into Word, Docs, Excel and Sheets.';
+  const actions=document.createElement('div');actions.className='share-actions';
+  const flash=document.createElement('span');flash.className='share-flash';
+
+  const copyBtn=document.createElement('button');copyBtn.type='button';copyBtn.className='btn btn-sm';copyBtn.textContent='📋 Copy';
+  copyBtn.addEventListener('click',()=>{
+    clipboardWrite(tsv).then(ok=>{
+      flash.textContent=ok?'Copied (TSV)!':'Copy failed';
+      setTimeout(()=>flash.textContent='',1800);
+    });
+  });
+
+  const emailTextBtn=document.createElement('a');emailTextBtn.className='btn btn-sm';emailTextBtn.textContent='📧 Email as Text';
+  emailTextBtn.href=gmailHref(title,bodyText);emailTextBtn.target='_blank';emailTextBtn.rel='noopener noreferrer';
+
+  const emailXlsxBtn=document.createElement('a');emailXlsxBtn.className='btn btn-sm';emailXlsxBtn.textContent='📧 Email as XLSX';
+  emailXlsxBtn.href=gmailHref(title,xlsxBody);emailXlsxBtn.target='_blank';emailXlsxBtn.rel='noopener noreferrer';
+  emailXlsxBtn.addEventListener('click',()=>{
+    exportXlsx(xlsxFile);
+    flash.textContent='XLSX downloading — drag it into Gmail to attach.';
+    setTimeout(()=>flash.textContent='',5000);
+  });
+
+  const emailPasteBtn=document.createElement('a');emailPasteBtn.className='btn btn-sm';emailPasteBtn.textContent='📧 Email as Paste-link';
+  emailPasteBtn.href=gmailHref(title,pasteBody);emailPasteBtn.target='_blank';emailPasteBtn.rel='noopener noreferrer';
+
+  const closeBtn=document.createElement('button');closeBtn.type='button';closeBtn.className='btn btn-sm';closeBtn.style.background='#9ca3af';closeBtn.textContent='Close';
+  closeBtn.addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+
+  actions.appendChild(flash);
+  actions.appendChild(copyBtn);
+  actions.appendChild(emailTextBtn);
+  actions.appendChild(emailXlsxBtn);
+  actions.appendChild(emailPasteBtn);
+  actions.appendChild(closeBtn);
+
+  modal.appendChild(h);modal.appendChild(ta);modal.appendChild(hint);modal.appendChild(actions);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  modal.querySelector('textarea').value=text;
-  const flash=modal.querySelector('.share-flash');
-  modal.querySelector('#share-copy').addEventListener('click',async()=>{
-    try{ await navigator.clipboard.writeText(text); flash.style.display=''; setTimeout(()=>flash.style.display='none',1500); }
-    catch{ modal.querySelector('textarea').select(); document.execCommand('copy'); flash.style.display=''; setTimeout(()=>flash.style.display='none',1500); }
-  });
-  modal.querySelector('#share-email').addEventListener('click',()=>{
-    const MAX=1500;
-    let body=text;
-    if(body.length>MAX) body=body.slice(0,MAX)+'\n…(truncated — use Export to send full data)';
-    window.location.href='mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);
-  });
-  function close(){ overlay.remove(); }
-  modal.querySelector('#share-close').addEventListener('click',close);
-  overlay.addEventListener('click',e=>{ if(e.target===overlay) close(); });
 }
 
 // ── Cell factory ───────────────────────────────────────────────────────────────
