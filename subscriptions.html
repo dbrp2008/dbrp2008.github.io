@@ -4,9 +4,22 @@
   <meta charset="utf-8"/>
   <title>Subscription Tracker – FiApp</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <script>
+    (function(){
+      var pref=localStorage.getItem('fiapp_theme');
+      var dark = pref==='dark' || (!pref && matchMedia('(prefers-color-scheme: dark)').matches);
+      if(dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
   <link rel="stylesheet" href="./styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
+    /* ── Wider body for the subscription tracker ── */
+    body{max-width:min(95vw, 1500px)!important;}
+    .toolbar-row-1, .toolbar-row-2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;}
+    .toolbar-row-1{margin-bottom:.4rem;}
+    .toolbar-row-2{margin-bottom:.75rem;}
+    .month-jump{padding:.3rem .55rem;border:1px solid var(--input-border);border-radius:6px;font-size:.95rem;font-weight:700;background:var(--input-bg);color:var(--fg);cursor:pointer;min-width:160px;text-align:center;}
     .toolbar{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
     .btn-sm{padding:.35rem .7rem;font-size:.85rem;}
     .btn-ghost{background:#e5e7eb;color:#374151;border:none;border-radius:6px;cursor:pointer;padding:.35rem .7rem;font-size:.85rem;}
@@ -139,13 +152,24 @@
   </style>
 </head>
 <body>
-  <div class="nav"><a href="./index.html">← Home</a></div>
+  <div class="nav">
+    <a href="./index.html">← Home</a>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+  </div>
+  <script>
+  function toggleTheme(){
+    const d=document.documentElement.classList.toggle('dark');
+    localStorage.setItem('fiapp_theme', d?'dark':'light');
+    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+  }
+  if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  </script>
   <h1>Subscription Tracker</h1>
   <p style="color:#6b7280;font-size:.88rem;margin-top:0">Track subscriptions with accurate billing event counting. Each cost can be in its own currency. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
 
   <div class="month-nav">
     <button id="prev-btn" onclick="shiftMonth(-1)">◀ Prev</button>
-    <span class="month-label" id="month-label"></span>
+    <select id="month-jump" class="month-jump" onchange="jumpToMonth(this.value)"></select>
     <button id="next-btn" onclick="shiftMonth(1)">Next ▶</button>
   </div>
 
@@ -211,10 +235,12 @@
     <div id="lb-content"></div>
   </div>
 
-  <div class="toolbar">
+  <div class="toolbar-row-1">
     <button class="btn btn-sm" id="undo-btn" onclick="undo()" disabled>↩ Undo</button>
     <button class="btn btn-sm" id="redo-btn" onclick="redo()" disabled>↪ Redo</button>
     <button class="btn btn-sm" onclick="addCol()">+ Column</button>
+  </div>
+  <div class="toolbar-row-2">
     <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
     <button class="btn btn-sm" id="export-btn" onclick="showExportMenu(event)">📥 Export</button>
     <button class="btn btn-sm" id="share-btn" onclick="shareSheet()">📤 Share</button>
@@ -437,6 +463,17 @@ function calcMonthCost(row, year, month){
   return cost*count;
 }
 
+// Fix 12: hide cancelled rows whose cancel date is strictly before the first of the viewed month
+function isHiddenForMonth(row){
+  const cancelCol=colByType('canceldate'), statusCol=colByType('status');
+  if(!cancelCol||!statusCol) return false;
+  if(getCell(row.id,statusCol.id)!=='Cancelled') return false;
+  const cd=getCell(row.id,cancelCol.id); if(!cd) return false;
+  const cancelDate=new Date(cd+'T00:00:00');
+  const monthStart=new Date(state.currentYear,state.currentMonth,1);
+  return cancelDate<monthStart;
+}
+
 function calcYearlyCost(row,year){
   let t=0; for(let m=0;m<12;m++) t+=calcMonthCost(row,year,m); return t;
 }
@@ -453,9 +490,35 @@ function shiftMonth(d){
   state.currentYear=y; state.currentMonth=m;
   save(); updateMonthNav(); recalcTotals(); renderChart(); render();
 }
+function populateMonthJump(){
+  const sel=document.getElementById('month-jump'); if(!sel) return;
+  const curMk=state.currentYear+'-'+String(state.currentMonth+1).padStart(2,'0');
+  // build range: 2 years back to 2 years forward relative to today
+  const now=new Date();
+  const startY=Math.min(minY, now.getFullYear()-2);
+  const endY=Math.max(maxY, now.getFullYear()+2);
+  // preserve selection if possible
+  const prev=sel.value;
+  sel.innerHTML='';
+  for(let y=startY;y<=endY;y++){
+    for(let m=0;m<12;m++){
+      const mk=y+'-'+String(m+1).padStart(2,'0');
+      const opt=document.createElement('option');
+      opt.value=mk; opt.textContent=MONTHS_FULL[m]+' '+y;
+      if(mk===curMk) opt.selected=true;
+      sel.appendChild(opt);
+    }
+  }
+  if(!sel.value && prev) sel.value=prev;
+}
+function jumpToMonth(mkStr){
+  const parts=mkStr.split('-');
+  state.currentYear=parseInt(parts[0],10);
+  state.currentMonth=parseInt(parts[1],10)-1;
+  save(); updateMonthNav(); recalcTotals(); renderChart(); render();
+}
 function updateMonthNav(){
-  const lbl=MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
-  document.getElementById('month-label').textContent=lbl;
+  populateMonthJump();
   document.getElementById('sum-label').textContent=MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   document.getElementById('lb-month-lbl').textContent='— '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   document.getElementById('prev-btn').disabled=isAtMin();
@@ -466,7 +529,9 @@ function updateMonthNav(){
 let currentRate=1;
 function recalcTotals(){
   let mUSD=0,yUSD=0;
-  state.rows.forEach(r=>{ mUSD+=calcMonthCost(r,state.currentYear,state.currentMonth); yUSD+=calcYearlyCost(r,state.currentYear); });
+  state.rows.forEach(r=>{
+    if(isHiddenForMonth(r)) return;
+    mUSD+=calcMonthCost(r,state.currentYear,state.currentMonth); yUSD+=calcYearlyCost(r,state.currentYear); });
   document.getElementById('tot-m-usd').textContent='$'+mUSD.toFixed(2);
   document.getElementById('tot-y-usd').textContent='$'+yUSD.toFixed(2);
   if(currentRate!==1){
@@ -551,7 +616,7 @@ function renderLeaderboard(){
   const wrap=document.getElementById('lb-content');
   if(!state.rows.length){ wrap.innerHTML='<div class="lb-empty">No subscriptions yet — add one above to see the leaderboard.</div>'; return; }
   const serviceCol=colByType('text');
-  const data=state.rows.map(r=>({
+  const data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({
     name: serviceCol?(getCell(r.id,serviceCol.id)||'(unnamed)'):'(unnamed)',
     cost: calcMonthCost(r,state.currentYear,state.currentMonth)
   })).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
@@ -606,10 +671,10 @@ function renderChart(){
   const serviceCol=colByType('text');
   let data, topLabel;
   if(chartMode==='yearly'){
-    data=state.rows.map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcYearlyCost(r,state.currentYear)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
+    data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcYearlyCost(r,state.currentYear)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
     topLabel='Top Subscriptions — '+state.currentYear;
   } else {
-    data=state.rows.map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcMonthCost(r,state.currentYear,state.currentMonth)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
+    data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcMonthCost(r,state.currentYear,state.currentMonth)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
     topLabel='Top Subscriptions — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   }
   if(chartInstance){chartInstance.destroy();chartInstance=null;}
@@ -1127,7 +1192,10 @@ function makeCellEl(row,col){
   }
   if(ct==='date'){
     const inp=document.createElement('input'); inp.type='date'; inp.className='c-date'; inp.value=v;
-    inp.min=firstOfViewedMonthStr();
+    const _first=new Date(state.currentYear,state.currentMonth,1);
+    const _last=new Date(state.currentYear,state.currentMonth+1,0);
+    inp.min=toDateStr(_first);
+    inp.max=toDateStr(_last);
     inp.addEventListener('focus',()=>snapshot());
     inp.addEventListener('change',()=>{
       if(inp.value && inp.value<inp.min){
@@ -1193,6 +1261,7 @@ function render(){
     etd.textContent='No subscriptions yet. Use the dropdown above to add one.';etr.appendChild(etd);tbody.appendChild(etr);
   }
   state.rows.forEach(row=>{
+    if(isHiddenForMonth(row)) return;
     const statusCol=colByType('status');const st=statusCol?getCell(row.id,statusCol.id):'Active';
     const tr=document.createElement('tr');tr.style.height=(row.height||36)+'px';
     if(st==='Cancelled') tr.classList.add('cancelled-row');
