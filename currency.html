@@ -4,18 +4,34 @@
   <meta charset="utf-8" />
   <title>Currency Converter</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function(){
+      var pref=localStorage.getItem('fiapp_theme');
+      var dark = pref==='dark' || (!pref && matchMedia('(prefers-color-scheme: dark)').matches);
+      if(dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
   <link rel="stylesheet" href="./styles.css">
   <style>
     .curr-row{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.25rem;}
-    .curr-row select{padding:6px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:.92rem;}
-    .curr-row input[type="text"]{padding:6px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:.92rem;width:90px;text-transform:uppercase;}
+    .curr-row select{padding:6px 8px;border:1px solid var(--input-border);border-radius:4px;font-size:.92rem;background:var(--input-bg);color:var(--fg);width:auto;}
+    .curr-row input[type="text"]{padding:6px 8px;border:1px solid var(--input-border);border-radius:4px;font-size:.92rem;width:90px;text-transform:uppercase;background:var(--input-bg);color:var(--fg);}
     .curr-row .other-btn{padding:.35rem .7rem;font-size:.85rem;}
   </style>
 </head>
 <body>
   <div class="nav">
     <a href="./index.html">← Home</a>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
+  <script>
+  function toggleTheme(){
+    const d=document.documentElement.classList.toggle('dark');
+    localStorage.setItem('fiapp_theme', d?'dark':'light');
+    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+  }
+  if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  </script>
   <h1>Currency Converter</h1>
 
   <div id="msg-area"></div>
@@ -157,6 +173,16 @@ function dropBadCustom(selectId, code){
 function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
 function showInfo(msg){
   document.getElementById('msg-area').innerHTML='<div class="success">'+msg+'</div>';
+}
+
+// Remove a previously-inserted custom option that turned out to be invalid
+function dropBadCustom(selectId, code){
+  const s=document.getElementById(selectId);
+  const bad=[...s.options].find(o=>o.value===code && o.dataset.custom==='1');
+  if(bad) bad.remove();
+  if(s.value===''||s.value===code){
+    s.value = (selectId==='currency_i'?'USD':'HKD');
+  }
 }
 
 document.getElementById('currency-form').addEventListener('submit', async function(e){
