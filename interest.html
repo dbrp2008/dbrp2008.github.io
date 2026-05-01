@@ -4,12 +4,28 @@
   <meta charset="utf-8" />
   <title>Interest Calculator</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function(){
+      var pref=localStorage.getItem('fiapp_theme');
+      var dark = pref==='dark' || (!pref && matchMedia('(prefers-color-scheme: dark)').matches);
+      if(dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="nav">
     <a href="./index.html">← Home</a>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
+  <script>
+  function toggleTheme(){
+    const d=document.documentElement.classList.toggle('dark');
+    localStorage.setItem('fiapp_theme', d?'dark':'light');
+    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+  }
+  if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  </script>
   <h1>Interest Calculator</h1>
 
   <div id="msg-area"></div>
@@ -20,6 +36,7 @@
       <select name="type" id="type" required>
         <option value="simple">Simple</option>
         <option value="compound">Compound</option>
+        <option value="continuous">Continuous</option>
       </select>
     </div>
     <div class="form-row">
@@ -74,6 +91,11 @@
     const amount=p*Math.pow(1+(r/100/n),n*t);
     return {interest:amount-p, total:amount};
   }
+  function continuousInterest(p,r,t){
+    // A = P · e^(rt)  (rate as a decimal)
+    const amount=p*Math.exp((r/100)*t);
+    return {interest:amount-p, total:amount};
+  }
 
   document.getElementById('interest-form').addEventListener('submit',function(e){
     e.preventDefault();
@@ -90,18 +112,17 @@
 
     let result;
     try{
-      if(type==='compound'){
-        result=compoundInterest(p,r,t,n);
-      } else {
-        result=simpleInterest(p,r,t);
-      }
+      if(type==='compound')        result=compoundInterest(p,r,t,n);
+      else if(type==='continuous') result=continuousInterest(p,r,t);
+      else                         result=simpleInterest(p,r,t);
     }catch(err){
       showError(err.message); return;
     }
 
-    const desc=type==='compound'
-      ? 'Compound Interest (n='+n+'/yr, t='+t+' yr)'
-      : 'Simple Interest (r='+r+'%, t='+t+' yr)';
+    const desc =
+      type==='compound'   ? 'Compound Interest (n='+n+'/yr, t='+t+' yr)' :
+      type==='continuous' ? 'Continuous Compounding (r='+r+'%, t='+t+' yr)' :
+                            'Simple Interest (r='+r+'%, t='+t+' yr)';
 
     document.getElementById('res-desc').textContent=desc;
     document.getElementById('res-interest').textContent=result.interest.toFixed(2);
