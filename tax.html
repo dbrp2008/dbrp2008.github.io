@@ -4,12 +4,28 @@
   <meta charset="utf-8" />
   <title>Income Tax Calculator</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function(){
+      var pref=localStorage.getItem('fiapp_theme');
+      var dark = pref==='dark' || (!pref && matchMedia('(prefers-color-scheme: dark)').matches);
+      if(dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="nav">
     <a href="./index.html">← Home</a>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
+  <script>
+  function toggleTheme(){
+    const d=document.documentElement.classList.toggle('dark');
+    localStorage.setItem('fiapp_theme', d?'dark':'light');
+    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+  }
+  if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  </script>
   <h1>Income Tax Calculator</h1>
 
   <div id="msg-area"></div>
