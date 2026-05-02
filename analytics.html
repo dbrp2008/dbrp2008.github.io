@@ -14,83 +14,124 @@
   <link rel="stylesheet" href="./styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    body{ max-width:900px; }
+    body { max-width: 960px; }
 
-    .stat-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
-      gap:.75rem;
-      margin-bottom:1.5rem;
+    /* ── Stat cards ─────────────────────────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: .75rem;
+      margin-bottom: 1.25rem;
     }
-    .stat-card{
-      background:var(--panel-bg);
-      border:1px solid var(--panel-border);
-      border-radius:10px;
-      padding:.9rem 1rem;
+    .stat-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: .9rem 1rem;
     }
-    .stat-label{ font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:.3rem; }
-    .stat-value{ font-size:1.55rem; font-weight:800; color:var(--fg); line-height:1.1; }
-    .stat-sub{ font-size:.75rem; color:var(--muted); margin-top:.2rem; }
+    .stat-label  { font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:.3rem; }
+    .stat-value  { font-size:1.45rem; font-weight:800; color:var(--fg); line-height:1.1; }
+    .stat-sub    { font-size:.75rem; color:var(--muted); margin-top:.2rem; }
 
-    .chart-card{
-      background:var(--panel-bg);
-      border:1px solid var(--panel-border);
-      border-radius:10px;
-      padding:1rem 1.1rem;
-      margin-bottom:1rem;
+    /* ── Chart cards ────────────────────────────────────────────────────────── */
+    .chart-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
     }
-    .chart-card h2{ font-size:1rem; font-weight:700; margin:0 0 .75rem; color:var(--fg); }
-    .chart-card .chart-controls{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-bottom:.6rem; }
-    .chart-card select{
-      padding:.3rem .55rem;
-      border:1px solid var(--input-border);
-      border-radius:6px;
-      font-size:.85rem;
-      background:var(--input-bg);
-      color:var(--fg);
-      cursor:pointer;
+    .chart-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-bottom: .75rem;
     }
-    .chart-canvas-wrap{ position:relative; max-width:700px; margin:0 auto; }
+    .chart-card-header h2 { font-size:1rem; font-weight:700; margin:0; color:var(--fg); }
+    .chart-controls { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
+    .chart-canvas-wrap { position:relative; }
+    .chart-canvas-wrap canvas { max-height:320px; }
 
-    .no-data{
-      text-align:center;
-      padding:2.5rem 1rem;
-      color:var(--muted);
-      font-size:.9rem;
+    /* ── Toggle buttons ─────────────────────────────────────────────────────── */
+    .btn-toggle {
+      padding: .28rem .65rem;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--fg);
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .12s, color .12s, border-color .12s;
     }
-    .no-data a{ color:var(--accent); text-decoration:none; }
-    .no-data a:hover{ text-decoration:underline; }
+    .btn-toggle:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-toggle-active { background:var(--accent); color:#fff !important; border-color:var(--accent); }
 
-    .insight-list{ list-style:none; padding:0; margin:.5rem 0 0; }
-    .insight-list li{
-      display:flex; justify-content:space-between; align-items:baseline;
-      padding:.35rem 0;
-      border-bottom:1px solid var(--panel-border);
-      font-size:.88rem;
-      gap:.5rem;
+    /* ── Period row ─────────────────────────────────────────────────────────── */
+    .period-row {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: 1rem;
     }
-    .insight-list li:last-child{ border-bottom:none; }
-    .insight-name{ color:var(--fg); font-weight:600; }
-    .insight-val{ color:var(--muted); white-space:nowrap; }
-    .insight-badge{
-      display:inline-block;
-      padding:.15rem .4rem;
-      border-radius:4px;
-      font-size:.72rem;
-      font-weight:700;
+    .period-label { font-size:.85rem; font-weight:600; color:var(--muted); }
+    .period-select {
+      padding: .3rem .55rem;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      font-size: .85rem;
+      background: var(--input-bg);
+      color: var(--fg);
+      cursor: pointer;
     }
-    .badge-up{ background:#fee2e2; color:#991b1b; }
-    .badge-down{ background:#dcfce7; color:#15803d; }
-    html.dark .badge-up{ background:#7f1d1d; color:#fca5a5; }
-    html.dark .badge-down{ background:#064e3b; color:#6ee7b7; }
 
-    .section-title{
-      font-size:.7rem;
-      font-weight:700;
-      letter-spacing:.1em;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin:1.5rem 0 .6rem;
+    /* ── Section title separator ────────────────────────────────────────────── */
+    .section-title {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 1.5rem 0 .65rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--panel-border);
+    }
+
+    /* ── No-data state ──────────────────────────────────────────────────────── */
+    .no-data { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:.9rem; }
+    .no-data a { color:var(--accent); text-decoration:none; }
+    .no-data a:hover { text-decoration:underline; }
+
+    /* ── Insight list ───────────────────────────────────────────────────────── */
+    .insight-list { list-style:none; padding:0; margin:.65rem 0 0; }
+    .insight-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: .35rem 0;
+      border-bottom: 1px solid var(--panel-border);
+      font-size: .88rem;
+      gap: .5rem;
+    }
+    .insight-list li:last-child { border-bottom:none; }
+    .insight-name { color:var(--fg); font-weight:600; }
+    .insight-val  { color:var(--muted); white-space:nowrap; }
+
+    /* ── Chart note (sub-total line) ────────────────────────────────────────── */
+    .chart-note {
+      text-align: right;
+      font-size: .82rem;
+      color: var(--muted);
+      margin: .5rem 0 0;
     }
   </style>
 </head>
@@ -111,43 +152,30 @@
   </script>
 
   <h1>Analytics</h1>
-
   <div id="root"></div>
 
 <script>
-// ── Storage keys ───────────────────────────────────────────────────────────────
+// ── Storage keys ──────────────────────────────────────────────────────────────
 const EXP_KEY  = 'fiapp_expenses_v4';
 const SUBS_KEY = 'fiapp_subs_v4';
 
-// ── Security helpers ───────────────────────────────────────────────────────────
+// ── Security helpers ──────────────────────────────────────────────────────────
 function escapeHtml(s){
   return String(s==null?'':s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// ── Constants ─────────────────────────────────────────────────────────────────
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function todayMK(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
-
-// ── Load raw data ──────────────────────────────────────────────────────────────
-function loadExp(){
-  try{ const s=localStorage.getItem(EXP_KEY); return s?JSON.parse(s):null; }
-  catch(e){ console.warn('Analytics: could not load expense data',e.message); return null; }
-}
-function loadSubs(){
-  try{ const s=localStorage.getItem(SUBS_KEY); return s?JSON.parse(s):null; }
-  catch(e){ console.warn('Analytics: could not load subscription data',e.message); return null; }
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Utility helpers ───────────────────────────────────────────────────────────
 function mk(y,m){ return y+'-'+String(m+1).padStart(2,'0'); }
+function todayMK(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
 function fmtMoney(v){ return '$'+Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
-function fmtMoneyShort(v){
-  if(v>=1000) return '$'+(v/1000).toFixed(1)+'k';
-  return '$'+Number(v).toFixed(0);
-}
+function fmtMoneyShort(v){ if(v>=1000) return '$'+(v/1000).toFixed(1)+'k'; return '$'+Number(v).toFixed(0); }
+function fmtPct(v){ return Number(v).toFixed(1)+'%'; }
+function mkLabel(mkStr){ const [y,mo]=mkStr.split('-'); return MONTHS_SHORT[parseInt(mo)-1]+" '"+y.slice(2); }
 
 function themeColors(){
   const dark=document.documentElement.classList.contains('dark');
@@ -159,74 +187,129 @@ function themeColors(){
   };
 }
 
-// ── Expense analytics helpers ──────────────────────────────────────────────────
+// ── Load raw data ─────────────────────────────────────────────────────────────
+function loadExp(){
+  try{ const s=localStorage.getItem(EXP_KEY); return s?JSON.parse(s):null; }
+  catch(e){ console.warn('Analytics: expense data error',e.message); return null; }
+}
+function loadSubs(){
+  try{ const s=localStorage.getItem(SUBS_KEY); return s?JSON.parse(s):null; }
+  catch(e){ console.warn('Analytics: subs data error',e.message); return null; }
+}
 
-// Returns {monthKey: totalSpend} for all months that have any cell data
+// ── Expense analytics helpers ─────────────────────────────────────────────────
+
+// {monthKey: totalSpend} for all months that have any cell data
 function expMonthTotals(exp){
   if(!exp||!exp.cells) return {};
   const totals={};
   Object.entries(exp.cells).forEach(([k,v])=>{
-    const parts=k.split('|');
-    if(parts.length<3) return;
-    const mk2=parts[0];
-    totals[mk2]=(totals[mk2]||0)+(parseFloat(v)||0);
+    const parts=k.split('|'); if(parts.length<3) return;
+    totals[parts[0]]=(totals[parts[0]]||0)+(parseFloat(v)||0);
   });
   return totals;
 }
 
-// Returns sorted list of monthKeys that have data
+// Sorted array of monthKeys that have data
 function sortedMonths(totals){
   return Object.keys(totals).filter(k=>totals[k]>0).sort();
 }
 
-// Returns {category: totalSpend} for a set of monthKeys
+// {category: {value, color}} for a set of monthKeys
 function expCategoryTotals(exp, monthKeys){
   if(!exp||!exp.rows||!exp.cells) return {};
   const set=new Set(monthKeys);
   const totals={};
-
-  // Only top-level rows
-  const topRows=exp.rows.filter(r=>!r.parentId);
-
-  topRows.forEach(row=>{
+  exp.rows.filter(r=>!r.parentId).forEach(row=>{
     let sum=0;
     set.forEach(mk2=>{
-      // Real cells
-      (exp.cols||[]).forEach(col=>{
-        sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0;
-      });
-      // Sub-children
+      (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0; });
       (exp.rows||[]).filter(r=>r.parentId===row.id).forEach(child=>{
-        (exp.cols||[]).forEach(col=>{
-          sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0;
-        });
+        (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0; });
       });
     });
-    if(sum>0) totals[row.label]={value:sum,color:row.color||'#93c5fd'};
+    if(sum>0) totals[row.label]={value:sum, color:row.color||'#93c5fd'};
   });
   return totals;
 }
 
-// Returns {monthKey: grossIncome} from income data
+// Map: categoryLabel → {color, values:[spend per month aligned with months[]]}
+function expCategoryMonthlyData(exp, months){
+  const map=new Map();
+  if(!exp||!exp.rows||!exp.cells) return map;
+  exp.rows.filter(r=>!r.parentId).forEach(row=>{
+    const vals=months.map(mk2=>{
+      let sum=0;
+      (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0; });
+      (exp.rows||[]).filter(r=>r.parentId===row.id).forEach(child=>{
+        (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0; });
+      });
+      return parseFloat(sum.toFixed(2));
+    });
+    if(vals.some(v=>v>0)) map.set(row.label, {color:row.color||'#93c5fd', values:vals});
+  });
+  return map;
+}
+
+// {monthKey: grossIncome}
 function expMonthIncomes(exp){
   if(!exp||!exp.income) return {};
   const out={};
   Object.entries(exp.income).forEach(([mk2,v])=>{
-    const g=parseFloat(v.gross)||0;
-    if(g>0) out[mk2]=g;
+    const g=parseFloat(v.gross)||0; if(g>0) out[mk2]=g;
   });
   return out;
 }
 
-// ── Sub analytics helpers ──────────────────────────────────────────────────────
+// ── Subscription analytics helpers ───────────────────────────────────────────
 
-// Rough monthly cost per sub row (uses annual/monthly/weekly heuristics, ignores currency)
-function subMonthlyUSD(subs){
+// Amortized monthly cost for one sub row in a specific year/month (0 if not active)
+function calcSubCostForMonth(row, subs, year, month){
+  const cols=subs.cols||[];
+  const get =id=>(subs.cells||{})[row.id+'|'+id]||'';
+  const startCol   =cols.find(c=>c.ctype==='date');
+  const cancelCol  =cols.find(c=>c.ctype==='canceldate');
+  const statusCol  =cols.find(c=>c.ctype==='status');
+  const costCol    =cols.find(c=>c.ctype==='number');
+  const billingCol =cols.find(c=>c.ctype==='billing');
+
+  const status   =statusCol  ? get(statusCol.id)||'Active'  : 'Active';
+  const startStr =startCol   ? get(startCol.id)             : '';
+  const cancelStr=cancelCol  ? get(cancelCol.id)            : '';
+  const cost     =parseFloat(costCol?get(costCol.id):0)||0;
+  const billing  =billingCol ? get(billingCol.id)||'Monthly': 'Monthly';
+
+  const monthStart=new Date(year,month,1);
+  const monthEnd  =new Date(year,month+1,0);
+
+  if(startStr){ const sd=new Date(startStr); if(sd>monthEnd) return 0; }
+  if(status==='Cancelled'&&cancelStr){ const cd=new Date(cancelStr); if(cd<monthStart) return 0; }
+
+  if(billing==='Monthly')    return cost;
+  if(billing==='Yearly')     return cost/12;
+  if(billing==='Weekly')     return cost*4.33;
+  if(billing==='Bi-Weekly')  return cost*2.17;
+  if(billing==='Quarterly')  return cost/3;
+  return cost;
+}
+
+// Array of total sub costs aligned with months[]
+function subCostPerMonth(subs, months){
+  if(!subs||!subs.rows) return months.map(()=>0);
+  return months.map(mk2=>{
+    const [y,m]=mk2.split('-').map(Number);
+    const total=(subs.rows||[]).reduce((s,r)=>s+calcSubCostForMonth(r,subs,y,m-1),0);
+    return parseFloat(total.toFixed(2));
+  });
+}
+
+// Current-state snapshot of active subs (for stat cards + breakdown chart)
+function subMonthlySnapshot(subs){
   if(!subs||!subs.rows) return [];
   const billingCol=subs.cols.find(c=>c.ctype==='billing');
-  const costCol   =subs.cols.find(c=>c.ctype==='number');   // Cost column uses ctype:'number' in subscriptions.html
+  const costCol   =subs.cols.find(c=>c.ctype==='number');
   const statusCol =subs.cols.find(c=>c.ctype==='status');
-  const nameCol   =subs.cols.find(c=>c.ctype==='text');     // first 'text' col = Service name
+  const nameCol   =subs.cols.find(c=>c.ctype==='text');
   return (subs.rows||[]).map(r=>{
     const status=statusCol?subs.cells[r.id+'|'+statusCol.id]||'Active':'Active';
     if(status==='Cancelled') return null;
@@ -243,36 +326,92 @@ function subMonthlyUSD(subs){
   }).filter(Boolean);
 }
 
-// ── Period filter options ──────────────────────────────────────────────────────
+// ── Period filter ─────────────────────────────────────────────────────────────
 function periodOptions(allMonths){
-  const opts=[{label:'All time', value:'all'}];
+  const opts=[{label:'All time',value:'all'}];
   if(allMonths.length>=3)  opts.push({label:'Last 3 months', value:'3'});
   if(allMonths.length>=6)  opts.push({label:'Last 6 months', value:'6'});
-  if(allMonths.length>=12) opts.push({label:'Last 12 months', value:'12'});
+  if(allMonths.length>=12) opts.push({label:'Last 12 months',value:'12'});
   return opts;
 }
 function filterMonths(allMonths, period){
   if(period==='all') return allMonths;
-  const n=parseInt(period);
-  return allMonths.slice(-n);
+  return allMonths.slice(-parseInt(period));
 }
 
-// ── Chart instances ────────────────────────────────────────────────────────────
+// ── Chart registry ────────────────────────────────────────────────────────────
 const charts={};
 function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
 
-// ── Render entry point ─────────────────────────────────────────────────────────
+// ── Toggle state (module-level so setters don't need rerenderAll) ─────────────
+let trendType    = 'bar';
+let catBreakType = 'doughnut';
+let subBreakType = 'doughnut';
+
+// ── Module-level data vars (populated by renderAll, reused by reRenderCharts) ─
+let _exp, _subs, _allMonths, _monthTotals, _monthIncomes, _subRows, _subTrendMonths;
+
+// ── Toggle setters ────────────────────────────────────────────────────────────
+function setTrendType(t){
+  trendType=t;
+  document.querySelectorAll('.tt-trend').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
+  reRenderCharts();
+}
+function setCatBreakType(t){
+  catBreakType=t;
+  document.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
+  reRenderCharts();
+}
+function setSubBreakType(t){
+  subBreakType=t;
+  document.querySelectorAll('.tt-sub').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
+  reRenderCharts();
+}
+
+// ── Build a toggle button ─────────────────────────────────────────────────────
+function mkToggleBtn(groupClass, val, label, isActive, handler){
+  const b=document.createElement('button');
+  b.className='btn-toggle '+groupClass+(isActive?' btn-toggle-active':'');
+  b.dataset.v=val; b.textContent=label;
+  b.onclick=handler;
+  return b;
+}
+
+// ── Render entry point ────────────────────────────────────────────────────────
 function renderAll(){
-  const exp =loadExp();
-  const subs=loadSubs();
+  _exp  = loadExp();
+  _subs = loadSubs();
+  _monthTotals  = expMonthTotals(_exp);
+  _allMonths    = sortedMonths(_monthTotals);
+  _monthIncomes = expMonthIncomes(_exp);
+  _subRows      = subMonthlySnapshot(_subs);
+
+  // Build sub trend months: use expense months if available, else build from subs start dates
+  if(_allMonths.length>=2){
+    _subTrendMonths=_allMonths;
+  } else if(_subs&&_subs.rows&&_subs.cols){
+    const startCol=_subs.cols.find(c=>c.ctype==='date');
+    if(startCol){
+      const dates=(_subs.rows||[])
+        .map(r=>(_subs.cells||{})[r.id+'|'+startCol.id]||'')
+        .filter(Boolean).sort();
+      if(dates.length){
+        const first=new Date(dates[0]); const now=new Date();
+        const ms=[];
+        let y=first.getFullYear(), m=first.getMonth();
+        while(y*12+m<=now.getFullYear()*12+now.getMonth()){
+          ms.push(mk(y,m)); m++; if(m===12){m=0;y++;}
+        }
+        _subTrendMonths=ms.length>=2?ms:[];
+      } else { _subTrendMonths=[]; }
+    } else { _subTrendMonths=[]; }
+  } else { _subTrendMonths=[]; }
+
   const root=document.getElementById('root');
+  const hasExpData=_allMonths.length>0;
+  const hasSubData=_subRows.length>0||(_subs&&_subs.rows&&_subs.rows.length>0);
 
-  const monthTotals  =expMonthTotals(exp);
-  const allMonths    =sortedMonths(monthTotals);
-  const monthIncomes =expMonthIncomes(exp);
-  const subRows      =subMonthlyUSD(subs);
-
-  if(!allMonths.length && !subRows.length){
+  if(!hasExpData&&!hasSubData){
     root.innerHTML=`<div class="no-data">
       <p style="font-size:2rem;margin-bottom:.5rem">📭</p>
       <p>No data yet — add expenses or subscriptions first.</p>
@@ -281,116 +420,211 @@ function renderAll(){
     return;
   }
 
-  // Re-render everything
   root.innerHTML='';
 
-  // ── Summary cards ────────────────────────────────────────────────────────────
-  const periodSel=document.createElement('select');
-  periodSel.id='period-global';
-  periodSel.className='';
-  periodOptions(allMonths).forEach(o=>{
-    const opt=document.createElement('option');
-    opt.value=o.value; opt.textContent=o.label;
-    periodSel.appendChild(opt);
-  });
-  periodSel.addEventListener('change',()=>reRenderCharts(exp,subs,allMonths,monthTotals,monthIncomes,subRows));
+  // ── Period filter (only when expense data exists) ─────────────────────────
+  if(hasExpData){
+    const periodRow=document.createElement('div');
+    periodRow.className='period-row';
+    const lbl=document.createElement('span');
+    lbl.className='period-label'; lbl.textContent='Period:';
+    const sel=document.createElement('select');
+    sel.id='period-global'; sel.className='period-select';
+    periodOptions(_allMonths).forEach(o=>{
+      const opt=document.createElement('option');
+      opt.value=o.value; opt.textContent=o.label;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', reRenderCharts);
+    periodRow.appendChild(lbl);
+    periodRow.appendChild(sel);
+    root.appendChild(periodRow);
+  }
 
-  const controlRow=document.createElement('div');
-  controlRow.style.cssText='display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;';
-  const ctrlLabel=document.createElement('span');
-  ctrlLabel.textContent='Period:';
-  ctrlLabel.style.cssText='font-size:.85rem;font-weight:600;color:var(--muted);';
-  controlRow.appendChild(ctrlLabel);
-  controlRow.appendChild(periodSel);
-  root.appendChild(controlRow);
-
-  // Stat cards container
+  // ── Top stat grid ─────────────────────────────────────────────────────────
   const statGrid=document.createElement('div');
-  statGrid.id='stat-grid';
-  statGrid.className='stat-grid';
+  statGrid.id='stat-grid'; statGrid.className='stat-grid';
   root.appendChild(statGrid);
 
-  // Chart cards (placeholders that reRenderCharts fills)
+  // ── Chart card factory ────────────────────────────────────────────────────
   function addChartCard(id, title){
     const card=document.createElement('div');
-    card.className='chart-card';
-    card.id='card-'+id;
+    card.className='chart-card'; card.id='card-'+id;
+    const hdr=document.createElement('div'); hdr.className='chart-card-header';
     const h2=document.createElement('h2'); h2.textContent=title;
+    const ctrl=document.createElement('div'); ctrl.className='chart-controls'; ctrl.id='controls-'+id;
+    hdr.appendChild(h2); hdr.appendChild(ctrl);
+    card.appendChild(hdr);
     const wrap=document.createElement('div'); wrap.className='chart-canvas-wrap';
     const canvas=document.createElement('canvas'); canvas.id='chart-'+id;
     wrap.appendChild(canvas);
-    card.appendChild(h2);
     card.appendChild(wrap);
     root.appendChild(card);
     return card;
   }
 
-  if(allMonths.length) addChartCard('trend',     'Monthly Spending Trend');
-  if(allMonths.length) addChartCard('breakdown', 'Category Breakdown');
-  if(allMonths.length && Object.keys(monthIncomes).length)
-                       addChartCard('savings',   'Income vs Expenses');
-  if(subRows.length)   addChartCard('subs',      'Subscription Costs');
+  function addSectionTitle(text){
+    const d=document.createElement('div');
+    d.className='section-title'; d.textContent=text;
+    root.appendChild(d);
+  }
 
-  reRenderCharts(exp, subs, allMonths, monthTotals, monthIncomes, subRows);
+  // ── Expense section ───────────────────────────────────────────────────────
+  if(hasExpData){
+    addSectionTitle('Expenses');
+    addChartCard('trend',     'Monthly Spending Trend');
+    addChartCard('breakdown', 'Category Breakdown');
+    if(_allMonths.length>=2) addChartCard('cattrends', 'Category Trends Over Time');
+    if(Object.keys(_monthIncomes).length) addChartCard('savings', 'Income vs Expenses');
+  }
+
+  // ── Subscription section ──────────────────────────────────────────────────
+  if(hasSubData){
+    addSectionTitle('Subscriptions');
+    // Sub stat mini-cards
+    const subStatGrid=document.createElement('div');
+    subStatGrid.id='sub-stat-grid'; subStatGrid.className='stat-grid';
+    subStatGrid.style.marginBottom='.75rem';
+    root.appendChild(subStatGrid);
+
+    if(_subRows.length) addChartCard('subbreak', 'Subscription Breakdown');
+    if(_subTrendMonths.length>=2) addChartCard('subtrend', 'Subscription Cost Trend');
+  }
+
+  reRenderCharts();
 }
 
-function reRenderCharts(exp, subs, allMonths, monthTotals, monthIncomes, subRows){
+// ── Re-render charts (period change / toggle / theme change) ──────────────────
+function reRenderCharts(){
   const period=(document.getElementById('period-global')||{}).value||'all';
-  const months=filterMonths(allMonths, period);
+  const months=filterMonths(_allMonths, period);
   const tc=themeColors();
+  const today=todayMK();
+  const actualMs=months.filter(m=>m<=today);
+  const statMs=actualMs.length?actualMs:months;
+  const hasForecast=months.some(m=>m>today);
 
-  // ── Stat cards ──────────────────────────────────────────────────────────────
+  // ── Top stat cards ────────────────────────────────────────────────────────
   const statGrid=document.getElementById('stat-grid');
   if(statGrid){
     statGrid.innerHTML='';
-    const today=todayMK();
-    const actualMs=months.filter(m=>m<=today);
-    const statMs=actualMs.length?actualMs:months; // fall back to all if no actuals in period
-    const hasForecast=months.some(m=>m>today);
-    const totalSpend  =statMs.reduce((s,m)=>s+(monthTotals[m]||0),0);
-    const avgMonthly  =statMs.length?totalSpend/statMs.length:0;
-    const catTotals   =expCategoryTotals(exp,statMs);
-    const topCat      =Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value)[0];
-    const totalSubAnnual=subRows.reduce((s,r)=>s+r.annual,0);
-
-    function statCard(label,value,sub){
+    function sc(label,value,sub){
       const c=document.createElement('div'); c.className='stat-card';
-      c.innerHTML=`<div class="stat-label">${escapeHtml(label)}</div><div class="stat-value">${escapeHtml(value)}</div>${sub?`<div class="stat-sub">${escapeHtml(sub)}</div>`:''}`;
+      c.innerHTML=
+        `<div class="stat-label">${escapeHtml(label)}</div>`+
+        `<div class="stat-value">${escapeHtml(String(value))}</div>`+
+        (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
       return c;
     }
 
     if(statMs.length){
-      statGrid.appendChild(statCard('Total Spent', fmtMoney(totalSpend), statMs.length+' month'+(statMs.length!==1?'s':'')+(hasForecast?' · actuals only':'')));
-      statGrid.appendChild(statCard('Monthly Avg', fmtMoney(avgMonthly), 'per month'+(hasForecast?' · actuals only':'')));
+      const totalSpend=statMs.reduce((s,m)=>s+(_monthTotals[m]||0),0);
+      const avgMonthly=totalSpend/(statMs.length||1);
+      statGrid.appendChild(sc('Total Spent', fmtMoney(totalSpend),
+        statMs.length+' month'+(statMs.length!==1?'s':'')+(hasForecast?' · actuals only':'')));
+      statGrid.appendChild(sc('Monthly Avg', fmtMoney(avgMonthly),
+        'per month'+(hasForecast?' · actuals only':'')));
+
+      // Top category
+      const catTotals=expCategoryTotals(_exp,statMs);
+      const catSorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
+      if(catSorted.length)
+        statGrid.appendChild(sc('Top Category', catSorted[0][0], fmtMoney(catSorted[0][1].value)+' spent'));
+
+      // Best / worst month (only if ≥2 months of actual data)
+      const withData=statMs.map(m=>({m,v:_monthTotals[m]||0})).filter(x=>x.v>0);
+      if(withData.length>=2){
+        const best =withData.reduce((a,b)=>a.v<b.v?a:b);
+        const worst=withData.reduce((a,b)=>a.v>b.v?a:b);
+        statGrid.appendChild(sc('Best Month',  mkLabel(best.m),  fmtMoney(best.v)+'  · lowest'));
+        statGrid.appendChild(sc('Worst Month', mkLabel(worst.m), fmtMoney(worst.v)+' · highest'));
+      }
+
+      // Savings rate (only if income data)
+      const incMonths=statMs.filter(m=>_monthIncomes[m]);
+      if(incMonths.length){
+        const totInc=incMonths.reduce((s,m)=>s+(_monthIncomes[m]||0),0);
+        const totExp=incMonths.reduce((s,m)=>s+(_monthTotals[m]||0),0);
+        const rate=totInc>0?Math.max(0,(totInc-totExp)/totInc*100):0;
+        statGrid.appendChild(sc('Savings Rate', fmtPct(rate),
+          'across '+incMonths.length+' month'+(incMonths.length!==1?'s':'')));
+      }
     }
-    if(topCat) statGrid.appendChild(statCard('Top Category', escapeHtml(topCat[0]), fmtMoney(topCat[1].value)+' spent'));
-    if(subRows.length) statGrid.appendChild(statCard('Subscriptions', fmtMoney(totalSubAnnual/12)+'/mo', fmtMoney(totalSubAnnual)+' per year'));
+
+    // Subscription stat cards (in main grid)
+    if(_subRows.length){
+      const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
+      statGrid.appendChild(sc('Active Subs', _subRows.length,
+        _subRows.length===1?'subscription':'subscriptions'));
+      statGrid.appendChild(sc('Sub Monthly', fmtMoney(totalMo)+'/mo',
+        fmtMoney(totalMo*12)+'/yr'));
+      if(statMs.length){
+        const avgExp=statMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(statMs.length||1);
+        if(avgExp>0) statGrid.appendChild(sc('Subs % of Spend',
+          fmtPct(totalMo/avgExp*100), 'of avg monthly expenses'));
+      }
+      const costliest=_subRows.reduce((a,b)=>a.monthly>b.monthly?a:b,_subRows[0]);
+      if(costliest) statGrid.appendChild(sc('Costliest Sub',
+        costliest.name, fmtMoney(costliest.monthly)+'/mo'));
+    }
   }
 
-  // ── Trend chart ─────────────────────────────────────────────────────────────
-  if(document.getElementById('chart-trend') && months.length){
+  // ── Sub mini-stat cards (in subscription section) ─────────────────────────
+  const subStatGrid=document.getElementById('sub-stat-grid');
+  if(subStatGrid&&_subRows.length){
+    subStatGrid.innerHTML='';
+    function ssc(label,value,sub){
+      const c=document.createElement('div'); c.className='stat-card';
+      c.innerHTML=
+        `<div class="stat-label">${escapeHtml(label)}</div>`+
+        `<div class="stat-value">${escapeHtml(String(value))}</div>`+
+        (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
+      return c;
+    }
+    const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
+    [ssc('Active',      _subRows.length,       _subRows.length===1?'subscription':'subscriptions'),
+     ssc('Monthly Cost',fmtMoney(totalMo),      'per month'),
+     ssc('Annual Cost', fmtMoney(totalMo*12),   'per year'),
+    ].forEach(c=>subStatGrid.appendChild(c));
+    if(statMs&&statMs.length){
+      const avgExp=statMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(statMs.length||1);
+      if(avgExp>0) subStatGrid.appendChild(ssc('% of Expenses',fmtPct(totalMo/avgExp*100),'of avg monthly spend'));
+    }
+  }
+
+  // ── B: Monthly Spending Trend ─────────────────────────────────────────────
+  const trendCanvas=document.getElementById('chart-trend');
+  if(trendCanvas&&months.length){
+    // Add / update toggle buttons
+    const ctrl=document.getElementById('controls-trend');
+    if(ctrl&&!ctrl.querySelector('.tt-trend')){
+      ctrl.appendChild(mkToggleBtn('tt-trend','bar','📊 Bar',  trendType==='bar',  ()=>setTrendType('bar')));
+      ctrl.appendChild(mkToggleBtn('tt-trend','line','📈 Line', trendType==='line', ()=>setTrendType('line')));
+    } else if(ctrl){
+      ctrl.querySelectorAll('.tt-trend').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===trendType));
+    }
+
     destroyChart('trend');
-    const today=todayMK();
-    const hasForecast=months.some(m=>m>today);
-    const labels=months.map(m=>{ const [y,mo]=m.split('-'); return MONTHS_SHORT[parseInt(mo)-1]+" '"+y.slice(2); });
-    const actualVals  =months.map(m=>m<=today ?parseFloat((monthTotals[m]||0).toFixed(2)):null);
-    const forecastVals=months.map(m=>m>today  ?parseFloat((monthTotals[m]||0).toFixed(2)):null);
-    const datasets=[{
-      label:'Actual',
-      data:actualVals,
-      backgroundColor:'rgba(124,58,237,.7)',
-      borderColor:'#7c3aed',
-      borderWidth:1,borderRadius:4,
-    }];
-    if(hasForecast) datasets.push({
-      label:'Forecast',
-      data:forecastVals,
-      backgroundColor:'rgba(251,191,36,.55)',
-      borderColor:'#f59e0b',
-      borderWidth:1,borderRadius:4,
-    });
-    charts['trend']=new Chart(document.getElementById('chart-trend'),{
-      type:'bar',
+    const labels=months.map(mkLabel);
+    const actualVals  =months.map(m=>m<=today?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
+    const forecastVals=months.map(m=>m> today?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
+
+    function makeDs(label, data, color, rgba){
+      const ds={label, data, borderColor:color, borderWidth:2};
+      if(trendType==='bar'){
+        ds.type='bar'; ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
+      } else {
+        ds.type='line'; ds.backgroundColor='transparent'; ds.fill=false;
+        ds.tension=0.3; ds.pointRadius=4; ds.pointBackgroundColor=color;
+      }
+      return ds;
+    }
+
+    const datasets=[makeDs('Actual', actualVals, '#7c3aed','rgba(124,58,237,.7)')];
+    if(hasForecast) datasets.push(makeDs('Forecast', forecastVals, '#f59e0b','rgba(251,191,36,.55)'));
+
+    charts['trend']=new Chart(trendCanvas,{
+      type: trendType==='bar'?'bar':'line',
       data:{labels,datasets},
       options:{
         responsive:true,
@@ -406,53 +640,128 @@ function reRenderCharts(exp, subs, allMonths, monthTotals, monthIncomes, subRows
     });
   }
 
-  // ── Category breakdown ───────────────────────────────────────────────────────
-  if(document.getElementById('chart-breakdown') && months.length){
-    destroyChart('breakdown');
-    const catTotals=expCategoryTotals(exp,months);
-    const sorted   =Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
-    if(sorted.length){
-      const labels=sorted.map(e=>e[0]);
-      const vals  =sorted.map(e=>parseFloat(e[1].value.toFixed(2)));
-      const colors=sorted.map(e=>e[1].color);
-      const total =vals.reduce((a,b)=>a+b,0);
-      charts['breakdown']=new Chart(document.getElementById('chart-breakdown'),{
-        type:'doughnut',
-        data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:tc.panel,hoverOffset:8}]},
-        options:{
-          responsive:true,
-          plugins:{
-            legend:{display:true,position:'right',labels:{color:tc.fg,boxWidth:14,padding:10,font:{size:12}}},
-            tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+' ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
-          }
-        }
-      });
+  // ── C: Category Breakdown (doughnut / bar toggle) ─────────────────────────
+  const breakCanvas=document.getElementById('chart-breakdown');
+  if(breakCanvas&&months.length){
+    const ctrl=document.getElementById('controls-breakdown');
+    if(ctrl&&!ctrl.querySelector('.tt-cat')){
+      ctrl.appendChild(mkToggleBtn('tt-cat','doughnut','🥧 Doughnut',catBreakType==='doughnut',()=>setCatBreakType('doughnut')));
+      ctrl.appendChild(mkToggleBtn('tt-cat','bar',     '📊 Bar',      catBreakType==='bar',     ()=>setCatBreakType('bar')));
+    } else if(ctrl){
+      ctrl.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===catBreakType));
+    }
 
-      // Category list with spend + share
-      let list=document.querySelector('#card-breakdown .insight-list');
-      if(!list){ list=document.createElement('ul'); list.className='insight-list'; document.getElementById('card-breakdown').appendChild(list); }
+    destroyChart('breakdown');
+    const catTotals=expCategoryTotals(_exp,months);
+    const sorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
+
+    if(sorted.length){
+      const labels =sorted.map(e=>e[0]);
+      const vals   =sorted.map(e=>parseFloat(e[1].value.toFixed(2)));
+      const colors =sorted.map(e=>e[1].color);
+      const total  =vals.reduce((a,b)=>a+b,0);
+
+      const cfg=catBreakType==='doughnut'
+        ? {
+            type:'doughnut',
+            data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:tc.panel,hoverOffset:8}]},
+            options:{
+              responsive:true,
+              plugins:{
+                legend:{display:true,position:'right',labels:{color:tc.fg,boxWidth:14,padding:10,font:{size:12}}},
+                tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+' ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
+              }
+            }
+          }
+        : {
+            type:'bar',
+            data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4}]},
+            options:{
+              responsive:true,
+              plugins:{
+                legend:{display:false},
+                tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.y)+' ('+(ctx.parsed.y/total*100).toFixed(1)+'%)'}}
+              },
+              scales:{
+                x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
+                y:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}}
+              }
+            }
+          };
+
+      charts['breakdown']=new Chart(breakCanvas,cfg);
+
+      // Ranked insight list
+      const card=document.getElementById('card-breakdown');
+      let list=card.querySelector('.insight-list');
+      if(!list){ list=document.createElement('ul'); list.className='insight-list'; card.appendChild(list); }
       list.innerHTML=sorted.map(([name,d])=>{
         const pct=(d.value/total*100).toFixed(1);
-        return `<li><span class="insight-name">${escapeHtml(name)}</span><span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span></span></li>`;
+        return `<li><span class="insight-name">${escapeHtml(name)}</span>`+
+          `<span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span></span></li>`;
       }).join('');
     }
   }
 
-  // ── Income vs expenses ───────────────────────────────────────────────────────
-  if(document.getElementById('chart-savings')){
+  // ── D: Category Trends Over Time (multi-line) ─────────────────────────────
+  const catTrendsCanvas=document.getElementById('chart-cattrends');
+  if(catTrendsCanvas&&months.length>=2){
+    destroyChart('cattrends');
+    const catData=expCategoryMonthlyData(_exp,months);
+    // Sort by total spend, cap at 8
+    const entries=[...catData.entries()]
+      .map(([label,d])=>({label,color:d.color,values:d.values,total:d.values.reduce((a,b)=>a+b,0)}))
+      .filter(e=>e.total>0)
+      .sort((a,b)=>b.total-a.total)
+      .slice(0,8);
+
+    if(entries.length){
+      charts['cattrends']=new Chart(catTrendsCanvas,{
+        type:'line',
+        data:{
+          labels:months.map(mkLabel),
+          datasets:entries.map(e=>({
+            label:e.label,
+            data:e.values,
+            borderColor:e.color,
+            backgroundColor:'transparent',
+            borderWidth:2,
+            fill:false,
+            tension:0.3,
+            pointRadius:3,
+            pointBackgroundColor:e.color,
+          }))
+        },
+        options:{
+          responsive:true,
+          plugins:{
+            legend:{display:true,position:'bottom',labels:{color:tc.fg,boxWidth:12,padding:10,font:{size:11}}},
+            tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
+          },
+          scales:{
+            x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
+            y:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}}
+          }
+        }
+      });
+    }
+  }
+
+  // ── E: Income vs Expenses ─────────────────────────────────────────────────
+  const savingsCanvas=document.getElementById('chart-savings');
+  if(savingsCanvas){
     destroyChart('savings');
-    const incMonths=months.filter(m=>monthIncomes[m]);
+    const incMonths=months.filter(m=>_monthIncomes[m]);
     if(incMonths.length){
-      const labels=incMonths.map(m=>{ const [y,mo]=m.split('-'); return MONTHS_SHORT[parseInt(mo)-1]+" '"+y.slice(2); });
-      const incVals=incMonths.map(m=>parseFloat((monthIncomes[m]||0).toFixed(2)));
-      const expVals=incMonths.map(m=>parseFloat((monthTotals[m]||0).toFixed(2)));
-      charts['savings']=new Chart(document.getElementById('chart-savings'),{
+      charts['savings']=new Chart(savingsCanvas,{
         type:'bar',
         data:{
-          labels,
+          labels:incMonths.map(mkLabel),
           datasets:[
-            {label:'Income',data:incVals,backgroundColor:'rgba(21,128,61,.6)',borderColor:'#15803d',borderWidth:1,borderRadius:4},
-            {label:'Expenses',data:expVals,backgroundColor:'rgba(220,38,38,.55)',borderColor:'#dc2626',borderWidth:1,borderRadius:4},
+            {label:'Income',  data:incMonths.map(m=>parseFloat((_monthIncomes[m]||0).toFixed(2))),
+              backgroundColor:'rgba(21,128,61,.6)', borderColor:'#15803d',borderWidth:1,borderRadius:4},
+            {label:'Expenses',data:incMonths.map(m=>parseFloat((_monthTotals[m]||0).toFixed(2))),
+              backgroundColor:'rgba(220,38,38,.55)',borderColor:'#dc2626',borderWidth:1,borderRadius:4},
           ]
         },
         options:{
@@ -470,53 +779,134 @@ function reRenderCharts(exp, subs, allMonths, monthTotals, monthIncomes, subRows
     }
   }
 
-  // ── Subscription breakdown ───────────────────────────────────────────────────
-  if(document.getElementById('chart-subs') && subRows.length){
-    destroyChart('subs');
-    const sorted=[...subRows].sort((a,b)=>b.monthly-a.monthly);
-    const colors=['#0e7490','#0891b2','#22d3ee','#67e8f9','#a5f3fc','#cffafe'];
-    charts['subs']=new Chart(document.getElementById('chart-subs'),{
-      type:'bar',
-      data:{
-        labels:sorted.map(r=>r.name),
-        datasets:[{
-          label:'Monthly Cost',
-          data:sorted.map(r=>parseFloat(r.monthly.toFixed(2))),
-          backgroundColor:sorted.map((_,i)=>colors[i%colors.length]),
-          borderRadius:4,
-        }]
-      },
-      options:{
-        indexAxis:'y',
-        responsive:true,
-        plugins:{
-          legend:{display:false},
-          tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.x)+'/mo  ('+fmtMoney(ctx.parsed.x*12)+'/yr)'}}
-        },
-        scales:{
-          x:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}},
-          y:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}}
-        }
-      }
-    });
-
-    // Total line under chart
-    let subTotal=document.querySelector('#card-subs .sub-total');
-    if(!subTotal){
-      subTotal=document.createElement('p');
-      subTotal.className='sub-total';
-      subTotal.style.cssText='text-align:right;font-size:.82rem;color:var(--muted);margin:.5rem 0 0;';
-      document.getElementById('card-subs').appendChild(subTotal);
+  // ── F: Subscription Breakdown (doughnut / bar toggle) ─────────────────────
+  const subBreakCanvas=document.getElementById('chart-subbreak');
+  if(subBreakCanvas&&_subRows.length){
+    const ctrl=document.getElementById('controls-subbreak');
+    if(ctrl&&!ctrl.querySelector('.tt-sub')){
+      ctrl.appendChild(mkToggleBtn('tt-sub','doughnut','🥧 Doughnut',subBreakType==='doughnut',()=>setSubBreakType('doughnut')));
+      ctrl.appendChild(mkToggleBtn('tt-sub','bar',     '📊 Bar',      subBreakType==='bar',     ()=>setSubBreakType('bar')));
+    } else if(ctrl){
+      ctrl.querySelectorAll('.tt-sub').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===subBreakType));
     }
-    const totalMo=subRows.reduce((s,r)=>s+r.monthly,0);
-    subTotal.textContent=`${subRows.length} active subscription${subRows.length!==1?'s':''} · `+fmtMoney(totalMo)+'/mo · '+fmtMoney(totalMo*12)+'/yr';
+
+    destroyChart('subbreak');
+    const sorted=[..._subRows].sort((a,b)=>b.monthly-a.monthly);
+    const cyan=['#0e7490','#0891b2','#22d3ee','#67e8f9','#a5f3fc','#cffafe'];
+    const colors=sorted.map((_,i)=>cyan[i%cyan.length]);
+    const vals  =sorted.map(r=>parseFloat(r.monthly.toFixed(2)));
+    const names =sorted.map(r=>r.name);
+    const total =vals.reduce((a,b)=>a+b,0);
+
+    const subCfg=subBreakType==='doughnut'
+      ? {
+          type:'doughnut',
+          data:{labels:names,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:tc.panel,hoverOffset:8}]},
+          options:{
+            responsive:true,
+            plugins:{
+              legend:{display:true,position:'right',labels:{color:tc.fg,boxWidth:14,padding:10,font:{size:12}}},
+              tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+'/mo ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
+            }
+          }
+        }
+      : {
+          type:'bar',
+          data:{labels:names,datasets:[{label:'Monthly Cost',data:vals,backgroundColor:colors,borderRadius:4}]},
+          options:{
+            indexAxis:'y',
+            responsive:true,
+            plugins:{
+              legend:{display:false},
+              tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.x)+'/mo  ('+fmtMoney(ctx.parsed.x*12)+'/yr)'}}
+            },
+            scales:{
+              x:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}},
+              y:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}}
+            }
+          }
+        };
+
+    charts['subbreak']=new Chart(subBreakCanvas,subCfg);
+
+    // Ranked list
+    const card=document.getElementById('card-subbreak');
+    let list=card.querySelector('.insight-list');
+    if(!list){ list=document.createElement('ul'); list.className='insight-list'; card.appendChild(list); }
+    list.innerHTML=sorted.map(r=>
+      `<li><span class="insight-name">${escapeHtml(r.name)}</span>`+
+      `<span class="insight-val">${fmtMoney(r.monthly)}/mo &nbsp;<span style="color:var(--muted)">(${fmtMoney(r.annual)}/yr)</span></span></li>`
+    ).join('');
+
+    // Total line
+    let note=card.querySelector('.chart-note');
+    if(!note){ note=document.createElement('p'); note.className='chart-note'; card.appendChild(note); }
+    note.textContent=`${_subRows.length} active subscription${_subRows.length!==1?'s':''} · `+
+      fmtMoney(total)+'/mo · '+fmtMoney(total*12)+'/yr';
+  }
+
+  // ── G: Subscription Cost Trend (line) ────────────────────────────────────
+  const subTrendCanvas=document.getElementById('chart-subtrend');
+  if(subTrendCanvas&&_subs&&_subTrendMonths.length>=2){
+    destroyChart('subtrend');
+
+    // Apply period filter to sub trend months
+    const filteredTrendMonths=filterMonths(_subTrendMonths, period);
+    if(filteredTrendMonths.length>=2){
+      const labels=filteredTrendMonths.map(mkLabel);
+      const costs =subCostPerMonth(_subs, filteredTrendMonths);
+      const hasSubForecast=filteredTrendMonths.some(m=>m>today);
+
+      const actualCosts  =filteredTrendMonths.map((m,i)=>m<=today?costs[i]:null);
+      const forecastCosts=filteredTrendMonths.map((m,i)=>m> today?costs[i]:null);
+
+      const datasets=[{
+        label:'Sub Cost',
+        data:actualCosts,
+        borderColor:'#0891b2',
+        backgroundColor:'rgba(8,145,178,.15)',
+        borderWidth:2,
+        fill:true,
+        tension:0.3,
+        pointRadius:4,
+        pointBackgroundColor:'#0891b2',
+      }];
+      if(hasSubForecast) datasets.push({
+        label:'Forecast',
+        data:forecastCosts,
+        borderColor:'#f59e0b',
+        backgroundColor:'rgba(251,191,36,.08)',
+        borderWidth:2,
+        borderDash:[5,5],
+        fill:true,
+        tension:0.3,
+        pointRadius:4,
+        pointBackgroundColor:'#f59e0b',
+      });
+
+      charts['subtrend']=new Chart(subTrendCanvas,{
+        type:'line',
+        data:{labels,datasets},
+        options:{
+          responsive:true,
+          plugins:{
+            legend:{display:hasSubForecast,labels:{color:tc.fg,boxWidth:14,padding:10}},
+            tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)+'/mo'}}
+          },
+          scales:{
+            x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
+            y:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}}
+          }
+        }
+      });
+    }
   }
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 renderAll();
 
-// Re-render if another tab updates either tracker
+// Re-render when another tab updates either tracker
 window.addEventListener('storage', e=>{
   if(e.key===EXP_KEY||e.key===SUBS_KEY) renderAll();
 });
