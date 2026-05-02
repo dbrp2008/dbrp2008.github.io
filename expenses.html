@@ -427,6 +427,11 @@ function isCollapsed(rId){ return state.collapsed[rId]===true; }
 function rowTotal(rId){
   const row=state.rows.find(r=>r.id===rId);
   if(row&&row.linked==='subscriptions') return virtualSubChildren().reduce((s,c)=>s+c.cost,0);
+  if(row&&row.snapshotLinkedRow){
+    const snap=(row.subsSnapshotByMonth||{})[currentMK()];
+    if(snap!==undefined) return snap.reduce((s,c)=>s+c.cost,0);
+    return virtualSubChildren().reduce((s,c)=>s+c.cost,0);
+  }
   const kids=children(rId);
   if(kids.length) return kids.reduce((s,c)=>s+rowTotal(c.id),0);
   return state.cols.reduce((s,col)=>s+getCell(rId,col.id),0);
@@ -908,8 +913,17 @@ function render(){
     rowLabel.style.color=row.textColor||'#1f2937';
     rowLabel.addEventListener('blur',()=>{row.label=rowLabel.textContent.trim()||row.label;save();});
     rowLabel.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();rowLabel.blur();}});
+    if(row.snapshotLinkedRow){
+      rowLabel.contentEditable='false';
+      rowLabel.style.textDecorationLine='underline';
+      rowLabel.style.textDecorationStyle='dashed';
+      rowLabel.style.cursor='pointer';
+      rowLabel.classList.add('tip-host');
+      rowLabel.dataset.tip='Pasted snapshot — click to restore live link to your Subscription Tracker';
+      rowLabel.addEventListener('click',e=>{e.stopPropagation();restoreSubsLink(row.id);});
+    }
     rhIn.appendChild(cInp);rhIn.appendChild(swatch);rhIn.appendChild(tcInp);rhIn.appendChild(textSwatch);rhIn.appendChild(rowLabel);
-    if(!isChild && !row.linked){
+    if(!isChild && !row.linked && !row.snapshotLinkedRow){
       const dd=document.createElement('div');dd.className='sub-dropdown';
       const addBtn=document.createElement('button');addBtn.className='sub-add-btn';addBtn.textContent='+Sub';addBtn.title='Add subcategory';
       addBtn.addEventListener('click',e=>{e.stopPropagation();showSubMenu(addBtn,row);});
@@ -956,9 +970,12 @@ function render(){
     tbody.appendChild(tr);
     if(!isChild&&!collapsed){
       children(row.id).forEach(renderRow);
-      // Linked subscriptions virtual children
-      if(row.linked==='subscriptions'){
-        virtualSubChildren().forEach(vc=>{
+      // Linked subscriptions virtual children (live link or pasted snapshot)
+      const _vchildren = row.linked==='subscriptions' ? virtualSubChildren()
+        : row.snapshotLinkedRow ? ((row.subsSnapshotByMonth||{})[currentMK()]||virtualSubChildren())
+        : [];
+      if(_vchildren.length){
+      _vchildren.forEach(vc=>{
           const vtr=document.createElement('tr'); vtr.style.height='30px'; vtr.classList.add('child-row'); vtr.style.opacity='.88';
           const vrhTd=document.createElement('td'); vrhTd.className='rh-cell'; vrhTd.style.backgroundColor=row.color;
           const vrhIn=document.createElement('div'); vrhIn.className='rh-inner'; vrhIn.style.paddingLeft='22px';
@@ -1169,6 +1186,7 @@ function buildExpMonthBlob(){
     cols:JSON.parse(JSON.stringify(state.cols)),
     cells, income:{gross:inc.gross||'',tax:inc.tax||''},
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
+    subsSnapshot:virtualSubChildren().map(c=>({label:c.label,cost:c.cost})),
   };
 }
 // Build full-state blob
@@ -1179,6 +1197,23 @@ function buildExpFullBlob(){
     const mk2=k.split('|')[0];
     (cellsByMonth[mk2]=cellsByMonth[mk2]||{})[k]=state.cells[k];
   });
+  const subsSnapshotByMonth={};
+  const subsData=loadSubsState();
+  if(subsData&&subsData.rows&&subsData.cols){
+    const svcCol=subsData.cols.find(c=>c.ctype==='text');
+    for(let y=minY;y<=maxY;y++){
+      for(let m2=0;m2<12;m2++){
+        if(y===minY&&m2<minM) continue;
+        if(y===maxY&&m2>maxM) continue;
+        const mk2=mk(y,m2);
+        const snap=subsData.rows.map(r=>({
+          label:svcCol?subsData.cells[r.id+'|'+svcCol.id]||'—':'—',
+          cost:calcSubMonthCostInExp(r,subsData,y,m2),
+        })).filter(c=>c.cost>0);
+        if(snap.length) subsSnapshotByMonth[mk2]=snap;
+      }
+    }
+  }
   return {
     kind:'EXP-FULL', v:1,
     rows:JSON.parse(JSON.stringify(state.rows)),
@@ -1188,6 +1223,7 @@ function buildExpFullBlob(){
     collapsed:JSON.parse(JSON.stringify(state.collapsed||{})),
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
     currentYear:state.currentYear, currentMonth:state.currentMonth,
+    subsSnapshotByMonth,
   };
 }
 
@@ -1252,6 +1288,23 @@ function _mergeRowsCols(blobRows, blobCols){
   return {blobRowIdMap, blobColIdMap};
 }
 
+function restoreSubsLink(rowId){
+  if(!confirm('Restore live link to your Subscription Tracker?\nThe pasted snapshot will be replaced with your current subscriptions.')) return;
+  snapshot();
+  const row=state.rows.find(r=>r.id===rowId); if(!row) return;
+  delete row.snapshotLinkedRow;
+  delete row.subsSnapshotByMonth;
+  row.linked='subscriptions';
+  save(); render();
+}
+function applySubsSnapshot(linkedRow, snapshotByMonth){
+  if(!linkedRow||!snapshotByMonth) return;
+  if(!linkedRow.subsSnapshotByMonth) linkedRow.subsSnapshotByMonth={};
+  Object.assign(linkedRow.subsSnapshotByMonth, snapshotByMonth);
+  linkedRow.snapshotLinkedRow=true;
+  delete linkedRow.linked;
+}
+
 function importExpMonth(blob){
   const mk2=currentMK();
   // Wipe just this month's cells
@@ -1263,6 +1316,11 @@ function importExpMonth(blob){
     if(rId&&cId) state.cells[mk2+'|'+rId+'|'+cId]=v;
   });
   if(blob.income) state.income[mk2]={gross:blob.income.gross||'',tax:blob.income.tax||''};
+  // Apply subscription snapshot if present
+  if(blob.subsSnapshot){
+    const lr=state.rows.find(r=>r.linked==='subscriptions'||r.snapshotLinkedRow);
+    applySubsSnapshot(lr,{[mk2]:blob.subsSnapshot});
+  }
 }
 
 function importExpFull(blob, selectedMonths){
@@ -1279,6 +1337,13 @@ function importExpFull(blob, selectedMonths){
     // Income
     if(blob.income && blob.income[mk2]) state.income[mk2]={gross:blob.income[mk2].gross||'',tax:blob.income[mk2].tax||''};
   });
+  // Apply per-month subscription snapshots if present
+  if(blob.subsSnapshotByMonth){
+    const lr=state.rows.find(r=>r.linked==='subscriptions'||r.snapshotLinkedRow);
+    const rel={};
+    selectedMonths.forEach(mk2=>{if(blob.subsSnapshotByMonth[mk2]) rel[mk2]=blob.subsSnapshotByMonth[mk2];});
+    if(Object.keys(rel).length) applySubsSnapshot(lr,rel);
+  }
 }
 
 // ── Paste UI ───────────────────────────────────────────────────────────────────
