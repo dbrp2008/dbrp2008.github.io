@@ -185,6 +185,7 @@
     const d=document.documentElement.classList.toggle('dark');
     localStorage.setItem('fiapp_theme', d?'dark':'light');
     document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+    if(typeof renderChart==='function') renderChart();
   }
   if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
   </script>
@@ -742,14 +743,17 @@ function renderChart(){
   const colors=data.map(d=>d.color||'#93c5fd');
   const vals=data.map(d=>parseFloat(d.value.toFixed(2)));
   const labels=data.map(d=>d.label);
+  const isDark=document.documentElement.classList.contains('dark');
+  const fgColor=isDark?'#e2e8f0':'#1f2937';
+  const gridColor=isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)';
   if(chartType==='doughnut'){
     chartInstance=new Chart(document.getElementById('exp-chart'),{
       type:'doughnut',
-      data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,hoverOffset:8}]},
+      data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:isDark?'#1e293b':'#fff',hoverOffset:8}]},
       options:{
         responsive:true,maintainAspectRatio:true,
         plugins:{
-          legend:{display:true,position:'right',labels:{color:'var(--fg)',boxWidth:14,padding:10,font:{size:12}}},
+          legend:{display:true,position:'right',labels:{color:fgColor,boxWidth:14,padding:10,font:{size:12}}},
           tooltip:{callbacks:{label:ctx=>' '+ctx.label+': $'+ctx.parsed.toFixed(2)+' ('+(ctx.parsed/vals.reduce((a,b)=>a+b,0)*100).toFixed(1)+'%)'}}
         }
       }
@@ -758,7 +762,14 @@ function renderChart(){
     chartInstance=new Chart(document.getElementById('exp-chart'),{
       type:'bar',
       data:{labels,datasets:[{label:'$ Amount',data:vals,backgroundColor:colors,borderRadius:4}]},
-      options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.y.toFixed(2)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+v}}},responsive:true,maintainAspectRatio:true}
+      options:{
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.y.toFixed(2)}}},
+        scales:{
+          x:{ticks:{color:fgColor},grid:{color:gridColor},border:{color:gridColor}},
+          y:{beginAtZero:true,ticks:{color:fgColor,callback:v=>'$'+v},grid:{color:gridColor},border:{color:gridColor}}
+        },
+        responsive:true,maintainAspectRatio:true
+      }
     });
   }
   renderTop3(data,topLabel);
