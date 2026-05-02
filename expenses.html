@@ -838,13 +838,43 @@ function calcSubMonthCostInExp(r, subs, yr, mo){
   return events*usdCost;
 }
 
+// Returns [w1,w2,w3,w4] costs for a subscription in a given month.
+// Day→week: 1-7=0, 8-14=1, 15-21=2, 22+=3 (rounds 29-31 to week 4).
+function getSubWeekCosts(r, subs, yr, mo){
+  const cost=calcSubMonthCostInExp(r,subs,yr,mo);
+  if(!cost) return [0,0,0,0];
+  const billCol=subs.cols.find(c=>c.ctype==='billing');
+  const startCol=subs.cols.find(c=>c.ctype==='date');
+  const billing=billCol?(subs.cells[r.id+'|'+billCol.id]||'Monthly'):'Monthly';
+  const startStr=startCol?(subs.cells[r.id+'|'+startCol.id]||''):'';
+  function dayToW(d){ return d<=7?0:d<=14?1:d<=21?2:3; }
+  const weeks=[0,0,0,0];
+  if(billing==='Weekly'||billing==='Bi-Weekly'){
+    const interval=(billing==='Weekly'?7:14)*864e5;
+    const start=new Date(startStr+'T12:00:00');
+    let d=new Date(start);
+    while(d.getFullYear()<yr||(d.getFullYear()===yr&&d.getMonth()<mo)) d=new Date(d.getTime()+interval);
+    const days=[];
+    while(d.getFullYear()===yr&&d.getMonth()===mo){ days.push(d.getDate()); d=new Date(d.getTime()+interval); }
+    if(!days.length){ weeks[0]=cost; return weeks; }
+    const perEvent=cost/days.length;
+    days.forEach(day=>{ weeks[dayToW(day)]+=perEvent; });
+  } else {
+    // Monthly/Quarterly/etc: billing day = start day
+    const day=startStr?new Date(startStr+'T12:00:00').getDate():1;
+    weeks[dayToW(day)]=cost;
+  }
+  return weeks;
+}
+
 function virtualSubChildren(){
   const subs=loadSubsState(); if(!subs||!subs.rows||!subs.cols) return [];
   const svcCol=subs.cols.find(c=>c.ctype==='text');
   return subs.rows.map(r=>{
     const label=svcCol?subs.cells[r.id+'|'+svcCol.id]||'—':'—';
     const cost=calcSubMonthCostInExp(r,subs,state.currentYear,state.currentMonth);
-    return {id:r.id,label,cost};
+    const weekCosts=getSubWeekCosts(r,subs,state.currentYear,state.currentMonth);
+    return {id:r.id,label,cost,weekCosts};
   }).filter(c=>c.cost>0);
 }
 
@@ -939,12 +969,20 @@ function render(){
     const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);rhTd.appendChild(rr);
     tr.appendChild(rhTd);
 
-    state.cols.forEach(col=>{
+    const isLinkedRow=row.linked==='subscriptions'||row.snapshotLinkedRow;
+    const linkedVC=isLinkedRow?(row.linked==='subscriptions'?virtualSubChildren():((row.subsSnapshotByMonth||{})[currentMK()]||virtualSubChildren())):null;
+    state.cols.forEach((col,colIdx)=>{
       const td=document.createElement('td');
-      if(hasKids){
+      if(hasKids||isLinkedRow){
         const span=document.createElement('span');span.className='parent-sum';span.id='ps-'+row.id+'-'+col.id;
-        const s=children(row.id).reduce((t,c)=>t+getCell(c.id,col.id),0);
-        span.textContent=s>0?fmt(s):'';span.title='Sum of subcategories';td.appendChild(span);
+        let s=0;
+        if(isLinkedRow&&linkedVC){
+          s=linkedVC.reduce((t,vc)=>t+(vc.weekCosts?vc.weekCosts[colIdx]||0:(colIdx===0?vc.cost:0)),0);
+        } else {
+          s=children(row.id).reduce((t,c)=>t+getCell(c.id,col.id),0);
+          span.title='Sum of subcategories';
+        }
+        span.textContent=s>0?fmt(s):'';td.appendChild(span);
       } else {
         const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.01';inp.className='num-input';
         const stored=getRawCell(row.id,col.id);inp.value=stored!==''?stored:'';
@@ -984,9 +1022,10 @@ function render(){
           vrhIn.appendChild(vbadge); vrhIn.appendChild(vlbl); vrhTd.appendChild(vrhIn); vtr.appendChild(vrhTd);
           state.cols.forEach((col,idx)=>{
             const vtd=document.createElement('td');
-            if(idx===0){
+            const wc=vc.weekCosts?vc.weekCosts[idx]||0:(idx===0?vc.cost:0);
+            if(wc>0){
               const vs=document.createElement('span'); vs.className='parent-sum'; vs.style.cssText='display:block;padding:4px 7px;text-align:right;font-size:.83rem;min-height:30px;line-height:22px;';
-              vs.textContent=vc.cost>0?fmt(vc.cost):''; vtd.appendChild(vs);
+              vs.textContent=fmt(wc); vtd.appendChild(vs);
             }
             vtr.appendChild(vtd);
           });
@@ -1186,7 +1225,7 @@ function buildExpMonthBlob(){
     cols:JSON.parse(JSON.stringify(state.cols)),
     cells, income:{gross:inc.gross||'',tax:inc.tax||''},
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
-    subsSnapshot:virtualSubChildren().map(c=>({label:c.label,cost:c.cost})),
+    subsSnapshot:virtualSubChildren().map(c=>({label:c.label,cost:c.cost,weekCosts:c.weekCosts})),
   };
 }
 // Build full-state blob
@@ -1209,6 +1248,7 @@ function buildExpFullBlob(){
         const snap=subsData.rows.map(r=>({
           label:svcCol?subsData.cells[r.id+'|'+svcCol.id]||'—':'—',
           cost:calcSubMonthCostInExp(r,subsData,y,m2),
+          weekCosts:getSubWeekCosts(r,subsData,y,m2),
         })).filter(c=>c.cost>0);
         if(snap.length) subsSnapshotByMonth[mk2]=snap;
       }
