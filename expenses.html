@@ -438,7 +438,12 @@ function rowTotal(rId){
 }
 function grandTotal(){ return state.rows.filter(r=>!r.parentId).reduce((s,r)=>s+rowTotal(r.id),0); }
 function colTotal(cId){
+  const colIdx=state.cols.findIndex(c=>c.id===cId);
   return state.rows.filter(r=>!r.parentId).reduce((s,r)=>{
+    if(r.linked==='subscriptions'||r.snapshotLinkedRow){
+      const vcs=r.linked==='subscriptions'?virtualSubChildren():((r.subsSnapshotByMonth||{})[currentMK()]||virtualSubChildren());
+      return s+vcs.reduce((t,vc)=>t+(vc.weekCosts?vc.weekCosts[colIdx]||0:(colIdx===0?vc.cost:0)),0);
+    }
     if(hasChildren(r.id)) return s+children(r.id).reduce((cs,c)=>cs+getCell(c.id,cId),0);
     return s+getCell(r.id,cId);
   },0);
@@ -1094,7 +1099,23 @@ function buildRowsArray(){
   const out=[header];
   state.rows.filter(r=>!r.parentId).forEach(parent=>{
     const kids=children(parent.id);
-    if(kids.length){
+    const isLinked=parent.linked==='subscriptions'||parent.snapshotLinkedRow;
+    if(isLinked){
+      // Virtual subscription children
+      const vcs=parent.linked==='subscriptions'?virtualSubChildren():((parent.subsSnapshotByMonth||{})[currentMK()]||virtualSubChildren());
+      const vals=state.cols.map((col,ci)=>{
+        const s=vcs.reduce((t,vc)=>t+(vc.weekCosts?vc.weekCosts[ci]||0:(ci===0?vc.cost:0)),0);
+        return s?s.toFixed(2):'';
+      });
+      out.push([parent.label,'',...vals,rowTotal(parent.id).toFixed(2)]);
+      vcs.forEach(vc=>{
+        const kVals=state.cols.map((col,ci)=>{
+          const wc=vc.weekCosts?vc.weekCosts[ci]||0:(ci===0?vc.cost:0);
+          return wc?wc.toFixed(2):'';
+        });
+        out.push(['',vc.label,...kVals,vc.cost.toFixed(2)]);
+      });
+    } else if(kids.length){
       // parent summary row
       const vals=state.cols.map(col=>{
         const s=kids.reduce((t,c)=>t+getCell(c.id,col.id),0);
