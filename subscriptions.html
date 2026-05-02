@@ -299,7 +299,7 @@ async function fetchAndCacheUSDRates(){
     const r=await fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD');
     const d=await r.json();
     if(d.result==='success') Object.assign(ratesCache,d.conversion_rates);
-  }catch{}
+  }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
 }
 async function ensureRate(currency){
   if(!currency||currency==='USD'||ratesCache[currency]) return;
@@ -347,7 +347,7 @@ function loadState(){
       if(!s.rowCurrencies)   s.rowCurrencies={};
       return s;
     }
-  }catch{}
+  }catch(e){ console.warn('FiApp: loadState failed, using fresh state —',e.message); }
   return freshState();
 }
 let state=loadState();
@@ -917,8 +917,21 @@ function encodeBlob(obj){
 function decodeBlob(str){
   const m=String(str).trim().match(/^FIAPP-([A-Z\-]+)-V1:([A-Za-z0-9+/=]+)\s*$/);
   if(!m) throw new Error('Not a FiApp paste-blob.');
-  const obj=JSON.parse(decodeURIComponent(escape(atob(m[2]))));
+  let obj;
+  try{ obj=JSON.parse(decodeURIComponent(escape(atob(m[2])))); }
+  catch(e){ throw new Error('Blob is corrupted or incomplete — could not decode.'); }
+  if(typeof obj!=='object'||obj===null) throw new Error('Invalid blob: unexpected format.');
   if(obj.kind!==m[1]) throw new Error('Blob kind mismatch.');
+  if(!Array.isArray(obj.rows)) throw new Error('Invalid blob: missing rows array.');
+  if(!Array.isArray(obj.cols)) throw new Error('Invalid blob: missing cols array.');
+  if(obj.kind==='SUBS'){
+    if(typeof obj.cells!=='object'||Array.isArray(obj.cells)) throw new Error('Invalid blob: bad cells object.');
+  }
+  return migrateBlob(obj);
+}
+function migrateBlob(obj){
+  // Placeholder for future schema migrations.
+  // Example: if(obj.v===1) { /* upgrade v1→v2 fields here */ obj.v=2; }
   return obj;
 }
 function buildSubsBlob(){
