@@ -626,11 +626,13 @@ function showSubMenu(btn, row){
   menu.appendChild(other);
 
   const rect=btn.getBoundingClientRect();
+  menu.style.top=(rect.bottom+4)+'px';
   menu.style.left=rect.left+'px';
   document.body.appendChild(menu);
   openMenu=menu;
-  const mh=menu.offsetHeight;
-  menu.style.top=(rect.bottom+4+mh>window.innerHeight ? rect.top-mh-4 : rect.bottom+4)+'px';
+  if(menu.getBoundingClientRect().bottom > window.innerHeight - 8){
+    menu.style.top=(rect.top - menu.offsetHeight - 4)+'px';
+  }
 }
 
 // ── Structural mutations ───────────────────────────────────────────────────────
@@ -1437,11 +1439,13 @@ function showExportMenu(ev){
     menu.appendChild(btn);
   });
   const rect=ev.currentTarget.getBoundingClientRect();
+  menu.style.top=(rect.bottom+4)+'px';
   menu.style.left=rect.left+'px';
   document.body.appendChild(menu);
   _openExportMenu=menu;
-  const mh=menu.offsetHeight;
-  menu.style.top=(rect.bottom+4+mh>window.innerHeight ? rect.top-mh-4 : rect.bottom+4)+'px';
+  if(menu.getBoundingClientRect().bottom > window.innerHeight - 8){
+    menu.style.top=(rect.top - menu.offsetHeight - 4)+'px';
+  }
   setTimeout(()=>document.addEventListener('click',closeExportMenu,true),50);
 }
 
