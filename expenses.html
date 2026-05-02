@@ -250,9 +250,15 @@
   </div>
 
   <div class="chart-section" id="chart-section">
-    <div class="chart-mode-btns">
-      <button class="chart-mode-btn active" id="chart-mode-m" onclick="setChartMode('monthly')">Monthly</button>
-      <button class="chart-mode-btn" id="chart-mode-y" onclick="setChartMode('yearly')">Yearly</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem;">
+      <div class="chart-mode-btns" style="margin-bottom:0;">
+        <button class="chart-mode-btn active" id="chart-mode-m" onclick="setChartMode('monthly')">Monthly</button>
+        <button class="chart-mode-btn" id="chart-mode-y" onclick="setChartMode('yearly')">Yearly</button>
+      </div>
+      <div class="chart-mode-btns" style="margin-bottom:0;">
+        <button class="chart-mode-btn active" id="chart-type-bar" onclick="setChartType('bar')">📊 Bar</button>
+        <button class="chart-mode-btn" id="chart-type-doughnut" onclick="setChartType('doughnut')">🥧 Pie</button>
+      </div>
     </div>
     <div class="chart-wrap"><canvas id="exp-chart"></canvas></div>
     <div class="top3" id="top3"></div>
@@ -678,7 +684,7 @@ function deleteCol(id){
 }
 
 // ── Chart ──────────────────────────────────────────────────────────────────────
-let chartInstance=null, chartVisible=false, chartMode='monthly';
+let chartInstance=null, chartVisible=false, chartMode='monthly', chartType='bar';
 function toggleChart(){
   chartVisible=!chartVisible;
   document.getElementById('chart-section').style.display=chartVisible?'block':'none';
@@ -691,7 +697,25 @@ function setChartMode(mode){
   document.getElementById('chart-mode-y').classList.toggle('active',mode==='yearly');
   renderChart();
 }
-function rowTotalForMonthKey(rId,monthKey){
+function setChartType(type){
+  chartType=type;
+  document.getElementById('chart-type-bar').classList.toggle('active',type==='bar');
+  document.getElementById('chart-type-doughnut').classList.toggle('active',type==='doughnut');
+  renderChart();
+}
+function rowTotalForMonthKey(rId, monthKey){
+  const row=state.rows.find(r=>r.id===rId);
+  // Virtual linked subscriptions row — read from subs data or snapshot
+  if(row&&(row.linked==='subscriptions'||row.snapshotLinkedRow)){
+    const [ys,ms]=monthKey.split('-').map(Number);
+    const mo=ms-1;
+    if(row.snapshotLinkedRow){
+      const snap=(row.subsSnapshotByMonth||{})[monthKey];
+      if(snap!==undefined) return snap.reduce((s,c)=>s+c.cost,0);
+    }
+    const subs=loadSubsState(); if(!subs) return 0;
+    return (subs.rows||[]).reduce((s,r)=>s+calcSubMonthCostInExp(r,subs,ys,mo),0);
+  }
   const kids=state.rows.filter(r=>r.parentId===rId);
   if(kids.length) return kids.reduce((s,c)=>s+rowTotalForMonthKey(c.id,monthKey),0);
   return state.cols.reduce((s,col)=>{
@@ -715,11 +739,28 @@ function renderChart(){
   }
   if(chartInstance){chartInstance.destroy();chartInstance=null;}
   if(!data.length){renderTop3([],topLabel);return;}
-  chartInstance=new Chart(document.getElementById('exp-chart'),{
-    type:'bar',
-    data:{labels:data.map(d=>d.label),datasets:[{label:'$ Amount',data:data.map(d=>parseFloat(d.value.toFixed(2))),backgroundColor:data.map(d=>d.color||'#93c5fd'),borderRadius:4}]},
-    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.y.toFixed(2)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+v}}},responsive:true,maintainAspectRatio:true}
-  });
+  const colors=data.map(d=>d.color||'#93c5fd');
+  const vals=data.map(d=>parseFloat(d.value.toFixed(2)));
+  const labels=data.map(d=>d.label);
+  if(chartType==='doughnut'){
+    chartInstance=new Chart(document.getElementById('exp-chart'),{
+      type:'doughnut',
+      data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,hoverOffset:8}]},
+      options:{
+        responsive:true,maintainAspectRatio:true,
+        plugins:{
+          legend:{display:true,position:'right',labels:{color:'var(--fg)',boxWidth:14,padding:10,font:{size:12}}},
+          tooltip:{callbacks:{label:ctx=>' '+ctx.label+': $'+ctx.parsed.toFixed(2)+' ('+(ctx.parsed/vals.reduce((a,b)=>a+b,0)*100).toFixed(1)+'%)'}}
+        }
+      }
+    });
+  } else {
+    chartInstance=new Chart(document.getElementById('exp-chart'),{
+      type:'bar',
+      data:{labels,datasets:[{label:'$ Amount',data:vals,backgroundColor:colors,borderRadius:4}]},
+      options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.y.toFixed(2)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+v}}},responsive:true,maintainAspectRatio:true}
+    });
+  }
   renderTop3(data,topLabel);
 }
 function renderTop3(data,label){
@@ -1628,7 +1669,7 @@ function showShareModal(title,text){
   // 📧 Email as FiApp Paste-link
   const emailPasteBtn=document.createElement('a');emailPasteBtn.className='btn btn-sm';emailPasteBtn.textContent='📧 Email as Paste-link';
   const blob=encodeBlob(buildExpFullBlob());
-  const pasteBody='I\'m sharing my FiApp expense data. Paste this entire block into the FiApp Expense Tracker (📋 Paste button) to load everything:\n\n'+blob;
+  const pasteBody='I\'m sharing my FiApp expense data. Paste this entire block into the FiApp Expense Tracker (📋 Paste button) at dbrp2008.github.io to load everything:\n\n'+blob;
   emailPasteBtn.href=gmailHref(title,pasteBody);emailPasteBtn.target='_blank';emailPasteBtn.rel='noopener noreferrer';
 
   const closeBtn=document.createElement('button');closeBtn.className='btn btn-sm btn-ghost';closeBtn.textContent='Close';
