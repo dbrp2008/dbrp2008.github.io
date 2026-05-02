@@ -62,6 +62,9 @@
     .medal-gold{border-color:#fbbf24;background:linear-gradient(180deg,#fef3c7 0%,var(--panel-bg) 60%);}
     .medal-silver{border-color:#9ca3af;background:linear-gradient(180deg,#e2e8f0 0%,var(--panel-bg) 60%);}
     .medal-bronze{border-color:#b45309;background:linear-gradient(180deg,#fed7aa 0%,var(--panel-bg) 60%);}
+    html.dark .medal-gold{background:linear-gradient(180deg,#78350f 0%,var(--panel-bg) 60%);}
+    html.dark .medal-silver{background:linear-gradient(180deg,#374151 0%,var(--panel-bg) 60%);}
+    html.dark .medal-bronze{background:linear-gradient(180deg,#431407 0%,var(--panel-bg) 60%);}
     .lb-rest{margin:0;padding-left:1.5rem;font-size:.85rem;color:var(--fg);}
     .lb-rest li{margin:.2rem 0;display:flex;justify-content:space-between;gap:.5rem;}
     .lb-rest li span:first-child{font-weight:500;}
@@ -1213,11 +1216,21 @@ function makeCellEl(row,col){
     const startCol=colByType('date'); const startStr=startCol?getCell(row.id,startCol.id):'';
     const inp=document.createElement('input'); inp.type='date'; inp.className='c-date'; inp.value=v;
     inp.disabled=(st!=='Cancelled'); inp.title=st!=='Cancelled'?'Set status to Cancelled to enable':'';
-    if(startStr) inp.min=startStr;
+    // Restrict to viewed month: min = max(startStr, first of month), max = last of month
+    const monthFirst=new Date(state.currentYear,state.currentMonth,1);
+    const monthLast=new Date(state.currentYear,state.currentMonth+1,0);
+    const monthFirstStr=toDateStr(monthFirst);
+    const monthLastStr=toDateStr(monthLast);
+    inp.min=(startStr&&startStr>monthFirstStr)?startStr:monthFirstStr;
+    inp.max=monthLastStr;
     inp.addEventListener('focus',()=>snapshot());
     inp.addEventListener('change',()=>{
       if(startStr && inp.value && inp.value<startStr){
         alert('Cancel date can\'t be earlier than the start date ('+startStr+').');
+        inp.value=v; return;
+      }
+      if(inp.value && (inp.value<monthFirstStr||inp.value>monthLastStr)){
+        alert('Cancel date must be within the viewed month ('+monthFirstStr+' – '+monthLastStr+').');
         inp.value=v; return;
       }
       setCell(row.id,col.id,inp.value); recalcTotals(); renderChart();
