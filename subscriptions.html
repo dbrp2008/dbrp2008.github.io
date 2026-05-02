@@ -1044,11 +1044,13 @@ function showExportMenu(ev){
     menu.appendChild(b);
   });
   const rect=btn.getBoundingClientRect();
+  menu.style.top=(rect.bottom+4)+'px';
   menu.style.left=rect.left+'px';
   document.body.appendChild(menu);
   _exportMenuEl=menu;
-  const mh=menu.offsetHeight;
-  menu.style.top=(rect.bottom+4+mh>window.innerHeight ? rect.top-mh-4 : rect.bottom+4)+'px';
+  if(menu.getBoundingClientRect().bottom > window.innerHeight - 8){
+    menu.style.top=(rect.top - menu.offsetHeight - 4)+'px';
+  }
 }
 
 async function shareSheet(){
