@@ -116,11 +116,12 @@
     .app-card:hover .card-arrow { transform: translateX(4px); opacity: 1; }
 
     /* Per-card gradients */
-    .card-interest  { background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%); }
-    .card-tax       { background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); }
-    .card-currency  { background: linear-gradient(135deg, #15803d 0%, #22c55e 100%); }
-    .card-expenses  { background: linear-gradient(135deg, #6d28d9 0%, #a855f7 100%); }
-    .card-subs      { background: linear-gradient(135deg, #0e7490 0%, #22d3ee 100%); }
+    .card-interest   { background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%); }
+    .card-tax        { background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); }
+    .card-currency   { background: linear-gradient(135deg, #15803d 0%, #22c55e 100%); }
+    .card-expenses   { background: linear-gradient(135deg, #6d28d9 0%, #a855f7 100%); }
+    .card-subs       { background: linear-gradient(135deg, #0e7490 0%, #22d3ee 100%); }
+    .card-analytics  { background: linear-gradient(135deg, #be185d 0%, #f472b6 100%); }
   </style>
 </head>
 <body>
@@ -130,7 +131,7 @@
 
   <div class="hero">
     <h1>FiApp</h1>
-    <p>Your 5-in-1 personal finance toolkit</p>
+    <p>Your 6-in-1 personal finance toolkit</p>
   </div>
 
   <div class="cards">
@@ -189,6 +190,18 @@
           <div class="card-num">05</div>
           <div class="card-title">Income Tax Calculator</div>
           <p class="card-desc">Estimate your 2024 US federal income tax by filing status. Auto-fills to AND from your Expense Tracker.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-analytics" href="./analytics.html">
+      <div class="card-body">
+        <span class="card-icon">📉</span>
+        <div class="card-text">
+          <div class="card-num">06</div>
+          <div class="card-title">Analytics</div>
+          <p class="card-desc">Cross-tracker insights: spending trends, category breakdowns, income vs expenses, and subscription costs over time.</p>
         </div>
         <span class="card-arrow">→</span>
       </div>
