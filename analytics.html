@@ -129,6 +129,8 @@ function escapeHtml(s){
 const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+function todayMK(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
+
 // ── Load raw data ──────────────────────────────────────────────────────────────
 function loadExp(){
   try{ const s=localStorage.getItem(EXP_KEY); return s?JSON.parse(s):null; }
@@ -341,49 +343,60 @@ function reRenderCharts(exp, subs, allMonths, monthTotals, monthIncomes, subRows
   const statGrid=document.getElementById('stat-grid');
   if(statGrid){
     statGrid.innerHTML='';
-    const totalSpend  =months.reduce((s,m)=>s+(monthTotals[m]||0),0);
-    const avgMonthly  =months.length?totalSpend/months.length:0;
-    const catTotals   =expCategoryTotals(exp,months);
+    const today=todayMK();
+    const actualMs=months.filter(m=>m<=today);
+    const statMs=actualMs.length?actualMs:months; // fall back to all if no actuals in period
+    const hasForecast=months.some(m=>m>today);
+    const totalSpend  =statMs.reduce((s,m)=>s+(monthTotals[m]||0),0);
+    const avgMonthly  =statMs.length?totalSpend/statMs.length:0;
+    const catTotals   =expCategoryTotals(exp,statMs);
     const topCat      =Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value)[0];
     const totalSubAnnual=subRows.reduce((s,r)=>s+r.annual,0);
 
     function statCard(label,value,sub){
       const c=document.createElement('div'); c.className='stat-card';
-      c.innerHTML=`<div class="stat-label">${label}</div><div class="stat-value">${value}</div>${sub?`<div class="stat-sub">${sub}</div>`:''}`;
+      c.innerHTML=`<div class="stat-label">${escapeHtml(label)}</div><div class="stat-value">${escapeHtml(value)}</div>${sub?`<div class="stat-sub">${escapeHtml(sub)}</div>`:''}`;
       return c;
     }
 
-    if(months.length){
-      statGrid.appendChild(statCard('Total Spent', fmtMoney(totalSpend), months.length+' month'+(months.length!==1?'s':'')));
-      statGrid.appendChild(statCard('Monthly Avg', fmtMoney(avgMonthly), 'per month'));
+    if(statMs.length){
+      statGrid.appendChild(statCard('Total Spent', fmtMoney(totalSpend), statMs.length+' month'+(statMs.length!==1?'s':'')+(hasForecast?' · actuals only':'')));
+      statGrid.appendChild(statCard('Monthly Avg', fmtMoney(avgMonthly), 'per month'+(hasForecast?' · actuals only':'')));
     }
-    if(topCat) statGrid.appendChild(statCard('Top Category', topCat[0], fmtMoney(topCat[1].value)+' spent'));
+    if(topCat) statGrid.appendChild(statCard('Top Category', escapeHtml(topCat[0]), fmtMoney(topCat[1].value)+' spent'));
     if(subRows.length) statGrid.appendChild(statCard('Subscriptions', fmtMoney(totalSubAnnual/12)+'/mo', fmtMoney(totalSubAnnual)+' per year'));
   }
 
   // ── Trend chart ─────────────────────────────────────────────────────────────
   if(document.getElementById('chart-trend') && months.length){
     destroyChart('trend');
+    const today=todayMK();
+    const hasForecast=months.some(m=>m>today);
     const labels=months.map(m=>{ const [y,mo]=m.split('-'); return MONTHS_SHORT[parseInt(mo)-1]+" '"+y.slice(2); });
-    const vals  =months.map(m=>parseFloat((monthTotals[m]||0).toFixed(2)));
+    const actualVals  =months.map(m=>m<=today ?parseFloat((monthTotals[m]||0).toFixed(2)):null);
+    const forecastVals=months.map(m=>m>today  ?parseFloat((monthTotals[m]||0).toFixed(2)):null);
+    const datasets=[{
+      label:'Actual',
+      data:actualVals,
+      backgroundColor:'rgba(124,58,237,.7)',
+      borderColor:'#7c3aed',
+      borderWidth:1,borderRadius:4,
+    }];
+    if(hasForecast) datasets.push({
+      label:'Forecast',
+      data:forecastVals,
+      backgroundColor:'rgba(251,191,36,.55)',
+      borderColor:'#f59e0b',
+      borderWidth:1,borderRadius:4,
+    });
     charts['trend']=new Chart(document.getElementById('chart-trend'),{
       type:'bar',
-      data:{
-        labels,
-        datasets:[{
-          label:'Total Spend',
-          data:vals,
-          backgroundColor:'rgba(124,58,237,.7)',
-          borderColor:'#7c3aed',
-          borderWidth:1,
-          borderRadius:4,
-        }]
-      },
+      data:{labels,datasets},
       options:{
         responsive:true,
         plugins:{
-          legend:{display:false},
-          tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.y)}}
+          legend:{display:hasForecast,labels:{color:tc.fg,boxWidth:14,padding:10}},
+          tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
         },
         scales:{
           x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
