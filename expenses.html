@@ -122,7 +122,7 @@
     .btn-add-row:hover{background:var(--hover-bg);}
 
     /* Text-colour swatch */
-    .text-color-swatch{width:13px;height:13px;flex-shrink:0;border-radius:3px;border:1px solid rgba(128,128,128,.4);background:var(--bg);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;line-height:1;}
+    .text-color-swatch{width:13px;height:13px;flex-shrink:0;border-radius:3px;border:1px solid rgba(128,128,128,.4);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;line-height:1;}
     .text-color-swatch:hover{border-color:var(--accent);}
 
     /* Export menu */
@@ -370,11 +370,11 @@ function shiftMonth(d){
 function populateMonthJump(){
   const sel=document.getElementById('month-jump'); if(!sel) return;
   const curMk=mk(state.currentYear,state.currentMonth);
-  const startY=Math.min(minY,today.getFullYear()-1);
-  const endY=Math.max(maxY,today.getFullYear()+1);
   sel.innerHTML='';
-  for(let y=startY;y<=endY;y++){
+  for(let y=minY;y<=maxY;y++){
     for(let m2=0;m2<12;m2++){
+      if(y===minY&&m2<minM) continue;
+      if(y===maxY&&m2>maxM) continue;
       const opt=document.createElement('option');
       opt.value=mk(y,m2); opt.textContent=MONTHS_FULL[m2]+' '+y;
       if(mk(y,m2)===curMk) opt.selected=true;
@@ -877,14 +877,14 @@ function render(){
       cb.addEventListener('click',()=>toggleCollapse(row.id));rhIn.appendChild(cb);
     }
     const cInp=document.createElement('input');cInp.type='color';cInp.className='color-hidden';cInp.value=row.color;
-    cInp.addEventListener('input',()=>{row.color=cInp.value;rhTd.style.backgroundColor=cInp.value;swatch.style.backgroundColor=cInp.value;});
+    cInp.addEventListener('input',()=>{row.color=cInp.value;rhTd.style.backgroundColor=cInp.value;swatch.style.backgroundColor=cInp.value;textSwatch.style.backgroundColor=cInp.value;});
     cInp.addEventListener('change',save);
-    const swatch=document.createElement('div');swatch.className='color-swatch';swatch.style.backgroundColor=row.color;swatch.title='Change background colour';
+    const swatch=document.createElement('div');swatch.className='color-swatch tip-host';swatch.style.backgroundColor=row.color;swatch.dataset.tip='Row background colour';
     swatch.addEventListener('click',()=>cInp.click());
     const tcInp=document.createElement('input');tcInp.type='color';tcInp.className='color-hidden';tcInp.value=row.textColor||'#1f2937';
     tcInp.addEventListener('input',()=>{row.textColor=tcInp.value;rowLabel.style.color=tcInp.value;textSwatch.style.color=tcInp.value;});
     tcInp.addEventListener('change',save);
-    const textSwatch=document.createElement('div');textSwatch.className='text-color-swatch';textSwatch.title='Change text colour';textSwatch.textContent='A';textSwatch.style.color=row.textColor||'#1f2937';
+    const textSwatch=document.createElement('div');textSwatch.className='text-color-swatch tip-host';textSwatch.dataset.tip='Row text colour';textSwatch.textContent='A';textSwatch.style.color=row.textColor||'#1f2937';textSwatch.style.backgroundColor=row.color||'#ffffff';
     textSwatch.addEventListener('click',()=>tcInp.click());
     const rowLabel=document.createElement('span');rowLabel.className='row-label';rowLabel.contentEditable='true';rowLabel.textContent=row.label;
     rowLabel.style.color=row.textColor||'#1f2937';
