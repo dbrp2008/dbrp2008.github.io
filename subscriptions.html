@@ -298,7 +298,14 @@ async function fetchAndCacheUSDRates(){
   try{
     const r=await fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD');
     const d=await r.json();
-    if(d.result==='success') Object.assign(ratesCache,d.conversion_rates);
+    if(d.result==='success'){
+      const rates=d.conversion_rates;
+      if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
+        Object.keys(rates).forEach(k=>{
+          if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];
+        });
+      }
+    }
   }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
 }
 async function ensureRate(currency){
@@ -351,7 +358,22 @@ function loadState(){
   return freshState();
 }
 let state=loadState();
-function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+  catch(e){
+    if(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'){
+      console.error('FiApp: localStorage quota exceeded');
+      showSaveQuotaWarning();
+    } else { throw e; }
+  }
+}
+function showSaveQuotaWarning(){
+  if(document.getElementById('quota-warn')) return;
+  const el=document.createElement('div'); el.id='quota-warn'; el.className='error';
+  el.style.cssText='position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
+  el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
+  document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
+}
 
 // ── Undo / Redo ────────────────────────────────────────────────────────────────
 let undoStack=[], redoStack=[];
@@ -411,7 +433,7 @@ function calcMonthCost(row, year, month){
   const statusCol=colByType('status');
   if(!costCol||!startCol) return 0;
 
-  const rawCost =Math.max(0,parseFloat(getCell(row.id,costCol.id))||0);
+  const rawCost =Math.max(0,safeNum(getCell(row.id,costCol.id)));
   const cost    =costToUSD(rawCost,row.id);
   const billing =billCol?(getCell(row.id,billCol.id)||'Monthly'):'Monthly';
   const startStr=getCell(row.id,startCol.id);
@@ -632,7 +654,7 @@ function renderLeaderboard(){
       const pct=total>0?((data[i].cost/total)*100).toFixed(1):'0.0';
       html+=`<div class="podium-card ${MEDAL_CLS[i]}">`
         +`<div class="podium-medal">${MEDALS[i]}</div>`
-        +`<div class="podium-name" title="${data[i].name}">${data[i].name}</div>`
+        +`<div class="podium-name" title="${escapeHtml(data[i].name)}">${escapeHtml(data[i].name)}</div>`
         +`<div class="podium-cost">${fmtCost(data[i].cost)}</div>`
         +`<div class="podium-pct">${pct}% of total</div>`
         +`</div>`;
@@ -646,7 +668,7 @@ function renderLeaderboard(){
     html+='<ol class="lb-rest" start="4">';
     for(let i=3;i<data.length;i++){
       const pct=total>0?((data[i].cost/total)*100).toFixed(1):'0.0';
-      html+=`<li><span>${data[i].name} <span style="color:#9ca3af;font-size:.78rem">(${pct}%)</span></span><span class="lb-cost">${fmtCost(data[i].cost)}</span></li>`;
+      html+=`<li><span>${escapeHtml(data[i].name)} <span style="color:#9ca3af;font-size:.78rem">(${pct}%)</span></span><span class="lb-cost">${fmtCost(data[i].cost)}</span></li>`;
     }
     html+='</ol>';
   }
@@ -692,7 +714,7 @@ function renderTop3(data,label){
   const top=(data||[]).slice(0,3);
   const el=document.getElementById('top3');
   if(!top.length){el.innerHTML='';return;}
-  el.innerHTML='<h4>'+(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${t.name}</strong> — $${t.cost.toFixed(2)}</li>`).join('')+'</ol>';
+  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.name)}</strong> — $${t.cost.toFixed(2)}</li>`).join('')+'</ol>';
 }
 
 // ── Reset ──────────────────────────────────────────────────────────────────────
@@ -910,6 +932,17 @@ function showExportFlash(msg){
   window._exportFlashT=setTimeout(()=>f.classList.remove('show'),2500);
 }
 
+// ── Security helpers ───────────────────────────────────────────────────────────
+function escapeHtml(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeNum(v,max=1e12){
+  const n=parseFloat(v);
+  return (isFinite(n)&&n>=-max&&n<=max)?n:0;
+}
+
 // ── Copy / Paste blob format ───────────────────────────────────────────────────
 function encodeBlob(obj){
   return 'FIAPP-'+obj.kind+'-V1:'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
@@ -927,6 +960,10 @@ function decodeBlob(str){
   if(obj.kind==='SUBS'){
     if(typeof obj.cells!=='object'||Array.isArray(obj.cells)) throw new Error('Invalid blob: bad cells object.');
   }
+  // Size limits — prevent memory exhaustion from malicious blobs
+  if(obj.rows.length>500) throw new Error('Blob rejected: too many rows (max 500).');
+  if(obj.cols.length>52)  throw new Error('Blob rejected: too many columns (max 52).');
+  if(obj.cells&&Object.keys(obj.cells).length>50000) throw new Error('Blob rejected: too many cells (max 50,000).');
   return migrateBlob(obj);
 }
 function migrateBlob(obj){
