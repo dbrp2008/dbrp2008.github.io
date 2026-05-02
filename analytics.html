@@ -119,6 +119,13 @@
 const EXP_KEY  = 'fiapp_expenses_v4';
 const SUBS_KEY = 'fiapp_subs_v4';
 
+// ── Security helpers ───────────────────────────────────────────────────────────
+function escapeHtml(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -413,7 +420,7 @@ function reRenderCharts(exp, subs, allMonths, monthTotals, monthIncomes, subRows
       if(!list){ list=document.createElement('ul'); list.className='insight-list'; document.getElementById('card-breakdown').appendChild(list); }
       list.innerHTML=sorted.map(([name,d])=>{
         const pct=(d.value/total*100).toFixed(1);
-        return `<li><span class="insight-name">${name}</span><span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span></span></li>`;
+        return `<li><span class="insight-name">${escapeHtml(name)}</span><span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span></span></li>`;
       }).join('');
     }
   }
