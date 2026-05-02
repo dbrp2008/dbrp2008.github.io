@@ -284,7 +284,14 @@ async function fetchExpRates(){
   try{
     const r=await fetch('https://v6.exchangerate-api.com/v6/'+EXPENSE_API_KEY+'/latest/USD');
     const d=await r.json();
-    if(d.result==='success') Object.assign(expRatesCache,d.conversion_rates);
+    if(d.result==='success'){
+      const rates=d.conversion_rates;
+      if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
+        Object.keys(rates).forEach(k=>{
+          if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') expRatesCache[k]=rates[k];
+        });
+      }
+    }
   }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
 }
 
@@ -350,7 +357,22 @@ function loadState(){
   return freshState();
 }
 let state=loadState();
-function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+  catch(e){
+    if(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'){
+      console.error('FiApp: localStorage quota exceeded');
+      showSaveQuotaWarning();
+    } else { throw e; }
+  }
+}
+function showSaveQuotaWarning(){
+  if(document.getElementById('quota-warn')) return;
+  const el=document.createElement('div'); el.id='quota-warn'; el.className='error';
+  el.style.cssText='position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
+  el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
+  document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
+}
 
 // ── Undo / Redo (sessionStorage persistence) ───────────────────────────────────
 let undoStack=[], redoStack=[];
@@ -422,7 +444,7 @@ function updateMonthNav(){
 // ── Cell helpers ───────────────────────────────────────────────────────────────
 function ck(rId,cId){ return currentMK()+'|'+rId+'|'+cId; }
 function getRawCell(rId,cId){ return state.cells[ck(rId,cId)]||''; }
-function getCell(rId,cId){ return parseFloat(state.cells[ck(rId,cId)])||0; }
+function getCell(rId,cId){ return safeNum(state.cells[ck(rId,cId)]); }
 function setCell(rId,cId,v){ state.cells[ck(rId,cId)]=v; save(); }
 
 // ── Row hierarchy ──────────────────────────────────────────────────────────────
@@ -684,6 +706,17 @@ function deleteCol(id){
   save(); render();
 }
 
+// ── Security helpers ───────────────────────────────────────────────────────────
+function escapeHtml(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeNum(v,max=1e12){
+  const n=parseFloat(v);
+  return (isFinite(n)&&n>=-max&&n<=max)?n:0;
+}
+
 // ── Chart ──────────────────────────────────────────────────────────────────────
 let chartInstance=null, chartVisible=false, chartMode='monthly', chartType='bar';
 function toggleChart(){
@@ -778,7 +811,7 @@ function renderTop3(data,label){
   const top=(data||[]).slice(0,3);
   const el=document.getElementById('top3');
   if(!top.length){el.innerHTML='';return;}
-  el.innerHTML='<h4>'+(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${t.label}</strong> — $${parseFloat(t.value.toFixed(2))}</li>`).join('')+'</ol>';
+  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.label)}</strong> — $${parseFloat(t.value.toFixed(2))}</li>`).join('')+'</ol>';
 }
 
 // ── Reset ──────────────────────────────────────────────────────────────────────
@@ -1297,6 +1330,17 @@ function decodeBlob(str){
   }
   if(obj.kind==='SUBS'){
     if(typeof obj.cells!=='object'||Array.isArray(obj.cells)) throw new Error('Invalid blob: bad cells object.');
+  }
+  // Size limits — prevent memory exhaustion from malicious blobs
+  if(obj.rows.length>500)  throw new Error('Blob rejected: too many rows (max 500).');
+  if(obj.cols.length>52)   throw new Error('Blob rejected: too many columns (max 52).');
+  if(obj.kind==='EXP-FULL'){
+    let totalCells=0;
+    Object.values(obj.cellsByMonth).forEach(mc=>{ if(mc&&typeof mc==='object') totalCells+=Object.keys(mc).length; });
+    if(totalCells>50000) throw new Error('Blob rejected: too many cells (max 50,000).');
+    if(Object.keys(obj.cellsByMonth).length>120) throw new Error('Blob rejected: too many months (max 120).');
+  } else if(obj.cells){
+    if(Object.keys(obj.cells).length>50000) throw new Error('Blob rejected: too many cells (max 50,000).');
   }
   return migrateBlob(obj);
 }
