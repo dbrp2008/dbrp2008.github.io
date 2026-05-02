@@ -495,15 +495,11 @@ function shiftMonth(d){
 function populateMonthJump(){
   const sel=document.getElementById('month-jump'); if(!sel) return;
   const curMk=state.currentYear+'-'+String(state.currentMonth+1).padStart(2,'0');
-  // build range: 2 years back to 2 years forward relative to today
-  const now=new Date();
-  const startY=Math.min(minY, now.getFullYear()-2);
-  const endY=Math.max(maxY, now.getFullYear()+2);
-  // preserve selection if possible
-  const prev=sel.value;
   sel.innerHTML='';
-  for(let y=startY;y<=endY;y++){
+  for(let y=minY;y<=maxY;y++){
     for(let m=0;m<12;m++){
+      if(y===minY&&m<minM) continue;
+      if(y===maxY&&m>maxM) continue;
       const mk=y+'-'+String(m+1).padStart(2,'0');
       const opt=document.createElement('option');
       opt.value=mk; opt.textContent=MONTHS_FULL[m]+' '+y;
