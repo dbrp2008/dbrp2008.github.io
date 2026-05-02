@@ -222,9 +222,9 @@ function expMonthIncomes(exp){
 function subMonthlyUSD(subs){
   if(!subs||!subs.rows) return [];
   const billingCol=subs.cols.find(c=>c.ctype==='billing');
-  const costCol   =subs.cols.find(c=>c.ctype==='cost');
+  const costCol   =subs.cols.find(c=>c.ctype==='number');   // Cost column uses ctype:'number' in subscriptions.html
   const statusCol =subs.cols.find(c=>c.ctype==='status');
-  const nameCol   =subs.cols.find(c=>c.ctype==='text');
+  const nameCol   =subs.cols.find(c=>c.ctype==='text');     // first 'text' col = Service name
   return (subs.rows||[]).map(r=>{
     const status=statusCol?subs.cells[r.id+'|'+statusCol.id]||'Active':'Active';
     if(status==='Cancelled') return null;
