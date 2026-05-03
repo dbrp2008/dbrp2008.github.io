@@ -184,9 +184,13 @@ h1, h2, h3, h4 { color: var(--fg); }
 }
 .theme-toggle:hover { background: var(--secondary-hover); }
 
+/* ── Global iOS tap-delay removal ─────────────────────────────────────────── */
+* { touch-action: manipulation; }
+
 /* ── Hover-bubble tooltip helper (used by colour swatches and others) ─────── */
 .tip-host { position: relative; }
-.tip-host:hover::after {
+/* Trigger on both :hover (mouse) and .tip-visible class (touch — set via JS) */
+.tip-host:hover::after, .tip-host.tip-visible::after {
   content: attr(data-tip);
   position: absolute;
   bottom: calc(100% + 6px);
@@ -203,7 +207,7 @@ h1, h2, h3, h4 { color: var(--fg); }
   box-shadow: var(--shadow);
   pointer-events: none;
 }
-.tip-host:hover::before {
+.tip-host:hover::before, .tip-host.tip-visible::before {
   content: "";
   position: absolute;
   bottom: 100%;
