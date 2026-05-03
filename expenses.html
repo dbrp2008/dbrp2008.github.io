@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <title>Expense Tracker – FiApp</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <script>
     (function(){
       var pref=localStorage.getItem('fiapp_theme');
@@ -65,11 +65,11 @@
     html.dark .gtotal-cell.forecast-total{background:#451a03!important;}
     .gtotal-cell.forecast-total .gtotal-val{color:#92400e!important;}
     html.dark .gtotal-cell.forecast-total .gtotal-val{color:#fde68a!important;}
-    .forecast-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#92400e;color:#fff;padding:.5rem 1.1rem;border-radius:6px;font-size:.83rem;font-weight:600;z-index:99999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
+    .forecast-toast{position:fixed;bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);background:#92400e;color:#fff;padding:.5rem 1.1rem;border-radius:6px;font-size:.83rem;font-weight:600;z-index:99999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
     .forecast-toast.show{opacity:1;}
 
     /* Spreadsheet */
-    .sheet-wrap{overflow-x:auto;margin-top:.5rem;}
+    .sheet-wrap{overflow-x:auto;margin-top:.5rem;-webkit-overflow-scrolling:touch;}
     table.sheet{border-collapse:collapse;table-layout:fixed;min-width:max-content;}
     table.sheet th,table.sheet td{border:1px solid var(--input-border);position:relative;overflow:hidden;padding:0;}
     table.sheet th{background:var(--th-bg);color:var(--fg);user-select:none;}
@@ -88,7 +88,7 @@
     .color-swatch{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.2);}
     /* Wrapper positions the real <input type=color> over the visible swatch so iOS touch hits it directly */
     .color-swatch-wrap{position:relative;display:inline-flex;flex-shrink:0;cursor:pointer;}
-    .color-inp-overlay{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;margin:0;}
+    .color-inp-overlay{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;margin:0;}
     .row-label{flex:1;outline:none;font-weight:600;font-size:.85rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .collapse-btn{background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--muted);padding:0 2px;flex-shrink:0;line-height:1;}
     .collapse-btn:hover{color:var(--fg);}
@@ -168,8 +168,8 @@
     .export-menu button+button{border-top:1px solid var(--panel-border);}
 
     /* Share / Paste modal */
-    .share-overlay{position:fixed;inset:0;background:var(--overlay);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;}
-    .share-modal{background:var(--panel-bg);border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:.6rem;box-shadow:var(--shadow);}
+    .share-overlay{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:var(--overlay);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .share-modal{background:var(--panel-bg);border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;max-height:85dvh;display:flex;flex-direction:column;gap:.6rem;box-shadow:var(--shadow);overflow-y:auto;}
     .share-modal h3{margin:0;font-size:1rem;color:var(--fg);}
     .share-modal textarea{width:100%;min-height:200px;font-family:ui-monospace,Menlo,Monaco,'Cascadia Mono',monospace;font-size:.78rem;border:1px solid var(--input-border);border-radius:5px;padding:.5rem;resize:vertical;box-sizing:border-box;background:var(--input-bg);color:var(--fg);}
     .share-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
@@ -231,11 +231,11 @@
     <div class="income-grid" id="income-grid">
       <div class="income-field">
         <label>Gross Monthly Income ($)</label>
-        <input type="number" id="inp-gross" min="0" step="0.01" placeholder="0.00" oninput="onGrossInput()">
+        <input type="number" id="inp-gross" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="onGrossInput()">
       </div>
       <div class="income-field">
         <label>Monthly Tax / Deductions ($) <a href="./tax.html" id="tax-link" style="font-weight:400;font-size:.75rem">— calculate →</a></label>
-        <input type="number" id="inp-tax" min="0" step="0.01" placeholder="0.00" oninput="onIncomeInput()">
+        <input type="number" id="inp-tax" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="onIncomeInput()">
       </div>
       <div class="income-field">
         <label>Annual Gross (auto)</label>
@@ -396,7 +396,7 @@ function save(){
 function showSaveQuotaWarning(){
   if(document.getElementById('quota-warn')) return;
   const el=document.createElement('div'); el.id='quota-warn'; el.className='error';
-  el.style.cssText='position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
+  el.style.cssText='position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
   el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
   document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
 }
@@ -1179,7 +1179,7 @@ function render(){
         }
         span.textContent=s>0?fmt(s):'';td.appendChild(span);
       } else {
-        const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.01';inp.className='num-input';
+        const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.01';inp.inputMode='decimal';inp.className='num-input';
         const stored=getRawCell(row.id,col.id);inp.value=stored!==''?stored:'';
         inp.addEventListener('focus',()=>snapshot());
         inp.addEventListener('change',()=>{
@@ -1892,6 +1892,7 @@ function showShareModal(title,text){
     });
   }
   function hide(){ hideT=setTimeout(()=>tip.classList.remove('show'),80); }
+  // Mouse events (desktop)
   document.addEventListener('mouseover',e=>{
     const h=e.target.closest('.tip-host[data-tip]');
     if(h) show(h); else hide();
@@ -1899,6 +1900,22 @@ function showShareModal(title,text){
   document.addEventListener('mouseout',e=>{
     if(!e.target.closest('.tip-host[data-tip]')) hide();
   });
+  // Touch events (iOS / mobile) — tap to show, tap elsewhere or touchend to hide
+  document.addEventListener('touchstart',e=>{
+    const h=e.target.closest('.tip-host[data-tip]');
+    // Also manage .tip-visible for the CSS pseudo-element tooltips
+    document.querySelectorAll('.tip-host.tip-visible').forEach(el=>{ if(el!==h) el.classList.remove('tip-visible'); });
+    if(h){
+      h.classList.add('tip-visible');
+      show(h);
+    } else {
+      hide();
+    }
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    // Brief delay so the tooltip flashes before disappearing
+    setTimeout(()=>{ tip.classList.remove('show'); },600);
+  },{passive:true});
 })();
 
 // ── Init ───────────────────────────────────────────────────────────────────────
