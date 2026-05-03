@@ -305,7 +305,7 @@ function subCostPerMonth(subs, months){
 
 // Current-state snapshot of active subs (for stat cards + breakdown chart)
 function subMonthlySnapshot(subs){
-  if(!subs||!subs.rows) return [];
+  if(!subs||!subs.rows||!subs.cols) return [];
   const billingCol=subs.cols.find(c=>c.ctype==='billing');
   const costCol   =subs.cols.find(c=>c.ctype==='number');
   const statusCol =subs.cols.find(c=>c.ctype==='status');
@@ -508,14 +508,14 @@ function reRenderCharts(){
   const statGrid=document.getElementById('stat-grid');
   if(statGrid){
     statGrid.innerHTML='';
-    function sc(label,value,sub){
+    const sc=(label,value,sub)=>{
       const c=document.createElement('div'); c.className='stat-card';
       c.innerHTML=
         `<div class="stat-label">${escapeHtml(label)}</div>`+
         `<div class="stat-value">${escapeHtml(String(value))}</div>`+
         (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
       return c;
-    }
+    };
 
     if(statMs.length){
       const totalSpend=statMs.reduce((s,m)=>s+(_monthTotals[m]||0),0);
@@ -573,14 +573,14 @@ function reRenderCharts(){
   const subStatGrid=document.getElementById('sub-stat-grid');
   if(subStatGrid&&_subRows.length){
     subStatGrid.innerHTML='';
-    function ssc(label,value,sub){
+    const ssc=(label,value,sub)=>{
       const c=document.createElement('div'); c.className='stat-card';
       c.innerHTML=
         `<div class="stat-label">${escapeHtml(label)}</div>`+
         `<div class="stat-value">${escapeHtml(String(value))}</div>`+
         (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
       return c;
-    }
+    };
     const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
     [ssc('Active',      _subRows.length,       _subRows.length===1?'subscription':'subscriptions'),
      ssc('Monthly Cost',fmtMoney(totalMo),      'per month'),
@@ -609,16 +609,16 @@ function reRenderCharts(){
     const actualVals  =months.map(m=>m<=today?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
     const forecastVals=months.map(m=>m> today?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
 
-    function makeDs(label, data, color, rgba){
+    const makeDs=(label, data, color, rgba)=>{
       const ds={label, data, borderColor:color, borderWidth:2};
       if(trendType==='bar'){
-        ds.type='bar'; ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
+        ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
       } else {
-        ds.type='line'; ds.backgroundColor='transparent'; ds.fill=false;
+        ds.backgroundColor='transparent'; ds.fill=false;
         ds.tension=0.3; ds.pointRadius=4; ds.pointBackgroundColor=color;
       }
       return ds;
-    }
+    };
 
     const datasets=[makeDs('Actual', actualVals, '#7c3aed','rgba(124,58,237,.7)')];
     if(hasForecast) datasets.push(makeDs('Forecast', forecastVals, '#f59e0b','rgba(251,191,36,.55)'));
