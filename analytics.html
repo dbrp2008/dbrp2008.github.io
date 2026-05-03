@@ -266,21 +266,22 @@ function combinedMonthTotals(exp, subs, allMonths){
 }
 
 // {category: {value, color}} for expense categories + 'Subscriptions' entry
+// Uses _rowMonthIdx for O(1) cell lookups instead of iterating all cols per month
 function combinedCategoryTotals(exp, subs, monthKeys){
   const totals={};
   const set=new Set(monthKeys);
 
   // Expense categories (top-level rows only — exclude the linked row, it's covered by subs below)
-  if(exp&&exp.rows&&exp.cells){
+  if(exp&&exp.rows){
     exp.rows.filter(r=>!r.parentId&&!r.linked).forEach(row=>{
       let sum=0;
       set.forEach(mk2=>{
-        (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0; });
+        sum+=(_rowMonthIdx[row.id]&&_rowMonthIdx[row.id][mk2])||0;
         (exp.rows||[]).filter(c=>c.parentId===row.id).forEach(child=>{
-          (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0; });
+          sum+=(_rowMonthIdx[child.id]&&_rowMonthIdx[child.id][mk2])||0;
         });
       });
-      if(sum>0) totals[row.label]={value:sum, color:row.color||'#93c5fd'};
+      if(sum>0) totals[row.label]={value:parseFloat(sum.toFixed(2)), color:row.color||'#93c5fd'};
     });
   }
 
@@ -304,17 +305,17 @@ function combinedCategoryTotals(exp, subs, monthKeys){
 }
 
 // Map: categoryLabel → {color, values:[spend per month]} — expenses + subs line
+// Uses _rowMonthIdx for O(1) cell lookups instead of iterating all cols per month
 function combinedCategoryMonthlyData(exp, subs, months){
   const map=new Map();
 
   // Expense categories (exclude linked row)
-  if(exp&&exp.rows&&exp.cells){
+  if(exp&&exp.rows){
     exp.rows.filter(r=>!r.parentId&&!r.linked).forEach(row=>{
       const vals=months.map(mk2=>{
-        let sum=0;
-        (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0; });
+        let sum=(_rowMonthIdx[row.id]&&_rowMonthIdx[row.id][mk2])||0;
         (exp.rows||[]).filter(c=>c.parentId===row.id).forEach(child=>{
-          (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0; });
+          sum+=(_rowMonthIdx[child.id]&&_rowMonthIdx[child.id][mk2])||0;
         });
         return parseFloat(sum.toFixed(2));
       });
@@ -406,6 +407,21 @@ function subMonthlySnapshot(subs){
   }).filter(Boolean);
 }
 
+// ── Pre-index expense cells for fast O(1) per-row-per-month lookups ──────────
+// Builds {rowId: {mk: sumOfAllCols}} from exp.cells in a single pass.
+function buildRowMonthIndex(exp){
+  const idx={};
+  if(!exp||!exp.cells) return idx;
+  Object.entries(exp.cells).forEach(([key,val])=>{
+    const n=parseFloat(val)||0; if(!n) return;
+    const parts=key.split('|'); if(parts.length!==3) return;
+    const [mk2,rowId]=parts;
+    if(!idx[rowId]) idx[rowId]={};
+    idx[rowId][mk2]=(idx[rowId][mk2]||0)+n;
+  });
+  return idx;
+}
+
 // ── Period filter ─────────────────────────────────────────────────────────────
 function periodOptions(allMonths){
   const opts=[{label:'All time',value:'all'}];
@@ -430,22 +446,28 @@ let subBreakType = 'doughnut';
 
 // ── Module-level data vars (populated by renderAll, reused by reRenderCharts) ─
 let _exp, _subs, _allMonths, _monthTotals, _monthIncomes, _subRows, _subTrendMonths;
+// Pre-indexed cell sums: {rowId: {mk: colSum}} — built once, avoids O(rows×cols×months)
+let _rowMonthIdx = {};
+// Cached period-filter results — updated by _refreshPeriodCache() so individual
+// chart functions don't each re-derive them independently
+let _cm=[], _cTc={fg:'#1f2937',muted:'#6b7280',grid:'rgba(0,0,0,.07)',panel:'#f9fafb'},
+    _cToday='', _cHasForecast=false, _cStatMs=[], _cActualMs=[];
 
-// ── Toggle setters ────────────────────────────────────────────────────────────
+// ── Toggle setters — only redraw the one affected chart, not everything ───────
 function setTrendType(t){
   trendType=t;
   document.querySelectorAll('.tt-trend').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
-  reRenderCharts();
+  renderTrendChart();
 }
 function setCatBreakType(t){
   catBreakType=t;
   document.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
-  reRenderCharts();
+  renderBreakdownChart();
 }
 function setSubBreakType(t){
   subBreakType=t;
   document.querySelectorAll('.tt-sub').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
-  reRenderCharts();
+  renderSubBreakChart();
 }
 
 // ── Build a toggle button ─────────────────────────────────────────────────────
@@ -461,6 +483,9 @@ function mkToggleBtn(groupClass, val, label, isActive, handler){
 function renderAll(){
   _exp  = loadExp();
   _subs = loadSubs();
+
+  // Pre-index expense cells once — used by all category helpers
+  _rowMonthIdx = buildRowMonthIndex(_exp);
 
   // All months from BOTH sources (combined)
   _allMonths    = allSpendingMonths(_exp, _subs);
@@ -556,413 +581,340 @@ function renderAll(){
   reRenderCharts();
 }
 
-// ── Re-render charts (period change / toggle / theme change) ──────────────────
-function reRenderCharts(){
+// ── Period cache refresh — call before any chart render ───────────────────────
+function _refreshPeriodCache(){
   const period=(document.getElementById('period-global')||{}).value||'all';
-  const months=filterMonths(_allMonths, period);
-  const tc=themeColors();
-  const today=todayMK();
-  const actualMs=months.filter(m=>m<=today);
-  const statMs=actualMs.length?actualMs:months;
-  const hasForecast=months.some(m=>m>today);
+  _cm         = filterMonths(_allMonths, period);
+  _cTc        = themeColors();
+  _cToday     = todayMK();
+  _cActualMs  = _cm.filter(m=>m<=_cToday);
+  _cStatMs    = _cActualMs.length ? _cActualMs : _cm;
+  _cHasForecast = _cm.some(m=>m>_cToday);
+}
 
-  // ── Top stat cards ────────────────────────────────────────────────────────
-  const statGrid=document.getElementById('stat-grid');
-  if(statGrid){
-    statGrid.innerHTML='';
-    const sc=(label,value,sub)=>{
-      const c=document.createElement('div'); c.className='stat-card';
-      c.innerHTML=
-        `<div class="stat-label">${escapeHtml(label)}</div>`+
-        `<div class="stat-value">${escapeHtml(String(value))}</div>`+
-        (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
-      return c;
-    };
-
-    if(statMs.length){
-      const totalSpend=statMs.reduce((s,m)=>s+(_monthTotals[m]||0),0);
-      const avgMonthly=totalSpend/(statMs.length||1);
-      statGrid.appendChild(sc('Total Spent', fmtMoney(totalSpend),
-        statMs.length+' month'+(statMs.length!==1?'s':'')+(hasForecast?' · actuals only':'')));
-      statGrid.appendChild(sc('Monthly Avg', fmtMoney(avgMonthly),
-        'per month'+(hasForecast?' · actuals only':'')));
-
-      // Top category (combined: expense categories + subscriptions)
-      const catTotals=combinedCategoryTotals(_exp,_subs,statMs);
-      const catSorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
-      if(catSorted.length)
-        statGrid.appendChild(sc('Top Category', catSorted[0][0], fmtMoney(catSorted[0][1].value)+' spent'));
-
-      // Best / worst month (only if ≥2 months of actual data)
-      const withData=statMs.map(m=>({m,v:_monthTotals[m]||0})).filter(x=>x.v>0);
-      if(withData.length>=2){
-        const best =withData.reduce((a,b)=>a.v<b.v?a:b);
-        const worst=withData.reduce((a,b)=>a.v>b.v?a:b);
-        statGrid.appendChild(sc('Best Month',  mkLabel(best.m),  fmtMoney(best.v)+'  · lowest'));
-        statGrid.appendChild(sc('Worst Month', mkLabel(worst.m), fmtMoney(worst.v)+' · highest'));
-      }
-
-      // Savings rate (only if income data)
-      const incMonths=statMs.filter(m=>_monthIncomes[m]);
-      if(incMonths.length){
-        const totInc=incMonths.reduce((s,m)=>s+(_monthIncomes[m]||0),0);
-        const totExp=incMonths.reduce((s,m)=>s+(_monthTotals[m]||0),0);
-        const rate=totInc>0?Math.max(0,(totInc-totExp)/totInc*100):0;
-        statGrid.appendChild(sc('Savings Rate', fmtPct(rate),
-          'across '+incMonths.length+' month'+(incMonths.length!==1?'s':'')));
-      }
+// ── A: Stat cards ─────────────────────────────────────────────────────────────
+function renderStatCards(){
+  const statGrid=document.getElementById('stat-grid'); if(!statGrid) return;
+  statGrid.innerHTML='';
+  const sc=(label,value,sub)=>{
+    const c=document.createElement('div'); c.className='stat-card';
+    c.innerHTML=`<div class="stat-label">${escapeHtml(label)}</div>`+
+      `<div class="stat-value">${escapeHtml(String(value))}</div>`+
+      (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
+    return c;
+  };
+  if(_cStatMs.length){
+    const totalSpend=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0);
+    const avgMonthly=totalSpend/(_cStatMs.length||1);
+    statGrid.appendChild(sc('Total Spent',fmtMoney(totalSpend),
+      _cStatMs.length+' month'+(_cStatMs.length!==1?'s':'')+(_cHasForecast?' · actuals only':'')));
+    statGrid.appendChild(sc('Monthly Avg',fmtMoney(avgMonthly),
+      'per month'+(_cHasForecast?' · actuals only':'')));
+    const catTotals=combinedCategoryTotals(_exp,_subs,_cStatMs);
+    const catSorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
+    if(catSorted.length)
+      statGrid.appendChild(sc('Top Category',catSorted[0][0],fmtMoney(catSorted[0][1].value)+' spent'));
+    const withData=_cStatMs.map(m=>({m,v:_monthTotals[m]||0})).filter(x=>x.v>0);
+    if(withData.length>=2){
+      const best =withData.reduce((a,b)=>a.v<b.v?a:b);
+      const worst=withData.reduce((a,b)=>a.v>b.v?a:b);
+      statGrid.appendChild(sc('Best Month', mkLabel(best.m), fmtMoney(best.v)+' · lowest'));
+      statGrid.appendChild(sc('Worst Month',mkLabel(worst.m),fmtMoney(worst.v)+' · highest'));
     }
-
-    // Subscription stat cards (in main grid)
-    if(_subRows.length){
-      const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
-      statGrid.appendChild(sc('Active Subs', _subRows.length,
-        _subRows.length===1?'subscription':'subscriptions'));
-      statGrid.appendChild(sc('Sub Monthly', fmtMoney(totalMo)+'/mo',
-        fmtMoney(totalMo*12)+'/yr'));
-      if(statMs.length){
-        const avgExp=statMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(statMs.length||1);
-        if(avgExp>0) statGrid.appendChild(sc('Subs % of Spend',
-          fmtPct(totalMo/avgExp*100), 'of avg monthly expenses'));
-      }
-      const costliest=_subRows.reduce((a,b)=>a.monthly>b.monthly?a:b,_subRows[0]);
-      if(costliest) statGrid.appendChild(sc('Costliest Sub',
-        costliest.name, fmtMoney(costliest.monthly)+'/mo'));
-    }
-  }
-
-  // ── Sub mini-stat cards (in subscription section) ─────────────────────────
-  const subStatGrid=document.getElementById('sub-stat-grid');
-  if(subStatGrid&&_subRows.length){
-    subStatGrid.innerHTML='';
-    const ssc=(label,value,sub)=>{
-      const c=document.createElement('div'); c.className='stat-card';
-      c.innerHTML=
-        `<div class="stat-label">${escapeHtml(label)}</div>`+
-        `<div class="stat-value">${escapeHtml(String(value))}</div>`+
-        (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
-      return c;
-    };
-    const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
-    [ssc('Active',      _subRows.length,       _subRows.length===1?'subscription':'subscriptions'),
-     ssc('Monthly Cost',fmtMoney(totalMo),      'per month'),
-     ssc('Annual Cost', fmtMoney(totalMo*12),   'per year'),
-    ].forEach(c=>subStatGrid.appendChild(c));
-    if(statMs&&statMs.length){
-      const avgExp=statMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(statMs.length||1);
-      if(avgExp>0) subStatGrid.appendChild(ssc('% of Expenses',fmtPct(totalMo/avgExp*100),'of avg monthly spend'));
-    }
-  }
-
-  // ── B: Monthly Spending Trend ─────────────────────────────────────────────
-  const trendCanvas=document.getElementById('chart-trend');
-  if(trendCanvas&&months.length){
-    // Add / update toggle buttons
-    const ctrl=document.getElementById('controls-trend');
-    if(ctrl&&!ctrl.querySelector('.tt-trend')){
-      ctrl.appendChild(mkToggleBtn('tt-trend','bar','📊 Bar',  trendType==='bar',  ()=>setTrendType('bar')));
-      ctrl.appendChild(mkToggleBtn('tt-trend','line','📈 Line', trendType==='line', ()=>setTrendType('line')));
-    } else if(ctrl){
-      ctrl.querySelectorAll('.tt-trend').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===trendType));
-    }
-
-    destroyChart('trend');
-    const labels=months.map(mkLabel);
-    const actualVals  =months.map(m=>m<=today?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
-    const forecastVals=months.map(m=>m> today?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
-
-    const makeDs=(label, data, color, rgba)=>{
-      const ds={label, data, borderColor:color, borderWidth:2};
-      if(trendType==='bar'){
-        ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
-      } else {
-        ds.backgroundColor='transparent'; ds.fill=false;
-        ds.tension=0.3; ds.pointRadius=4; ds.pointBackgroundColor=color;
-      }
-      return ds;
-    };
-
-    const datasets=[makeDs('Actual', actualVals, '#7c3aed','rgba(124,58,237,.7)')];
-    if(hasForecast) datasets.push(makeDs('Forecast', forecastVals, '#f59e0b','rgba(251,191,36,.55)'));
-
-    charts['trend']=new Chart(trendCanvas,{
-      type: trendType==='bar'?'bar':'line',
-      data:{labels,datasets},
-      options:{
-        responsive:true,
-        plugins:{
-          legend:{display:hasForecast,labels:{color:tc.fg,boxWidth:14,padding:10}},
-          tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
-        },
-        scales:{
-          x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
-          y:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}}
-        }
-      }
-    });
-  }
-
-  // ── C: Category Breakdown (doughnut / bar toggle) ─────────────────────────
-  const breakCanvas=document.getElementById('chart-breakdown');
-  if(breakCanvas&&months.length){
-    const ctrl=document.getElementById('controls-breakdown');
-    if(ctrl&&!ctrl.querySelector('.tt-cat')){
-      ctrl.appendChild(mkToggleBtn('tt-cat','doughnut','🥧 Doughnut',catBreakType==='doughnut',()=>setCatBreakType('doughnut')));
-      ctrl.appendChild(mkToggleBtn('tt-cat','bar',     '📊 Bar',      catBreakType==='bar',     ()=>setCatBreakType('bar')));
-    } else if(ctrl){
-      ctrl.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===catBreakType));
-    }
-
-    destroyChart('breakdown');
-    const catTotals=combinedCategoryTotals(_exp,_subs,months);
-    const sorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
-
-    if(sorted.length){
-      const labels =sorted.map(e=>e[0]);
-      const vals   =sorted.map(e=>parseFloat(e[1].value.toFixed(2)));
-      const colors =sorted.map(e=>e[1].color);
-      const total  =vals.reduce((a,b)=>a+b,0);
-
-      const cfg=catBreakType==='doughnut'
-        ? {
-            type:'doughnut',
-            data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:tc.panel,hoverOffset:8}]},
-            options:{
-              responsive:true,
-              plugins:{
-                legend:{display:true,position:'right',labels:{color:tc.fg,boxWidth:14,padding:10,font:{size:12}}},
-                tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+' ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
-              }
-            }
-          }
-        : {
-            type:'bar',
-            data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4}]},
-            options:{
-              responsive:true,
-              plugins:{
-                legend:{display:false},
-                tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.y)+' ('+(ctx.parsed.y/total*100).toFixed(1)+'%)'}}
-              },
-              scales:{
-                x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
-                y:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}}
-              }
-            }
-          };
-
-      charts['breakdown']=new Chart(breakCanvas,cfg);
-
-      // Ranked insight list
-      const card=document.getElementById('card-breakdown');
-      let list=card.querySelector('.insight-list');
-      if(!list){ list=document.createElement('ul'); list.className='insight-list'; card.appendChild(list); }
-      list.innerHTML=sorted.map(([name,d])=>{
-        const pct=(d.value/total*100).toFixed(1);
-        return `<li><span class="insight-name">${escapeHtml(name)}</span>`+
-          `<span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span></span></li>`;
-      }).join('');
-    }
-  }
-
-  // ── D: Category Trends Over Time (multi-line) ─────────────────────────────
-  const catTrendsCanvas=document.getElementById('chart-cattrends');
-  if(catTrendsCanvas&&months.length>=2){
-    destroyChart('cattrends');
-    const catData=combinedCategoryMonthlyData(_exp,_subs,months);
-    // Sort by total spend, cap at 8
-    const entries=[...catData.entries()]
-      .map(([label,d])=>({label,color:d.color,values:d.values,total:d.values.reduce((a,b)=>a+b,0)}))
-      .filter(e=>e.total>0)
-      .sort((a,b)=>b.total-a.total)
-      .slice(0,8);
-
-    if(entries.length){
-      charts['cattrends']=new Chart(catTrendsCanvas,{
-        type:'line',
-        data:{
-          labels:months.map(mkLabel),
-          datasets:entries.map(e=>({
-            label:e.label,
-            data:e.values,
-            borderColor:e.color,
-            backgroundColor:'transparent',
-            borderWidth:2,
-            fill:false,
-            tension:0.3,
-            pointRadius:3,
-            pointBackgroundColor:e.color,
-          }))
-        },
-        options:{
-          responsive:true,
-          plugins:{
-            legend:{display:true,position:'bottom',labels:{color:tc.fg,boxWidth:12,padding:10,font:{size:11}}},
-            tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
-          },
-          scales:{
-            x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
-            y:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}}
-          }
-        }
-      });
-    }
-  }
-
-  // ── E: Income vs Expenses ─────────────────────────────────────────────────
-  const savingsCanvas=document.getElementById('chart-savings');
-  if(savingsCanvas){
-    destroyChart('savings');
-    const incMonths=months.filter(m=>_monthIncomes[m]);
+    const incMonths=_cStatMs.filter(m=>_monthIncomes[m]);
     if(incMonths.length){
-      charts['savings']=new Chart(savingsCanvas,{
-        type:'bar',
-        data:{
-          labels:incMonths.map(mkLabel),
-          datasets:[
-            {label:'Income',  data:incMonths.map(m=>parseFloat((_monthIncomes[m]||0).toFixed(2))),
-              backgroundColor:'rgba(21,128,61,.6)', borderColor:'#15803d',borderWidth:1,borderRadius:4},
-            {label:'Expenses',data:incMonths.map(m=>parseFloat((_monthTotals[m]||0).toFixed(2))),
-              backgroundColor:'rgba(220,38,38,.55)',borderColor:'#dc2626',borderWidth:1,borderRadius:4},
-          ]
-        },
-        options:{
-          responsive:true,
-          plugins:{
-            legend:{display:true,labels:{color:tc.fg,boxWidth:14,padding:10}},
-            tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
-          },
-          scales:{
-            x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
-            y:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}}
-          }
-        }
-      });
+      const totInc=incMonths.reduce((s,m)=>s+(_monthIncomes[m]||0),0);
+      const totExp=incMonths.reduce((s,m)=>s+(_monthTotals[m]||0),0);
+      const rate=totInc>0?Math.max(0,(totInc-totExp)/totInc*100):0;
+      statGrid.appendChild(sc('Savings Rate',fmtPct(rate),
+        'across '+incMonths.length+' month'+(incMonths.length!==1?'s':'')));
     }
   }
-
-  // ── F: Subscription Breakdown (doughnut / bar toggle) ─────────────────────
-  const subBreakCanvas=document.getElementById('chart-subbreak');
-  if(subBreakCanvas&&_subRows.length){
-    const ctrl=document.getElementById('controls-subbreak');
-    if(ctrl&&!ctrl.querySelector('.tt-sub')){
-      ctrl.appendChild(mkToggleBtn('tt-sub','doughnut','🥧 Doughnut',subBreakType==='doughnut',()=>setSubBreakType('doughnut')));
-      ctrl.appendChild(mkToggleBtn('tt-sub','bar',     '📊 Bar',      subBreakType==='bar',     ()=>setSubBreakType('bar')));
-    } else if(ctrl){
-      ctrl.querySelectorAll('.tt-sub').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===subBreakType));
+  if(_subRows.length){
+    const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
+    statGrid.appendChild(sc('Active Subs',_subRows.length,
+      _subRows.length===1?'subscription':'subscriptions'));
+    statGrid.appendChild(sc('Sub Monthly',fmtMoney(totalMo)+'/mo',fmtMoney(totalMo*12)+'/yr'));
+    if(_cStatMs.length){
+      const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
+      if(avgExp>0) statGrid.appendChild(sc('Subs % of Spend',
+        fmtPct(totalMo/avgExp*100),'of avg monthly expenses'));
     }
+    const costliest=_subRows.reduce((a,b)=>a.monthly>b.monthly?a:b,_subRows[0]);
+    if(costliest) statGrid.appendChild(sc('Costliest Sub',costliest.name,fmtMoney(costliest.monthly)+'/mo'));
+  }
+}
 
-    destroyChart('subbreak');
-    const sorted=[..._subRows].sort((a,b)=>b.monthly-a.monthly);
-    const cyan=['#0e7490','#0891b2','#22d3ee','#67e8f9','#a5f3fc','#cffafe'];
-    const colors=sorted.map((_,i)=>cyan[i%cyan.length]);
-    const vals  =sorted.map(r=>parseFloat(r.monthly.toFixed(2)));
-    const names =sorted.map(r=>r.name);
+// ── Sub mini-stat cards ───────────────────────────────────────────────────────
+function renderSubStatCards(){
+  const subStatGrid=document.getElementById('sub-stat-grid');
+  if(!subStatGrid||!_subRows.length) return;
+  subStatGrid.innerHTML='';
+  const ssc=(label,value,sub)=>{
+    const c=document.createElement('div'); c.className='stat-card';
+    c.innerHTML=`<div class="stat-label">${escapeHtml(label)}</div>`+
+      `<div class="stat-value">${escapeHtml(String(value))}</div>`+
+      (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
+    return c;
+  };
+  const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
+  [ssc('Active',      _subRows.length, _subRows.length===1?'subscription':'subscriptions'),
+   ssc('Monthly Cost',fmtMoney(totalMo),'per month'),
+   ssc('Annual Cost', fmtMoney(totalMo*12),'per year'),
+  ].forEach(c=>subStatGrid.appendChild(c));
+  if(_cStatMs&&_cStatMs.length){
+    const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
+    if(avgExp>0) subStatGrid.appendChild(ssc('% of Expenses',fmtPct(totalMo/avgExp*100),'of avg monthly spend'));
+  }
+}
+
+// ── B: Monthly Spending Trend ─────────────────────────────────────────────────
+function renderTrendChart(){
+  const trendCanvas=document.getElementById('chart-trend');
+  if(!trendCanvas||!_cm.length) return;
+  const ctrl=document.getElementById('controls-trend');
+  if(ctrl&&!ctrl.querySelector('.tt-trend')){
+    ctrl.appendChild(mkToggleBtn('tt-trend','bar', '📊 Bar',  trendType==='bar',  ()=>setTrendType('bar')));
+    ctrl.appendChild(mkToggleBtn('tt-trend','line','📈 Line', trendType==='line', ()=>setTrendType('line')));
+  } else if(ctrl){
+    ctrl.querySelectorAll('.tt-trend').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===trendType));
+  }
+  destroyChart('trend');
+  const labels     =_cm.map(mkLabel);
+  const actualVals =_cm.map(m=>m<=_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
+  const forecastVals=_cm.map(m=>m>_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
+
+  // 3-month rolling average (shown only when ≥3 actual data points exist)
+  const nonNull=actualVals.filter(v=>v!==null);
+  const maData=nonNull.length>=3 ? actualVals.map((v,i,arr)=>{
+    if(v===null) return null;
+    const win=arr.slice(Math.max(0,i-2),i+1).filter(x=>x!==null);
+    return win.length>=2 ? parseFloat((win.reduce((a,b)=>a+b,0)/win.length).toFixed(2)) : null;
+  }) : null;
+
+  const makeDs=(label,data,color,rgba)=>{
+    const ds={label,data,borderColor:color,borderWidth:2};
+    if(trendType==='bar'){
+      ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
+    } else {
+      ds.backgroundColor='transparent'; ds.fill=false;
+      ds.tension=0.3; ds.pointRadius=4; ds.pointBackgroundColor=color;
+    }
+    return ds;
+  };
+  const datasets=[makeDs('Actual',actualVals,'#7c3aed','rgba(124,58,237,.7)')];
+  if(_cHasForecast) datasets.push(makeDs('Forecast',forecastVals,'#f59e0b','rgba(251,191,36,.55)'));
+  if(maData) datasets.push({
+    label:'3-mo avg', data:maData,
+    borderColor:'rgba(107,114,128,.65)', borderWidth:2, borderDash:[5,4],
+    backgroundColor:'transparent', fill:false, tension:0.4,
+    pointRadius:0, type:'line',
+  });
+  charts['trend']=new Chart(trendCanvas,{
+    type:trendType==='bar'?'bar':'line',
+    data:{labels,datasets},
+    options:{responsive:true,plugins:{
+      legend:{display:_cHasForecast||(maData!=null),labels:{color:_cTc.fg,boxWidth:14,padding:10}},
+      tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
+    },scales:{
+      x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+      y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+    }}
+  });
+}
+
+// ── C: Category Breakdown ─────────────────────────────────────────────────────
+function renderBreakdownChart(){
+  const breakCanvas=document.getElementById('chart-breakdown');
+  if(!breakCanvas||!_cm.length) return;
+  const ctrl=document.getElementById('controls-breakdown');
+  if(ctrl&&!ctrl.querySelector('.tt-cat')){
+    ctrl.appendChild(mkToggleBtn('tt-cat','doughnut','🥧 Doughnut',catBreakType==='doughnut',()=>setCatBreakType('doughnut')));
+    ctrl.appendChild(mkToggleBtn('tt-cat','bar',     '📊 Bar',      catBreakType==='bar',     ()=>setCatBreakType('bar')));
+  } else if(ctrl){
+    ctrl.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===catBreakType));
+  }
+  destroyChart('breakdown');
+  const catTotals=combinedCategoryTotals(_exp,_subs,_cm);
+  const sorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
+  if(sorted.length){
+    const labels=sorted.map(e=>e[0]);
+    const vals  =sorted.map(e=>parseFloat(e[1].value.toFixed(2)));
+    const colors=sorted.map(e=>e[1].color);
     const total =vals.reduce((a,b)=>a+b,0);
-
-    const subCfg=subBreakType==='doughnut'
-      ? {
-          type:'doughnut',
-          data:{labels:names,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:tc.panel,hoverOffset:8}]},
-          options:{
-            responsive:true,
-            plugins:{
-              legend:{display:true,position:'right',labels:{color:tc.fg,boxWidth:14,padding:10,font:{size:12}}},
-              tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+'/mo ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
-            }
-          }
-        }
-      : {
-          type:'bar',
-          data:{labels:names,datasets:[{label:'Monthly Cost',data:vals,backgroundColor:colors,borderRadius:4}]},
-          options:{
-            indexAxis:'y',
-            responsive:true,
-            plugins:{
-              legend:{display:false},
-              tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.x)+'/mo  ('+fmtMoney(ctx.parsed.x*12)+'/yr)'}}
-            },
-            scales:{
-              x:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}},
-              y:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}}
-            }
-          }
-        };
-
-    charts['subbreak']=new Chart(subBreakCanvas,subCfg);
-
-    // Ranked list
-    const card=document.getElementById('card-subbreak');
+    const cfg=catBreakType==='doughnut'
+      ? {type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:_cTc.panel,hoverOffset:8}]},
+          options:{responsive:true,plugins:{
+            legend:{display:true,position:'right',labels:{color:_cTc.fg,boxWidth:14,padding:10,font:{size:12}}},
+            tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+' ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
+          }}}
+      : {type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4}]},
+          options:{responsive:true,plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.y)+' ('+(ctx.parsed.y/total*100).toFixed(1)+'%)'}}
+          },scales:{
+            x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+            y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+          }}};
+    charts['breakdown']=new Chart(breakCanvas,cfg);
+    const card=document.getElementById('card-breakdown');
     let list=card.querySelector('.insight-list');
     if(!list){ list=document.createElement('ul'); list.className='insight-list'; card.appendChild(list); }
-    list.innerHTML=sorted.map(r=>
-      `<li><span class="insight-name">${escapeHtml(r.name)}</span>`+
-      `<span class="insight-val">${fmtMoney(r.monthly)}/mo &nbsp;<span style="color:var(--muted)">(${fmtMoney(r.annual)}/yr)</span></span></li>`
-    ).join('');
-
-    // Total line
-    let note=card.querySelector('.chart-note');
-    if(!note){ note=document.createElement('p'); note.className='chart-note'; card.appendChild(note); }
-    note.textContent=`${_subRows.length} active subscription${_subRows.length!==1?'s':''} · `+
-      fmtMoney(total)+'/mo · '+fmtMoney(total*12)+'/yr';
+    list.innerHTML=sorted.map(([name,d])=>{
+      const pct=(d.value/total*100).toFixed(1);
+      return `<li><span class="insight-name">${escapeHtml(name)}</span>`+
+        `<span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span></span></li>`;
+    }).join('');
   }
+}
 
-  // ── G: Subscription Cost Trend (line) ────────────────────────────────────
+// ── D: Category Trends Over Time ──────────────────────────────────────────────
+function renderCatTrendsChart(){
+  const catTrendsCanvas=document.getElementById('chart-cattrends');
+  if(!catTrendsCanvas||_cm.length<2) return;
+  destroyChart('cattrends');
+  const catData=combinedCategoryMonthlyData(_exp,_subs,_cm);
+  const entries=[...catData.entries()]
+    .map(([label,d])=>({label,color:d.color,values:d.values,total:d.values.reduce((a,b)=>a+b,0)}))
+    .filter(e=>e.total>0).sort((a,b)=>b.total-a.total).slice(0,8);
+  if(entries.length){
+    charts['cattrends']=new Chart(catTrendsCanvas,{
+      type:'line',
+      data:{labels:_cm.map(mkLabel),datasets:entries.map(e=>({
+        label:e.label,data:e.values,borderColor:e.color,
+        backgroundColor:'transparent',borderWidth:2,fill:false,
+        tension:0.3,pointRadius:3,pointBackgroundColor:e.color,
+      }))},
+      options:{responsive:true,plugins:{
+        legend:{display:true,position:'bottom',labels:{color:_cTc.fg,boxWidth:12,padding:10,font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
+      },scales:{
+        x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+        y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+      }}
+    });
+  }
+}
+
+// ── E: Income vs Expenses ─────────────────────────────────────────────────────
+function renderSavingsChart(){
+  const savingsCanvas=document.getElementById('chart-savings');
+  if(!savingsCanvas) return;
+  destroyChart('savings');
+  const incMonths=_cm.filter(m=>_monthIncomes[m]);
+  if(incMonths.length){
+    charts['savings']=new Chart(savingsCanvas,{
+      type:'bar',
+      data:{labels:incMonths.map(mkLabel),datasets:[
+        {label:'Income',  data:incMonths.map(m=>parseFloat((_monthIncomes[m]||0).toFixed(2))),
+          backgroundColor:'rgba(21,128,61,.6)',borderColor:'#15803d',borderWidth:1,borderRadius:4},
+        {label:'Expenses',data:incMonths.map(m=>parseFloat((_monthTotals[m]||0).toFixed(2))),
+          backgroundColor:'rgba(220,38,38,.55)',borderColor:'#dc2626',borderWidth:1,borderRadius:4},
+      ]},
+      options:{responsive:true,plugins:{
+        legend:{display:true,labels:{color:_cTc.fg,boxWidth:14,padding:10}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
+      },scales:{
+        x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+        y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+      }}
+    });
+  }
+}
+
+// ── F: Subscription Breakdown ─────────────────────────────────────────────────
+function renderSubBreakChart(){
+  const subBreakCanvas=document.getElementById('chart-subbreak');
+  if(!subBreakCanvas||!_subRows.length) return;
+  const ctrl=document.getElementById('controls-subbreak');
+  if(ctrl&&!ctrl.querySelector('.tt-sub')){
+    ctrl.appendChild(mkToggleBtn('tt-sub','doughnut','🥧 Doughnut',subBreakType==='doughnut',()=>setSubBreakType('doughnut')));
+    ctrl.appendChild(mkToggleBtn('tt-sub','bar',     '📊 Bar',      subBreakType==='bar',     ()=>setSubBreakType('bar')));
+  } else if(ctrl){
+    ctrl.querySelectorAll('.tt-sub').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===subBreakType));
+  }
+  destroyChart('subbreak');
+  const sorted=[..._subRows].sort((a,b)=>b.monthly-a.monthly);
+  const cyan=['#0e7490','#0891b2','#22d3ee','#67e8f9','#a5f3fc','#cffafe'];
+  const colors=sorted.map((_,i)=>cyan[i%cyan.length]);
+  const vals  =sorted.map(r=>parseFloat(r.monthly.toFixed(2)));
+  const names =sorted.map(r=>r.name);
+  const total =vals.reduce((a,b)=>a+b,0);
+  const subCfg=subBreakType==='doughnut'
+    ? {type:'doughnut',data:{labels:names,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:_cTc.panel,hoverOffset:8}]},
+        options:{responsive:true,plugins:{
+          legend:{display:true,position:'right',labels:{color:_cTc.fg,boxWidth:14,padding:10,font:{size:12}}},
+          tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+'/mo ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
+        }}}
+    : {type:'bar',data:{labels:names,datasets:[{label:'Monthly Cost',data:vals,backgroundColor:colors,borderRadius:4}]},
+        options:{indexAxis:'y',responsive:true,plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.x)+'/mo  ('+fmtMoney(ctx.parsed.x*12)+'/yr)'}}
+        },scales:{
+          x:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+          y:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+        }}};
+  charts['subbreak']=new Chart(subBreakCanvas,subCfg);
+  const card=document.getElementById('card-subbreak');
+  let list=card.querySelector('.insight-list');
+  if(!list){ list=document.createElement('ul'); list.className='insight-list'; card.appendChild(list); }
+  list.innerHTML=sorted.map(r=>
+    `<li><span class="insight-name">${escapeHtml(r.name)}</span>`+
+    `<span class="insight-val">${fmtMoney(r.monthly)}/mo &nbsp;<span style="color:var(--muted)">(${fmtMoney(r.annual)}/yr)</span></span></li>`
+  ).join('');
+  let note=card.querySelector('.chart-note');
+  if(!note){ note=document.createElement('p'); note.className='chart-note'; card.appendChild(note); }
+  note.textContent=`${_subRows.length} active subscription${_subRows.length!==1?'s':''} · `+
+    fmtMoney(total)+'/mo · '+fmtMoney(total*12)+'/yr';
+}
+
+// ── G: Subscription Cost Trend ────────────────────────────────────────────────
+function renderSubTrendChart(){
   const subTrendCanvas=document.getElementById('chart-subtrend');
-  if(subTrendCanvas&&_subs&&_subTrendMonths.length>=2){
-    destroyChart('subtrend');
+  if(!subTrendCanvas||!_subs||_subTrendMonths.length<2) return;
+  destroyChart('subtrend');
+  const period=(document.getElementById('period-global')||{}).value||'all';
+  const filteredTrendMonths=filterMonths(_subTrendMonths,period);
+  if(filteredTrendMonths.length<2) return;
+  const labels=filteredTrendMonths.map(mkLabel);
+  const costs =subCostPerMonth(_subs,filteredTrendMonths);
+  const hasSubForecast=filteredTrendMonths.some(m=>m>_cToday);
+  const actualCosts  =filteredTrendMonths.map((m,i)=>m<=_cToday?costs[i]:null);
+  const forecastCosts=filteredTrendMonths.map((m,i)=>m> _cToday?costs[i]:null);
+  const datasets=[{
+    label:'Sub Cost',data:actualCosts,borderColor:'#0891b2',
+    backgroundColor:'rgba(8,145,178,.15)',borderWidth:2,fill:true,
+    tension:0.3,pointRadius:4,pointBackgroundColor:'#0891b2',
+  }];
+  if(hasSubForecast) datasets.push({
+    label:'Forecast',data:forecastCosts,borderColor:'#f59e0b',
+    backgroundColor:'rgba(251,191,36,.08)',borderWidth:2,borderDash:[5,5],
+    fill:true,tension:0.3,pointRadius:4,pointBackgroundColor:'#f59e0b',
+  });
+  charts['subtrend']=new Chart(subTrendCanvas,{
+    type:'line',data:{labels,datasets},
+    options:{responsive:true,plugins:{
+      legend:{display:hasSubForecast,labels:{color:_cTc.fg,boxWidth:14,padding:10}},
+      tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)+'/mo'}}
+    },scales:{
+      x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+      y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+    }}
+  });
+}
 
-    // Apply period filter to sub trend months
-    const filteredTrendMonths=filterMonths(_subTrendMonths, period);
-    if(filteredTrendMonths.length>=2){
-      const labels=filteredTrendMonths.map(mkLabel);
-      const costs =subCostPerMonth(_subs, filteredTrendMonths);
-      const hasSubForecast=filteredTrendMonths.some(m=>m>today);
-
-      const actualCosts  =filteredTrendMonths.map((m,i)=>m<=today?costs[i]:null);
-      const forecastCosts=filteredTrendMonths.map((m,i)=>m> today?costs[i]:null);
-
-      const datasets=[{
-        label:'Sub Cost',
-        data:actualCosts,
-        borderColor:'#0891b2',
-        backgroundColor:'rgba(8,145,178,.15)',
-        borderWidth:2,
-        fill:true,
-        tension:0.3,
-        pointRadius:4,
-        pointBackgroundColor:'#0891b2',
-      }];
-      if(hasSubForecast) datasets.push({
-        label:'Forecast',
-        data:forecastCosts,
-        borderColor:'#f59e0b',
-        backgroundColor:'rgba(251,191,36,.08)',
-        borderWidth:2,
-        borderDash:[5,5],
-        fill:true,
-        tension:0.3,
-        pointRadius:4,
-        pointBackgroundColor:'#f59e0b',
-      });
-
-      charts['subtrend']=new Chart(subTrendCanvas,{
-        type:'line',
-        data:{labels,datasets},
-        options:{
-          responsive:true,
-          plugins:{
-            legend:{display:hasSubForecast,labels:{color:tc.fg,boxWidth:14,padding:10}},
-            tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)+'/mo'}}
-          },
-          scales:{
-            x:{ticks:{color:tc.fg},grid:{color:tc.grid},border:{color:tc.grid}},
-            y:{beginAtZero:true,ticks:{color:tc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:tc.grid},border:{color:tc.grid}}
-          }
-        }
-      });
-    }
-  }
+// ── Re-render ALL charts (period change / theme change / data change) ──────────
+// Toggle button clicks call the individual functions above — not this one.
+function reRenderCharts(){
+  _refreshPeriodCache();
+  renderStatCards();
+  renderSubStatCards();
+  renderTrendChart();
+  renderBreakdownChart();
+  renderCatTrendsChart();
+  renderSavingsChart();
+  renderSubBreakChart();
+  renderSubTrendChart();
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
