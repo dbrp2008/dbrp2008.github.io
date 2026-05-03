@@ -41,19 +41,19 @@
     </div>
     <div class="form-row">
       <label for="principal">Principal</label>
-      <input type="number" step="any" name="principal" id="principal" required placeholder="e.g. 10000">
+      <input type="number" step="any" inputmode="decimal" name="principal" id="principal" required placeholder="e.g. 10000">
     </div>
     <div class="form-row">
       <label for="rate">Rate (%)</label>
-      <input type="number" step="any" name="rate" id="rate" required placeholder="e.g. 5">
+      <input type="number" step="any" inputmode="decimal" name="rate" id="rate" required placeholder="e.g. 5">
     </div>
     <div class="form-row">
       <label for="time">Time (years)</label>
-      <input type="number" step="any" name="time" id="time" required placeholder="e.g. 3">
+      <input type="number" step="any" inputmode="decimal" name="time" id="time" required placeholder="e.g. 3">
     </div>
     <div class="form-row" id="periods-row" style="display:none;">
       <label for="periods">Compounding Periods per Year</label>
-      <input type="number" step="any" name="periods" id="periods" value="1" placeholder="e.g. 12 for monthly">
+      <input type="number" step="any" inputmode="decimal" name="periods" id="periods" value="1" placeholder="e.g. 12 for monthly">
     </div>
     <button class="btn" type="submit">Calculate</button>
   </form>
