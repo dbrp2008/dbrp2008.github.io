@@ -197,59 +197,7 @@ function loadSubs(){
   catch(e){ console.warn('Analytics: subs data error',e.message); return null; }
 }
 
-// ── Expense analytics helpers ─────────────────────────────────────────────────
-
-// {monthKey: totalSpend} for all months that have any cell data
-function expMonthTotals(exp){
-  if(!exp||!exp.cells) return {};
-  const totals={};
-  Object.entries(exp.cells).forEach(([k,v])=>{
-    const parts=k.split('|'); if(parts.length<3) return;
-    totals[parts[0]]=(totals[parts[0]]||0)+(parseFloat(v)||0);
-  });
-  return totals;
-}
-
-// Sorted array of monthKeys that have data
-function sortedMonths(totals){
-  return Object.keys(totals).filter(k=>totals[k]>0).sort();
-}
-
-// {category: {value, color}} for a set of monthKeys
-function expCategoryTotals(exp, monthKeys){
-  if(!exp||!exp.rows||!exp.cells) return {};
-  const set=new Set(monthKeys);
-  const totals={};
-  exp.rows.filter(r=>!r.parentId).forEach(row=>{
-    let sum=0;
-    set.forEach(mk2=>{
-      (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0; });
-      (exp.rows||[]).filter(r=>r.parentId===row.id).forEach(child=>{
-        (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0; });
-      });
-    });
-    if(sum>0) totals[row.label]={value:sum, color:row.color||'#93c5fd'};
-  });
-  return totals;
-}
-
-// Map: categoryLabel → {color, values:[spend per month aligned with months[]]}
-function expCategoryMonthlyData(exp, months){
-  const map=new Map();
-  if(!exp||!exp.rows||!exp.cells) return map;
-  exp.rows.filter(r=>!r.parentId).forEach(row=>{
-    const vals=months.map(mk2=>{
-      let sum=0;
-      (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0; });
-      (exp.rows||[]).filter(r=>r.parentId===row.id).forEach(child=>{
-        (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0; });
-      });
-      return parseFloat(sum.toFixed(2));
-    });
-    if(vals.some(v=>v>0)) map.set(row.label, {color:row.color||'#93c5fd', values:vals});
-  });
-  return map;
-}
+// ── Expense income helper ─────────────────────────────────────────────────────
 
 // {monthKey: grossIncome}
 function expMonthIncomes(exp){
@@ -259,6 +207,138 @@ function expMonthIncomes(exp){
     const g=parseFloat(v.gross)||0; if(g>0) out[mk2]=g;
   });
   return out;
+}
+
+// ── Combined helpers (expenses + subscriptions merged) ────────────────────────
+
+// Returns all monthKeys that have any spending (expenses or subs), sorted
+function allSpendingMonths(exp, subs){
+  const mks=new Set();
+
+  // Expense months
+  if(exp&&exp.cells){
+    Object.keys(exp.cells).forEach(k=>{
+      const p=k.split('|'); if(p.length>=3&&parseFloat(exp.cells[k])>0) mks.add(p[0]);
+    });
+  }
+
+  // Sub months: from each sub's start date up to today
+  if(subs&&subs.rows&&subs.cols){
+    const startCol=subs.cols.find(c=>c.ctype==='date');
+    if(startCol){
+      const now=new Date();
+      (subs.rows||[]).forEach(r=>{
+        const dateStr=(subs.cells||{})[r.id+'|'+startCol.id]||'';
+        if(!dateStr) return;
+        const first=new Date(dateStr);
+        let y=first.getFullYear(), m=first.getMonth();
+        while(y*12+m<=now.getFullYear()*12+now.getMonth()){
+          mks.add(mk(y,m)); m++; if(m===12){m=0;y++;}
+        }
+      });
+    }
+  }
+
+  return [...mks].sort();
+}
+
+// {monthKey: totalSpend} combining expense cells + sub costs per month
+function combinedMonthTotals(exp, subs, allMonths){
+  const totals={};
+  allMonths.forEach(mk2=>{
+    let sum=0;
+    // Expense cells
+    if(exp&&exp.cells&&exp.cols&&exp.rows){
+      exp.rows.forEach(row=>{
+        (exp.cols||[]).forEach(col=>{
+          sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0;
+        });
+      });
+    }
+    // Sub costs for this month
+    if(subs&&subs.rows&&subs.cols){
+      const [y,m]=mk2.split('-').map(Number);
+      sum+=(subs.rows||[]).reduce((s,r)=>s+calcSubCostForMonth(r,subs,y,m-1),0);
+    }
+    if(sum>0) totals[mk2]=parseFloat(sum.toFixed(2));
+  });
+  return totals;
+}
+
+// {category: {value, color}} for expense categories + 'Subscriptions' entry
+function combinedCategoryTotals(exp, subs, monthKeys){
+  const totals={};
+  const set=new Set(monthKeys);
+
+  // Expense categories (top-level rows only — exclude the linked row, it's covered by subs below)
+  if(exp&&exp.rows&&exp.cells){
+    exp.rows.filter(r=>!r.parentId&&!r.linked).forEach(row=>{
+      let sum=0;
+      set.forEach(mk2=>{
+        (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0; });
+        (exp.rows||[]).filter(c=>c.parentId===row.id).forEach(child=>{
+          (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0; });
+        });
+      });
+      if(sum>0) totals[row.label]={value:sum, color:row.color||'#93c5fd'};
+    });
+  }
+
+  // Subscription costs — merged into 'Subscriptions' category (additive in case user has same-named row)
+  if(subs&&subs.rows&&subs.cols){
+    let subTotal=0;
+    set.forEach(mk2=>{
+      const [y,m]=mk2.split('-').map(Number);
+      subTotal+=(subs.rows||[]).reduce((s,r)=>s+calcSubCostForMonth(r,subs,y,m-1),0);
+    });
+    if(subTotal>0){
+      const existing=totals['Subscriptions'];
+      totals['Subscriptions']={
+        value: parseFloat(((existing?existing.value:0)+subTotal).toFixed(2)),
+        color: (existing&&existing.color)||'#0891b2'
+      };
+    }
+  }
+
+  return totals;
+}
+
+// Map: categoryLabel → {color, values:[spend per month]} — expenses + subs line
+function combinedCategoryMonthlyData(exp, subs, months){
+  const map=new Map();
+
+  // Expense categories (exclude linked row)
+  if(exp&&exp.rows&&exp.cells){
+    exp.rows.filter(r=>!r.parentId&&!r.linked).forEach(row=>{
+      const vals=months.map(mk2=>{
+        let sum=0;
+        (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0; });
+        (exp.rows||[]).filter(c=>c.parentId===row.id).forEach(child=>{
+          (exp.cols||[]).forEach(col=>{ sum+=parseFloat(exp.cells[mk2+'|'+child.id+'|'+col.id]||0)||0; });
+        });
+        return parseFloat(sum.toFixed(2));
+      });
+      if(vals.some(v=>v>0)) map.set(row.label,{color:row.color||'#93c5fd',values:vals});
+    });
+  }
+
+  // Subscriptions as a line — merge into existing 'Subscriptions' entry if present
+  if(subs&&subs.rows&&subs.cols){
+    const subVals=subCostPerMonth(subs,months);
+    if(subVals.some(v=>v>0)){
+      const existing=map.get('Subscriptions');
+      if(existing){
+        map.set('Subscriptions',{
+          color:existing.color||'#0891b2',
+          values:existing.values.map((v,i)=>parseFloat((v+subVals[i]).toFixed(2)))
+        });
+      } else {
+        map.set('Subscriptions',{color:'#0891b2',values:subVals});
+      }
+    }
+  }
+
+  return map;
 }
 
 // ── Subscription analytics helpers ───────────────────────────────────────────
@@ -381,37 +461,20 @@ function mkToggleBtn(groupClass, val, label, isActive, handler){
 function renderAll(){
   _exp  = loadExp();
   _subs = loadSubs();
-  _monthTotals  = expMonthTotals(_exp);
-  _allMonths    = sortedMonths(_monthTotals);
+
+  // All months from BOTH sources (combined)
+  _allMonths    = allSpendingMonths(_exp, _subs);
+  _monthTotals  = combinedMonthTotals(_exp, _subs, _allMonths);
   _monthIncomes = expMonthIncomes(_exp);
   _subRows      = subMonthlySnapshot(_subs);
-
-  // Build sub trend months: use expense months if available, else build from subs start dates
-  if(_allMonths.length>=2){
-    _subTrendMonths=_allMonths;
-  } else if(_subs&&_subs.rows&&_subs.cols){
-    const startCol=_subs.cols.find(c=>c.ctype==='date');
-    if(startCol){
-      const dates=(_subs.rows||[])
-        .map(r=>(_subs.cells||{})[r.id+'|'+startCol.id]||'')
-        .filter(Boolean).sort();
-      if(dates.length){
-        const first=new Date(dates[0]); const now=new Date();
-        const ms=[];
-        let y=first.getFullYear(), m=first.getMonth();
-        while(y*12+m<=now.getFullYear()*12+now.getMonth()){
-          ms.push(mk(y,m)); m++; if(m===12){m=0;y++;}
-        }
-        _subTrendMonths=ms.length>=2?ms:[];
-      } else { _subTrendMonths=[]; }
-    } else { _subTrendMonths=[]; }
-  } else { _subTrendMonths=[]; }
+  // Sub trend uses the same unified month range
+  _subTrendMonths = _allMonths;
 
   const root=document.getElementById('root');
-  const hasExpData=_allMonths.length>0;
+  const hasAnyData=_allMonths.length>0||_subRows.length>0;
   const hasSubData=_subRows.length>0||(_subs&&_subs.rows&&_subs.rows.length>0);
 
-  if(!hasExpData&&!hasSubData){
+  if(!hasAnyData&&!hasSubData){
     root.innerHTML=`<div class="no-data">
       <p style="font-size:2rem;margin-bottom:.5rem">📭</p>
       <p>No data yet — add expenses or subscriptions first.</p>
@@ -422,8 +485,8 @@ function renderAll(){
 
   root.innerHTML='';
 
-  // ── Period filter (only when expense data exists) ─────────────────────────
-  if(hasExpData){
+  // ── Period filter ─────────────────────────────────────────────────────────
+  if(_allMonths.length){
     const periodRow=document.createElement('div');
     periodRow.className='period-row';
     const lbl=document.createElement('span');
@@ -469,19 +532,18 @@ function renderAll(){
     root.appendChild(d);
   }
 
-  // ── Expense section ───────────────────────────────────────────────────────
-  if(hasExpData){
-    addSectionTitle('Expenses');
+  // ── Spending section (expenses + subs combined) ───────────────────────────
+  if(_allMonths.length){
+    addSectionTitle('Spending');
     addChartCard('trend',     'Monthly Spending Trend');
     addChartCard('breakdown', 'Category Breakdown');
     if(_allMonths.length>=2) addChartCard('cattrends', 'Category Trends Over Time');
     if(Object.keys(_monthIncomes).length) addChartCard('savings', 'Income vs Expenses');
   }
 
-  // ── Subscription section ──────────────────────────────────────────────────
+  // ── Subscription section (drill-down) ─────────────────────────────────────
   if(hasSubData){
     addSectionTitle('Subscriptions');
-    // Sub stat mini-cards
     const subStatGrid=document.createElement('div');
     subStatGrid.id='sub-stat-grid'; subStatGrid.className='stat-grid';
     subStatGrid.style.marginBottom='.75rem';
@@ -525,8 +587,8 @@ function reRenderCharts(){
       statGrid.appendChild(sc('Monthly Avg', fmtMoney(avgMonthly),
         'per month'+(hasForecast?' · actuals only':'')));
 
-      // Top category
-      const catTotals=expCategoryTotals(_exp,statMs);
+      // Top category (combined: expense categories + subscriptions)
+      const catTotals=combinedCategoryTotals(_exp,_subs,statMs);
       const catSorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
       if(catSorted.length)
         statGrid.appendChild(sc('Top Category', catSorted[0][0], fmtMoney(catSorted[0][1].value)+' spent'));
@@ -652,7 +714,7 @@ function reRenderCharts(){
     }
 
     destroyChart('breakdown');
-    const catTotals=expCategoryTotals(_exp,months);
+    const catTotals=combinedCategoryTotals(_exp,_subs,months);
     const sorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
 
     if(sorted.length){
@@ -707,7 +769,7 @@ function reRenderCharts(){
   const catTrendsCanvas=document.getElementById('chart-cattrends');
   if(catTrendsCanvas&&months.length>=2){
     destroyChart('cattrends');
-    const catData=expCategoryMonthlyData(_exp,months);
+    const catData=combinedCategoryMonthlyData(_exp,_subs,months);
     // Sort by total spend, cap at 8
     const entries=[...catData.entries()]
       .map(([label,d])=>({label,color:d.color,values:d.values,total:d.values.reduce((a,b)=>a+b,0)}))
