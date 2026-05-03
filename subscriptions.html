@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <title>Subscription Tracker – FiApp</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <script>
     (function(){
       var pref=localStorage.getItem('fiapp_theme');
@@ -94,7 +94,7 @@
     .top3 li{margin-bottom:.2rem;color:var(--fg);}
 
     /* Spreadsheet */
-    .sheet-wrap{overflow-x:auto;margin-top:.5rem;}
+    .sheet-wrap{overflow-x:auto;margin-top:.5rem;-webkit-overflow-scrolling:touch;}
     table.sheet{border-collapse:collapse;table-layout:fixed;min-width:max-content;}
     table.sheet th,table.sheet td{border:1px solid var(--input-border);position:relative;overflow:hidden;padding:0;}
     table.sheet th{background:var(--th-bg);color:var(--fg);user-select:none;}
@@ -149,8 +149,8 @@
     .export-menu button + button{border-top:1px solid var(--panel-border);}
 
     /* Share / Paste modal */
-    .share-overlay{position:fixed;inset:0;background:var(--overlay);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;}
-    .share-modal{background:var(--panel-bg);border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:.6rem;box-shadow:var(--shadow);}
+    .share-overlay{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:var(--overlay);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .share-modal{background:var(--panel-bg);border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;max-height:85dvh;display:flex;flex-direction:column;gap:.6rem;box-shadow:var(--shadow);overflow-y:auto;}
     .share-modal h3{margin:0;font-size:1rem;color:var(--fg);}
     .share-modal textarea{width:100%;min-height:200px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78rem;border:1px solid var(--input-border);border-radius:5px;padding:.5rem;resize:vertical;background:var(--input-bg);color:var(--fg);}
     .share-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
@@ -386,7 +386,7 @@ function save(){
 function showSaveQuotaWarning(){
   if(document.getElementById('quota-warn')) return;
   const el=document.createElement('div'); el.id='quota-warn'; el.className='error';
-  el.style.cssText='position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
+  el.style.cssText='position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
   el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
   document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
 }
@@ -1216,7 +1216,7 @@ function makeCellEl(row,col){
 
   if(ct==='number'){
     const wrap=document.createElement('div'); wrap.className='cost-wrap';
-    const inp=document.createElement('input'); inp.type='number'; inp.min='0'; inp.step='0.01'; inp.className='c-num'; inp.value=v;
+    const inp=document.createElement('input'); inp.type='number'; inp.min='0'; inp.step='0.01'; inp.inputMode='decimal'; inp.className='c-num'; inp.value=v;
     inp.addEventListener('focus',()=>snapshot());
     inp.addEventListener('change',()=>{
       if(parseFloat(inp.value)<0) inp.value='0';
