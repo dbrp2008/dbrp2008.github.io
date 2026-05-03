@@ -227,6 +227,7 @@
     <h3>Spending Summary — <span id="sum-label"></span></h3>
     <div class="tot-field"><label>Monthly Cost (USD)</label><div class="tot-val" id="tot-m-usd">$0.00</div></div>
     <div class="tot-field"><label>Yearly Cost (USD)</label><div class="tot-val" id="tot-y-usd">$0.00</div></div>
+    <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 .5rem;font-style:italic;">All non-USD costs normalized to USD at current exchange rates.</p>
     <div class="tot-field" id="conv-m-wrap" style="display:none"><label id="conv-m-lbl">Monthly</label><div class="tot-val" id="tot-m-conv">—</div></div>
     <div class="tot-field" id="conv-y-wrap" style="display:none"><label id="conv-y-lbl">Yearly</label><div class="tot-val" id="tot-y-conv">—</div></div>
     <div class="curr-row">
@@ -309,6 +310,7 @@ const msDay = 864e5;
 
 // ── Rate cache (direct ExchangeRate-API v6) ────────────────────────────────────
 const ratesCache = {}; // 'AED' -> rate s.t. 1 USD = rate AED
+let ratesReady = false; // true once at least one successful fetch has completed
 // Fetch all rates from USD base in one call and cache them all
 async function fetchAndCacheUSDRates(){
   try{
@@ -320,6 +322,7 @@ async function fetchAndCacheUSDRates(){
         Object.keys(rates).forEach(k=>{
           if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];
         });
+        ratesReady=true;
       }
     }
   }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
@@ -567,8 +570,9 @@ function updateMonthNav(){
 
 // ── Forecast mode ──────────────────────────────────────────────────────────────
 function isForecastMonth(){
-  const now=new Date();
-  return state.currentYear>now.getFullYear()||(state.currentYear===now.getFullYear()&&state.currentMonth>now.getMonth());
+  const today=new Date();
+  const current=new Date(state.currentYear, state.currentMonth);
+  return current > new Date(today.getFullYear(), today.getMonth());
 }
 function updateForecastUI(){
   const fc=isForecastMonth();
@@ -592,12 +596,16 @@ function recalcTotals(){
   state.rows.forEach(r=>{
     if(isHiddenForMonth(r)) return;
     mUSD+=calcMonthCost(r,state.currentYear,state.currentMonth); yUSD+=calcYearlyCost(r,state.currentYear); });
-  document.getElementById('tot-m-usd').textContent='$'+mUSD.toFixed(2);
-  document.getElementById('tot-y-usd').textContent='$'+yUSD.toFixed(2);
+  // Check if any row uses a non-USD currency whose rate hasn't loaded yet
+  const hasNonUSD=state.rows.some(r=>rowCurrency(r.id)!=='USD');
+  const pendingRates=hasNonUSD&&!ratesReady;
+  const suffix=pendingRates?' (est.)':'';
+  document.getElementById('tot-m-usd').textContent='$'+mUSD.toFixed(2)+suffix;
+  document.getElementById('tot-y-usd').textContent='$'+yUSD.toFixed(2)+suffix;
   if(currentRate!==1){
     const cur=state.displayCurrency;
-    document.getElementById('tot-m-conv').textContent=cur+' '+(mUSD*currentRate).toFixed(2);
-    document.getElementById('tot-y-conv').textContent=cur+' '+(yUSD*currentRate).toFixed(2);
+    document.getElementById('tot-m-conv').textContent=cur+' '+(mUSD*currentRate).toFixed(2)+suffix;
+    document.getElementById('tot-y-conv').textContent=cur+' '+(yUSD*currentRate).toFixed(2)+suffix;
   }
   renderLeaderboard();
 }
@@ -737,12 +745,12 @@ function renderChart(){
     data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcMonthCost(r,state.currentYear,state.currentMonth)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
     topLabel='Top Subscriptions — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   }
-  if(chartInstance){chartInstance.destroy();chartInstance=null;}
+  if(chartInstance){ chartInstance.destroy(); chartInstance=null; }
   if(!data.length){document.getElementById('sub-chart').style.display='none';renderTop3([],topLabel);return;}
   document.getElementById('sub-chart').style.display='block';
   chartInstance=new Chart(document.getElementById('sub-chart'),{
     type:'doughnut',
-    data:{labels:data.map(d=>d.name),datasets:[{data:data.map(d=>parseFloat(d.cost.toFixed(2))),backgroundColor:CHART_PAL}]},
+    data:{labels:data.map(d=>d.name),datasets:[{data:data.map(d=>parseFloat((isFinite(d.cost)?d.cost:0).toFixed(2))),backgroundColor:CHART_PAL}]},
     options:{plugins:{legend:{position:'right',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.parsed.toFixed(2)}}},responsive:true,maintainAspectRatio:true}
   });
   renderTop3(data,topLabel);
@@ -751,7 +759,7 @@ function renderTop3(data,label){
   const top=(data||[]).slice(0,3);
   const el=document.getElementById('top3');
   if(!top.length){el.innerHTML='';return;}
-  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.name)}</strong> — $${t.cost.toFixed(2)}</li>`).join('')+'</ol>';
+  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.name)}</strong> — $${(isFinite(t.cost)?t.cost:0).toFixed(2)}</li>`).join('')+'</ol>';
 }
 
 // ── Reset ──────────────────────────────────────────────────────────────────────
