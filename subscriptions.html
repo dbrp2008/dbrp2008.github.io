@@ -11,7 +11,7 @@
       if(dark) document.documentElement.classList.add('dark');
     })();
   </script>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     /* ── Wider body for the subscription tracker ── */
@@ -170,7 +170,8 @@
 </head>
 <body>
   <div class="nav">
-    <a href="./index.html">← Home</a>
+    <a href="/">← Home</a>
+    <span id="auth-badge-container"></span>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
   <script>
@@ -180,6 +181,7 @@
     document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
   }
   if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  function logOut(){ fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; }); }
   </script>
   <h1>Subscription Tracker</h1>
   <p style="color:#6b7280;font-size:.88rem;margin-top:0">Track subscriptions with accurate billing event counting. Each cost can be in its own currency. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
@@ -377,6 +379,30 @@ function loadState(){
   return freshState();
 }
 let state=loadState();
+// ── Server sync (fire-and-forget; localStorage is source of truth) ─────────────
+let _syncTimer=null;
+function syncToServer(){
+  if(!window.__currentUser) return;
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>{
+    fetch('/api/save/subs',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:localStorage.getItem(STORAGE_KEY)||'null'
+    }).catch(()=>{});
+  },1500);
+}
+async function loadFromServer(){
+  if(!window.__currentUser) return;
+  try{
+    const res=await fetch('/api/load/subs');
+    if(!res.ok) return;
+    const data=await res.json();
+    if(data&&typeof data==='object'){
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    }
+  }catch(e){}
+}
 function save(){
   try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
   catch(e){
@@ -385,6 +411,7 @@ function save(){
       showSaveQuotaWarning();
     } else { throw e; }
   }
+  syncToServer();
 }
 function showSaveQuotaWarning(){
   if(document.getElementById('quota-warn')) return;
@@ -1418,12 +1445,30 @@ async function preloadRates(){
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────────
-loadHistory();
-render();
-updateMonthNav();
-recalcTotals();
-updateHistBtns();
-preloadRates();
+(async()=>{
+  // Determine auth state — sets window.__currentUser and populates nav badge
+  try{
+    const me=await fetch('/auth/me').then(r=>r.json());
+    window.__currentUser=me.username||null;
+    const badge=document.getElementById('auth-badge-container');
+    if(badge){
+      if(me.username){
+        badge.innerHTML='<span class="auth-badge">👤 '+me.username+'</span>'
+          +'<button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>';
+      } else {
+        badge.innerHTML='<a class="btn-ghost btn-sm" href="/login">Log in</a>';
+      }
+    }
+  }catch(e){ window.__currentUser=null; }
+  await loadFromServer();   // no-op if not logged in; server overwrites localStorage if logged in
+  state=loadState();        // re-read state after potential server load
+  loadHistory();
+  render();
+  updateMonthNav();
+  recalcTotals();
+  updateHistBtns();
+  preloadRates();
+})();
 </script>
 </body>
 </html>
