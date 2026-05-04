@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import psycopg2
 import psycopg2.extras
 from flask import (Flask, render_template, request, flash,
@@ -7,6 +8,11 @@ from flask import (Flask, render_template, request, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import requests
+
+# ── Exchange rate cache (process-local, 1-hour TTL) ───────────────────────────
+_rates_cache: dict = {}   # { "USD": {"EUR": 0.92, ...}, ... }
+_rates_ts:    dict = {}   # { "USD": 1714000000.0, ... }
+RATES_TTL = 3600
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = os.environ.get("SECRET_KEY")
@@ -283,7 +289,11 @@ def auth_me():
 @app.route('/api/save/expenses', methods=['POST'])
 @login_required
 def save_expenses():
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid data format"}), 400
+    if 'rows' not in data:
+        return jsonify({"error": "Missing required field: rows"}), 400
     conn = get_db()
     try:
         with conn:
@@ -316,7 +326,11 @@ def load_expenses():
 @app.route('/api/save/subs', methods=['POST'])
 @login_required
 def save_subs():
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid data format"}), 400
+    if 'rows' not in data:
+        return jsonify({"error": "Missing required field: rows"}), 400
     conn = get_db()
     try:
         with conn:
@@ -377,11 +391,17 @@ def fetch_tax(income, status):
     response.raise_for_status()
     return round(response.json(), 2)
 
-def fetch(currency_i):
+def fetch(currency_i: str) -> dict:
+    now = time.time()
+    if currency_i in _rates_cache and now - _rates_ts.get(currency_i, 0) < RATES_TTL:
+        return _rates_cache[currency_i]
     url = f"https://v6.exchangerate-api.com/v6/{EXCHANGE_API_KEY}/latest/{currency_i}"
-    response = requests.get(url)
+    response = requests.get(url, timeout=8)
     response.raise_for_status()
-    return response.json()["conversion_rates"]
+    rates = response.json()["conversion_rates"]
+    _rates_cache[currency_i] = rates
+    _rates_ts[currency_i] = now
+    return rates
 
 def convert(currency_i, currency_a, currency_o):
     return currency_a * fetch(currency_i)[currency_o]
