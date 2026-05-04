@@ -11,11 +11,17 @@
       if(dark) document.documentElement.classList.add('dark');
     })();
   </script>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <div class="nav">
-    <a href="./index.html">← Home</a>
+    <a href="/">← Home</a>
+    {% if current_user %}
+      <span class="auth-badge">👤 {{ current_user }}</span>
+      <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+    {% else %}
+      <a class="btn-ghost btn-sm" href="/login">Log in</a>
+    {% endif %}
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
   <script>
@@ -25,6 +31,7 @@
     document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
   }
   if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  function logOut(){ fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; }); }
   </script>
   <h1>Income Tax Calculator</h1>
 
@@ -65,7 +72,7 @@
     <p><strong>Status:</strong> <span id="res-status"></span></p>
     <p><strong>Federal Income Tax:</strong> $<span id="res-tax"></span></p>
     <p style="margin-top:.75rem">
-      <a class="btn" href="./expenses.html" style="font-size:.85rem">
+      <a class="btn" href="/expenses" style="font-size:.85rem">
         → Use in Expense Tracker
       </a>
     </p>
