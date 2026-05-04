@@ -11,7 +11,7 @@
       if(dark) document.documentElement.classList.add('dark');
     })();
   </script>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     body { max-width: 960px; }
@@ -137,7 +137,13 @@
 </head>
 <body>
   <div class="nav">
-    <a href="./index.html">← Home</a>
+    <a href="/">← Home</a>
+    {% if current_user %}
+      <span class="auth-badge">👤 {{ current_user }}</span>
+      <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+    {% else %}
+      <a class="btn-ghost btn-sm" href="/login">Log in</a>
+    {% endif %}
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
   <script>
@@ -149,6 +155,7 @@
   }
   if(document.documentElement.classList.contains('dark'))
     document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  function logOut(){ fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; }); }
   </script>
 
   <h1>Analytics</h1>
@@ -503,7 +510,7 @@ function renderAll(){
     root.innerHTML=`<div class="no-data">
       <p style="font-size:2rem;margin-bottom:.5rem">📭</p>
       <p>No data yet — add expenses or subscriptions first.</p>
-      <p style="margin-top:.5rem"><a href="./expenses.html">Go to Expense Tracker →</a></p>
+      <p style="margin-top:.5rem"><a href="/expenses">Go to Expense Tracker →</a></p>
     </div>`;
     return;
   }
