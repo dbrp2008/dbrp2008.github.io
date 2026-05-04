@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import requests
 
-app = Flask(__name__, template_folder='templates copy')
+app = Flask(__name__, template_folder='templates')
 app.secret_key = os.environ.get("SECRET_KEY")
 EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
 
@@ -63,7 +63,7 @@ def _ctx():
 
 @app.route('/styles.css')
 def serve_css():
-    return send_from_directory('templates copy', 'styles.css', mimetype='text/css')
+    return send_from_directory('templates', 'styles.css', mimetype='text/css')
 
 # ── Page routes ───────────────────────────────────────────────────────────────
 
