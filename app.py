@@ -1,5 +1,5 @@
 import os
-
+import psycopg2
 from flask import Flask, render_template, request, flash
 import requests
 
@@ -10,6 +10,9 @@ EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
 @app.route("/", methods=["GET", "POST"])
 def home():
     return "TEST"
+
+def get_db_connection():
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 @app.route("/interest", methods=["GET", "POST"])
 def interest():
