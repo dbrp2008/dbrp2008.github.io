@@ -11,7 +11,7 @@
       if(dark) document.documentElement.classList.add('dark');
     })();
   </script>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/styles.css">
   <style>
     body { max-width: 680px; }
 
@@ -126,6 +126,12 @@
 </head>
 <body>
   <div class="home-nav">
+    {% if current_user %}
+      <span class="auth-badge">👤 {{ current_user }}</span>
+      <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+    {% else %}
+      <a class="btn-ghost btn-sm" href="/login">Log in</a>
+    {% endif %}
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
 
@@ -135,7 +141,7 @@
   </div>
 
   <div class="cards">
-    <a class="app-card card-currency" href="./currency.html">
+    <a class="app-card card-currency" href="/currency">
       <div class="card-body">
         <span class="card-icon">💱</span>
         <div class="card-text">
@@ -147,7 +153,7 @@
       </div>
     </a>
 
-    <a class="app-card card-expenses" href="./expenses.html">
+    <a class="app-card card-expenses" href="/expenses">
       <div class="card-body">
         <span class="card-icon">📊</span>
         <div class="card-text">
@@ -159,7 +165,7 @@
       </div>
     </a>
 
-    <a class="app-card card-subs" href="./subscriptions.html">
+    <a class="app-card card-subs" href="/subscriptions">
       <div class="card-body">
         <span class="card-icon">🔄</span>
         <div class="card-text">
@@ -171,7 +177,7 @@
       </div>
     </a>
 
-    <a class="app-card card-interest" href="./interest.html">
+    <a class="app-card card-interest" href="/interest">
       <div class="card-body">
         <span class="card-icon">📈</span>
         <div class="card-text">
@@ -183,7 +189,7 @@
       </div>
     </a>
 
-    <a class="app-card card-analytics" href="./analytics.html">
+    <a class="app-card card-analytics" href="/analytics">
       <div class="card-body">
         <span class="card-icon">📉</span>
         <div class="card-text">
@@ -195,7 +201,7 @@
       </div>
     </a>
 
-    <a class="app-card card-tax" href="./tax.html">
+    <a class="app-card card-tax" href="/tax">
       <div class="card-body">
         <span class="card-icon">🧾</span>
         <div class="card-text">
@@ -215,6 +221,9 @@ function toggleTheme(){
   document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
 }
 if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+function logOut(){
+  fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
+}
 </script>
 </body>
 </html>
