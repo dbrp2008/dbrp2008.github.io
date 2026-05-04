@@ -11,7 +11,7 @@
       if(dark) document.documentElement.classList.add('dark');
     })();
   </script>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .toolbar{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
@@ -198,7 +198,8 @@
 </head>
 <body>
   <div class="nav">
-    <a href="./index.html">← Home</a>
+    <a href="/">← Home</a>
+    <span id="auth-badge-container"></span>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
   <script>
@@ -209,6 +210,7 @@
     if(typeof renderChart==='function') renderChart();
   }
   if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  function logOut(){ fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; }); }
   </script>
   <h1>Expense Tracker</h1>
   <p style="color:#6b7280;font-size:.88rem;margin-top:0">Monthly expenses by category. Click "+Sub" on a row to add a subcategory. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
@@ -234,7 +236,7 @@
         <input type="number" id="inp-gross" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="onGrossInput()">
       </div>
       <div class="income-field">
-        <label>Monthly Tax / Deductions ($) <a href="./tax.html" id="tax-link" style="font-weight:400;font-size:.75rem">— calculate →</a></label>
+        <label>Monthly Tax / Deductions ($) <a href="/tax" id="tax-link" style="font-weight:400;font-size:.75rem">— calculate →</a></label>
         <input type="number" id="inp-tax" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="onIncomeInput()">
       </div>
       <div class="income-field">
@@ -384,6 +386,30 @@ function loadState(){
   return freshState();
 }
 let state=loadState();
+// ── Server sync (fire-and-forget; localStorage is source of truth) ─────────────
+let _syncTimer=null;
+function syncToServer(){
+  if(!window.__currentUser) return;
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>{
+    fetch('/api/save/expenses',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:localStorage.getItem(STORAGE_KEY)||'null'
+    }).catch(()=>{});
+  },1500);
+}
+async function loadFromServer(){
+  if(!window.__currentUser) return;
+  try{
+    const res=await fetch('/api/load/expenses');
+    if(!res.ok) return;
+    const data=await res.json();
+    if(data&&typeof data==='object'){
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    }
+  }catch(e){}
+}
 function save(){
   try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
   catch(e){
@@ -392,6 +418,7 @@ function save(){
       showSaveQuotaWarning();
     } else { throw e; }
   }
+  syncToServer();
 }
 function showSaveQuotaWarning(){
   if(document.getElementById('quota-warn')) return;
@@ -690,7 +717,7 @@ function loadTaxCarryover(){
     save();
 
     const banner=document.createElement('div'); banner.className='tax-banner';
-    banner.innerHTML=`✓ Tax data applied (annual: $${Number(t.income).toLocaleString()}, tax: $${Number(t.tax).toLocaleString()}). <a href="./tax.html">Recalculate →</a>`;
+    banner.innerHTML=`✓ Tax data applied (annual: $${Number(t.income).toLocaleString()}, tax: $${Number(t.tax).toLocaleString()}). <a href="/tax">Recalculate →</a>`;
     document.getElementById('income-grid').prepend(banner);
     document.getElementById('tax-link').style.display='none';
   }catch(e){ console.warn('FiApp: loadTaxCarryover failed —',e.message); }
@@ -1919,16 +1946,34 @@ function showShareModal(title,text){
 })();
 
 // ── Init ───────────────────────────────────────────────────────────────────────
-loadHistory();
-loadTaxCarryover();
-updateHistBtns();
-updateMonthNav();
-syncIncomeInputs();
-render();
-// Fetch exchange rates for currency conversion of linked subscriptions
-fetchExpRates().then(()=>{ if(state.rows.some(r=>r.linked==='subscriptions')) render(); });
-// Cross-tab sync: re-render if subscriptions change in another tab
-window.addEventListener('storage',e=>{ if(e.key===SUBS_KEY) render(); });
+(async()=>{
+  // Determine auth state — sets window.__currentUser and populates nav badge
+  try{
+    const me=await fetch('/auth/me').then(r=>r.json());
+    window.__currentUser=me.username||null;
+    const badge=document.getElementById('auth-badge-container');
+    if(badge){
+      if(me.username){
+        badge.innerHTML='<span class="auth-badge">👤 '+me.username+'</span>'
+          +'<button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>';
+      } else {
+        badge.innerHTML='<a class="btn-ghost btn-sm" href="/login">Log in</a>';
+      }
+    }
+  }catch(e){ window.__currentUser=null; }
+  await loadFromServer();   // no-op if not logged in; server overwrites localStorage if logged in
+  state=loadState();        // re-read state after potential server load
+  loadHistory();
+  loadTaxCarryover();
+  updateHistBtns();
+  updateMonthNav();
+  syncIncomeInputs();
+  render();
+  // Fetch exchange rates for currency conversion of linked subscriptions
+  fetchExpRates().then(()=>{ if(state.rows.some(r=>r.linked==='subscriptions')) render(); });
+  // Cross-tab sync: re-render if subscriptions change in another tab
+  window.addEventListener('storage',e=>{ if(e.key===SUBS_KEY) render(); });
+})();
 </script>
 </body>
 </html>
