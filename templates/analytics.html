@@ -155,7 +155,11 @@
   }
   if(document.documentElement.classList.contains('dark'))
     document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
-  function logOut(){ fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; }); }
+  function logOut(){
+    localStorage.removeItem('fiapp_expenses_v4');
+    localStorage.removeItem('fiapp_subs_v4');
+    fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
+  }
   </script>
 
   <h1>Analytics</h1>
