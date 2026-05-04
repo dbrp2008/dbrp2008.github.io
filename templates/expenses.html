@@ -581,26 +581,26 @@ function useAverages(){
   if(!isForecastMonth()) return;
   snapshot();
   const curMk=currentMK();
-  const now=new Date();
+  // Use the viewed forecast month as the reference point, not wall-clock today
   const srcMonths=[];
   for(let i=1;i<=3;i++){
-    let pm=now.getMonth()-i, py=now.getFullYear();
+    let pm=state.currentMonth-i, py=state.currentYear;
     if(pm<0){py--;pm+=12;}
     srcMonths.push(mk(py,pm));
   }
-  let filled=0;
+  let filled=0, hasHistory=false;
   state.rows.forEach(r=>{
     state.cols.forEach(col=>{
-      const key=curMk+'|'+r.id+'|'+col.id;
-      if(state.cells[key]) return;
       const vals=srcMonths.map(m=>safeNum(state.cells[m+'|'+r.id+'|'+col.id])).filter(v=>v>0);
       if(!vals.length) return;
-      state.cells[key]=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2);
+      hasHistory=true;
+      const avg=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2);
+      state.cells[curMk+'|'+r.id+'|'+col.id]=avg;
       filled++;
     });
   });
   save(); render(); syncIncomeInputs();
-  showForecastToast(filled?`Filled ${filled} cells using up to 3-month averages.`:'No historical data found to average from.');
+  showForecastToast(hasHistory?`Updated ${filled} cells using up to 3-month averages.`:'No historical data found in the 3 months before this forecast period.');
 }
 function showForecastToast(msg){
   let t=document.getElementById('forecast-toast');
