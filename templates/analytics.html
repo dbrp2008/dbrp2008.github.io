@@ -709,6 +709,7 @@ function renderTrendChart(){
     const ds={label,data,borderColor:color,borderWidth:2};
     if(trendType==='bar'){
       ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
+      ds.stack='combined'; // share one slot per month so bars are centered, not grouped
     } else {
       ds.backgroundColor='transparent'; ds.fill=false;
       ds.tension=0.3; ds.pointRadius=4; ds.pointBackgroundColor=color;
@@ -731,7 +732,7 @@ function renderTrendChart(){
       tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
     },scales:{
       x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
-      y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+      y:{beginAtZero:true,stacked:trendType==='bar',ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
     }}
   });
 }
