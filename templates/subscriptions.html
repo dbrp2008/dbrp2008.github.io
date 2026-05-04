@@ -95,6 +95,12 @@
 
     /* Spreadsheet */
     .sheet-wrap{overflow-x:auto;margin-top:.5rem;-webkit-overflow-scrolling:touch;}
+    /* Row drag-to-reorder */
+    .drag-handle{cursor:grab;color:var(--muted);font-size:1rem;padding:0 4px;opacity:.45;user-select:none;flex-shrink:0;}
+    .drag-handle:active{cursor:grabbing;}
+    tr.tr-dragging{opacity:.3;}
+    tr.tr-drop-before>td{border-top:2px solid var(--accent)!important;}
+    tr.tr-drop-after>td{border-bottom:2px solid var(--accent)!important;}
     table.sheet{border-collapse:collapse;table-layout:fixed;min-width:max-content;}
     table.sheet th,table.sheet td{border:1px solid var(--input-border);position:relative;overflow:hidden;padding:0;}
     table.sheet th{background:var(--th-bg);color:var(--fg);user-select:none;}
@@ -186,6 +192,16 @@
     localStorage.removeItem('fiapp_subs_v4');
     fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
   }
+  // Block negative signs and 'e' in ALL number inputs globally
+  document.addEventListener('keydown',e=>{
+    if(e.target.type==='number'&&(e.key==='-'||e.key==='e'||e.key==='E'))e.preventDefault();
+  });
+  document.addEventListener('paste',e=>{
+    if(e.target.type==='number'){
+      const txt=(e.clipboardData||window.clipboardData).getData('text');
+      if(txt&&parseFloat(txt)<0){e.preventDefault();e.target.value=String(Math.abs(parseFloat(txt)));}
+    }
+  });
   </script>
   <h1>Subscription Tracker</h1>
   <p style="color:#6b7280;font-size:.88rem;margin-top:0">Track subscriptions with accurate billing event counting. Each cost can be in its own currency. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
@@ -854,6 +870,19 @@ function deleteCol(id){
   Object.keys(state.cells).filter(k=>k.endsWith('|'+id)).forEach(k=>delete state.cells[k]);
   save(); render();
 }
+function moveSubRow(fromId, toId, before){
+  if(fromId===toId) return;
+  snapshot();
+  const fromIdx=state.rows.findIndex(r=>r.id===fromId);
+  const fromRow=state.rows[fromIdx];
+  if(!fromRow) return;
+  state.rows.splice(fromIdx,1);
+  const toIdx=state.rows.findIndex(r=>r.id===toId);
+  if(toIdx===-1){state.rows.push(fromRow);save();render();recalcTotals();renderChart();return;}
+  state.rows.splice(before?toIdx:toIdx+1,0,fromRow);
+  save(); render(); recalcTotals(); renderChart();
+}
+let _dragSubId=null;
 
 // ── Resize ─────────────────────────────────────────────────────────────────────
 function attachColResize(handle,col){
@@ -1412,10 +1441,44 @@ function render(){
     const statusCol=colByType('status');const st=statusCol?getCell(row.id,statusCol.id):'Active';
     const tr=document.createElement('tr');tr.style.height=(row.height||36)+'px';
     if(st==='Cancelled') tr.classList.add('cancelled-row');
+    // Drag-to-reorder events
+    tr.addEventListener('dragstart',e=>{
+      _dragSubId=row.id;
+      tr.classList.add('tr-dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    tr.addEventListener('dragend',()=>{
+      _dragSubId=null;
+      tr.classList.remove('tr-dragging');
+      document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+    });
+    tr.addEventListener('dragover',e=>{
+      if(!_dragSubId||_dragSubId===row.id) return;
+      e.preventDefault();
+      document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+      const rect=tr.getBoundingClientRect();
+      if(e.clientY<rect.top+rect.height/2) tr.classList.add('tr-drop-before');
+      else tr.classList.add('tr-drop-after');
+    });
+    tr.addEventListener('drop',e=>{
+      e.preventDefault();
+      if(!_dragSubId||_dragSubId===row.id) return;
+      const before=tr.classList.contains('tr-drop-before');
+      tr.classList.remove('tr-drop-before','tr-drop-after');
+      moveSubRow(_dragSubId,row.id,before);
+    });
     state.cols.forEach((col,ci)=>{
       const td=document.createElement('td');td.style.position='relative';
+      if(ci===0){
+        // Drag handle in the first cell
+        const dh=document.createElement('span');dh.className='drag-handle';dh.textContent='⠿';dh.title='Drag to reorder';
+        dh.style.cssText+='display:inline-block;vertical-align:middle;margin-right:2px;';
+        dh.addEventListener('mousedown',()=>{ tr.draggable=true; });
+        dh.addEventListener('mouseup',()=>{ tr.draggable=false; });
+        td.appendChild(dh);
+        const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);td.appendChild(rr);
+      }
       td.appendChild(makeCellEl(row,col));
-      if(ci===0){const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);td.appendChild(rr);}
       tr.appendChild(td);
     });
     const delTd=document.createElement('td');delTd.className='del-td';
