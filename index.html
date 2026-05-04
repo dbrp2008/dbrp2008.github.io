@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>FiApp</title>
+  <title>Interest Calculator</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script>
     (function(){
@@ -12,120 +12,10 @@
     })();
   </script>
   <link rel="stylesheet" href="/styles.css">
-  <style>
-    body { max-width: 680px; }
-
-    .home-nav {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 1.5rem;
-    }
-
-    .hero {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .hero h1 {
-      font-size: 2.4rem;
-      font-weight: 800;
-      margin: 0 0 .4rem;
-      background: linear-gradient(135deg, #7c3aed, #0891b2);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    html.dark .hero h1 {
-      background: linear-gradient(135deg, #a78bfa, #38bdf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero p {
-      color: var(--muted);
-      font-size: 1rem;
-      margin: 0;
-    }
-
-    .cards { display: flex; flex-direction: column; gap: .85rem; }
-
-    .app-card {
-      display: block;
-      text-decoration: none;
-      border-radius: 14px;
-      padding: 1.35rem 1.5rem;
-      color: #fff;
-      position: relative;
-      overflow: hidden;
-      transition: transform .15s, box-shadow .15s, filter .15s;
-      box-shadow: 0 4px 18px rgba(0,0,0,.18);
-      border: none;
-      cursor: pointer;
-    }
-    .app-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 28px rgba(0,0,0,.28);
-      filter: brightness(1.06);
-      text-decoration: none;
-      color: #fff;
-    }
-    .app-card:active { transform: translateY(0); filter: brightness(.97); }
-
-    /* Shimmer overlay */
-    .app-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(120deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 60%);
-      pointer-events: none;
-    }
-
-    .card-body { display: flex; align-items: center; gap: 1.1rem; }
-    .card-icon {
-      font-size: 2.2rem;
-      flex-shrink: 0;
-      line-height: 1;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
-    }
-    .card-text { flex: 1; min-width: 0; }
-    .card-num {
-      font-size: .7rem;
-      font-weight: 700;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      opacity: .75;
-      margin-bottom: .15rem;
-    }
-    .card-title {
-      font-size: 1.15rem;
-      font-weight: 800;
-      margin: 0 0 .25rem;
-      line-height: 1.15;
-    }
-    .card-desc {
-      font-size: .83rem;
-      opacity: .85;
-      line-height: 1.45;
-      margin: 0;
-    }
-    .card-arrow {
-      font-size: 1.4rem;
-      opacity: .7;
-      flex-shrink: 0;
-      transition: transform .15s;
-    }
-    .app-card:hover .card-arrow { transform: translateX(4px); opacity: 1; }
-
-    /* Per-card gradients */
-    .card-interest   { background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%); }
-    .card-tax        { background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); }
-    .card-currency   { background: linear-gradient(135deg, #15803d 0%, #22c55e 100%); }
-    .card-expenses   { background: linear-gradient(135deg, #6d28d9 0%, #a855f7 100%); }
-    .card-subs       { background: linear-gradient(135deg, #0e7490 0%, #22d3ee 100%); }
-    .card-analytics  { background: linear-gradient(135deg, #be185d 0%, #f472b6 100%); }
-  </style>
 </head>
 <body>
-  <div class="home-nav">
+  <div class="nav">
+    <a href="/">← Home</a>
     {% if current_user %}
       <span class="auth-badge">👤 {{ current_user }}</span>
       <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
@@ -134,96 +24,118 @@
     {% endif %}
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
+  <script>
+  function toggleTheme(){
+    const d=document.documentElement.classList.toggle('dark');
+    localStorage.setItem('fiapp_theme', d?'dark':'light');
+    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+  }
+  if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  function logOut(){ fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; }); }
+  </script>
+  <h1>Interest Calculator</h1>
 
-  <div class="hero">
-    <h1>FiApp</h1>
-    <p>Your 6-in-1 personal finance toolkit</p>
-  </div>
+  <div id="msg-area"></div>
 
-  <div class="cards">
-    <a class="app-card card-currency" href="/currency">
-      <div class="card-body">
-        <span class="card-icon">💱</span>
-        <div class="card-text">
-          <div class="card-num">01</div>
-          <div class="card-title">Currency Converter</div>
-          <p class="card-desc">Live exchange rates for the world's currencies. Gives you a preset list with the option to put your own currency code.</p>
-        </div>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
+  <form id="interest-form">
+    <div class="form-row">
+      <label for="type">Interest Type</label>
+      <select name="type" id="type" required>
+        <option value="simple">Simple</option>
+        <option value="compound">Compound</option>
+        <option value="continuous">Continuous</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="principal">Principal</label>
+      <input type="number" step="any" inputmode="decimal" name="principal" id="principal" required placeholder="e.g. 10000">
+    </div>
+    <div class="form-row">
+      <label for="rate">Rate (%)</label>
+      <input type="number" step="any" inputmode="decimal" name="rate" id="rate" required placeholder="e.g. 5">
+    </div>
+    <div class="form-row">
+      <label for="time">Time (years)</label>
+      <input type="number" step="any" inputmode="decimal" name="time" id="time" required placeholder="e.g. 3">
+    </div>
+    <div class="form-row" id="periods-row" style="display:none;">
+      <label for="periods">Compounding Periods per Year</label>
+      <input type="number" step="any" inputmode="decimal" name="periods" id="periods" value="1" placeholder="e.g. 12 for monthly">
+    </div>
+    <button class="btn" type="submit">Calculate</button>
+  </form>
 
-    <a class="app-card card-expenses" href="/expenses">
-      <div class="card-body">
-        <span class="card-icon">📊</span>
-        <div class="card-text">
-          <div class="card-num">02</div>
-          <div class="card-title">Expense Tracker</div>
-          <p class="card-desc">Organise your monthly expenses in a stylised spreadsheet that can be sent to others seamlessly!</p>
-        </div>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <a class="app-card card-subs" href="/subscriptions">
-      <div class="card-body">
-        <span class="card-icon">🔄</span>
-        <div class="card-text">
-          <div class="card-num">03</div>
-          <div class="card-title">Subscription Tracker</div>
-          <p class="card-desc">Using too many subscriptions? Track them all in one place (integrated with Expense Tracker).</p>
-        </div>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <a class="app-card card-interest" href="/interest">
-      <div class="card-body">
-        <span class="card-icon">📈</span>
-        <div class="card-text">
-          <div class="card-num">04</div>
-          <div class="card-title">Interest Calculator</div>
-          <p class="card-desc">Compute simple, compound, or continuous interest. See how your money grows over time (and by how much).</p>
-        </div>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <a class="app-card card-analytics" href="/analytics">
-      <div class="card-body">
-        <span class="card-icon">📉</span>
-        <div class="card-text">
-          <div class="card-num">05</div>
-          <div class="card-title">Analytics</div>
-          <p class="card-desc">Cross-tracker insights: spending trends, category breakdowns, income vs expenses, and subscription costs over time.</p>
-        </div>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
-    <a class="app-card card-tax" href="/tax">
-      <div class="card-body">
-        <span class="card-icon">🧾</span>
-        <div class="card-text">
-          <div class="card-num">06</div>
-          <div class="card-title">Income Tax Calculator</div>
-          <p class="card-desc">Estimate your 2024 US federal income tax by filing status. Auto-fills to AND from your Expense Tracker.</p>
-        </div>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
+  <div class="result" id="result-box" style="display:none;">
+    <h2 id="res-desc"></h2>
+    <p>Interest: $<span id="res-interest"></span></p>
+    <p>Total: $<span id="res-total"></span></p>
   </div>
 
 <script>
-function toggleTheme(){
-  const d=document.documentElement.classList.toggle('dark');
-  localStorage.setItem('fiapp_theme', d?'dark':'light');
-  document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
-}
-if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
-function logOut(){
-  fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
-}
+  // Show / hide compounding periods row
+  function togglePeriods(){
+    const type=document.getElementById('type').value;
+    document.getElementById('periods-row').style.display=type==='compound'?'block':'none';
+  }
+  document.getElementById('type').addEventListener('change',togglePeriods);
+  togglePeriods();
+
+  // Show an error message
+  function showError(msg){
+    const area=document.getElementById('msg-area');
+    area.innerHTML='<div class="error">'+msg+'</div>';
+    document.getElementById('result-box').style.display='none';
+  }
+  function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
+
+  // Pure math
+  function simpleInterest(p,r,t){
+    const interest=p*(r/100)*t;
+    return {interest, total:p+interest};
+  }
+  function compoundInterest(p,r,t,n){
+    if(n<=0) throw new Error('Compounding periods must be positive.');
+    const amount=p*Math.pow(1+(r/100/n),n*t);
+    return {interest:amount-p, total:amount};
+  }
+  function continuousInterest(p,r,t){
+    // A = P · e^(rt)  (rate as a decimal)
+    const amount=p*Math.exp((r/100)*t);
+    return {interest:amount-p, total:amount};
+  }
+
+  document.getElementById('interest-form').addEventListener('submit',function(e){
+    e.preventDefault();
+    clearMsg();
+    const type=document.getElementById('type').value;
+    const p=parseFloat(document.getElementById('principal').value);
+    const r=parseFloat(document.getElementById('rate').value);
+    const t=parseFloat(document.getElementById('time').value);
+    const n=parseFloat(document.getElementById('periods').value)||1;
+
+    if(isNaN(p)||p<0){ showError('Principal must be a non-negative number.'); return; }
+    if(isNaN(r)||r<0){ showError('Rate must be a non-negative number.'); return; }
+    if(isNaN(t)||t<=0){ showError('Time must be a positive number.'); return; }
+
+    let result;
+    try{
+      if(type==='compound')        result=compoundInterest(p,r,t,n);
+      else if(type==='continuous') result=continuousInterest(p,r,t);
+      else                         result=simpleInterest(p,r,t);
+    }catch(err){
+      showError(err.message); return;
+    }
+
+    const desc =
+      type==='compound'   ? 'Compound Interest (n='+n+'/yr, t='+t+' yr)' :
+      type==='continuous' ? 'Continuous Compounding (r='+r+'%, t='+t+' yr)' :
+                            'Simple Interest (r='+r+'%, t='+t+' yr)';
+
+    document.getElementById('res-desc').textContent=desc;
+    document.getElementById('res-interest').textContent=result.interest.toFixed(2);
+    document.getElementById('res-total').textContent=result.total.toFixed(2);
+    document.getElementById('result-box').style.display='block';
+  });
 </script>
 </body>
 </html>
