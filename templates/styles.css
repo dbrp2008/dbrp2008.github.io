@@ -191,6 +191,14 @@ h1, h2, h3, h4 { color: var(--fg); }
   color: var(--fg);
   padding: .25rem .5rem;
 }
+#sync-status {
+  font-size: .75rem;
+  color: var(--muted);
+  margin-left: 4px;
+  transition: color .2s;
+}
+#sync-status.synced { color: #15803d; }
+#sync-status.failed { color: #dc2626; }
 .btn-ghost {
   background: none;
   border: 1px solid var(--panel-border);
