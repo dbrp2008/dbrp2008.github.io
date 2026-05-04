@@ -1189,6 +1189,32 @@ function render(){
 
   // tbody
   const tbody=document.createElement('tbody');
+  // Tbody-level drag handlers so top/bottom row drops are always reachable
+  tbody.addEventListener('dragover',e=>{
+    if(!_dragRowId){return;}
+    e.preventDefault();
+    const trs=[...tbody.querySelectorAll('tr[data-row-id]')];
+    if(!trs.length) return;
+    document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+    let target=null,before=true;
+    for(let i=0;i<trs.length;i++){
+      const rect=trs[i].getBoundingClientRect();
+      if(e.clientY<rect.top+rect.height/2){target=trs[i];before=true;break;}
+      if(i===trs.length-1){target=trs[i];before=false;}
+    }
+    if(target&&target.dataset.rowId!==_dragRowId) target.classList.add(before?'tr-drop-before':'tr-drop-after');
+  });
+  tbody.addEventListener('drop',e=>{
+    if(!_dragRowId) return;
+    e.preventDefault();
+    const beforeTr=tbody.querySelector('.tr-drop-before');
+    const afterTr=tbody.querySelector('.tr-drop-after');
+    const targetTr=beforeTr||afterTr;
+    if(!targetTr) return;
+    const targetId=targetTr.dataset.rowId;
+    document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+    if(targetId&&targetId!==_dragRowId) moveParentRow(_dragRowId,targetId,!!beforeTr);
+  });
   function renderRow(row){
     const isChild=!!row.parentId, hasKids=hasChildren(row.id), collapsed=isCollapsed(row.id);
     const tr=document.createElement('tr');tr.style.height=(row.height||36)+'px';
@@ -1201,6 +1227,7 @@ function render(){
       dh.addEventListener('mousedown',()=>{ tr.draggable=true; });
       dh.addEventListener('mouseup',()=>{ tr.draggable=false; });
       rhIn.appendChild(dh);
+      tr.dataset.rowId=row.id;
       tr.addEventListener('dragstart',e=>{
         _dragRowId=row.id;
         tr.classList.add('tr-dragging');
@@ -1210,21 +1237,6 @@ function render(){
         _dragRowId=null;
         tr.classList.remove('tr-dragging');
         document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
-      });
-      tr.addEventListener('dragover',e=>{
-        if(!_dragRowId||_dragRowId===row.id) return;
-        e.preventDefault();
-        document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
-        const rect=tr.getBoundingClientRect();
-        if(e.clientY<rect.top+rect.height/2) tr.classList.add('tr-drop-before');
-        else tr.classList.add('tr-drop-after');
-      });
-      tr.addEventListener('drop',e=>{
-        e.preventDefault();
-        if(!_dragRowId||_dragRowId===row.id) return;
-        const before=tr.classList.contains('tr-drop-before');
-        tr.classList.remove('tr-drop-before','tr-drop-after');
-        moveParentRow(_dragRowId,row.id,before);
       });
     }
     if(hasKids){
