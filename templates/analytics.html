@@ -929,7 +929,23 @@ function reRenderCharts(){
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
-renderAll();
+(async()=>{
+  // If logged in, pull latest data from server before rendering (multi-device sync)
+  try{
+    const me=await fetch('/auth/me').then(r=>r.json());
+    if(me&&me.username){
+      const root=document.getElementById('root');
+      if(root) root.innerHTML='<p style="padding:1rem;color:var(--muted)">Loading…</p>';
+      const [expRes,subRes]=await Promise.all([
+        fetch('/api/load/expenses'),
+        fetch('/api/load/subs')
+      ]);
+      if(expRes.ok){const d=await expRes.json();if(d&&typeof d==='object') localStorage.setItem(EXP_KEY,JSON.stringify(d));}
+      if(subRes.ok){const d=await subRes.json();if(d&&typeof d==='object') localStorage.setItem(SUBS_KEY,JSON.stringify(d));}
+    }
+  }catch(e){}
+  renderAll();
+})();
 
 // Re-render when another tab updates either tracker
 window.addEventListener('storage', e=>{
