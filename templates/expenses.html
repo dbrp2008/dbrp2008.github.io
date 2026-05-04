@@ -431,6 +431,13 @@ function showSaveQuotaWarning(){
   el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
   document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
 }
+function showToast(msg, isError=true, duration=4000){
+  const el=document.createElement('div');
+  el.className=isError?'error':'success';
+  el.style.cssText='position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:99999;max-width:480px;text-align:center;padding:.6rem 1rem;white-space:pre-wrap;';
+  el.textContent=msg;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),duration);
+}
 
 // ── Undo / Redo (sessionStorage persistence) ───────────────────────────────────
 let undoStack=[], redoStack=[];
@@ -1751,7 +1758,7 @@ function showMonthPicker(blob){
   const cancelBtn=document.createElement('button');cancelBtn.className='btn btn-sm btn-ghost';cancelBtn.textContent='Cancel';
   applyBtn.addEventListener('click',()=>{
     const sel=checks.filter(c=>c.checked).map(c=>c.value);
-    if(!sel.length){ alert('Pick at least one month, or click Cancel.'); return; }
+    if(!sel.length){ showToast('Pick at least one month, or click Cancel.'); return; }
     snapshot();importExpFull(blob,sel);save();render();syncIncomeInputs();
     overlay.remove();showExportFlash('✓ Pasted '+sel.length+' month'+(sel.length===1?'':'s'));
   });
@@ -1792,7 +1799,7 @@ function exportXlsx(filename){
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Expenses');
     XLSX.writeFile(wb,filename);
-  }).catch(err=>alert('Could not load XLSX library: '+err.message));
+  }).catch(err=>showToast('Could not load XLSX library: '+err.message));
 }
 
 // Export format-chooser menu (portal, position:fixed)
