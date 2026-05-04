@@ -692,8 +692,9 @@ function renderTrendChart(){
   }
   destroyChart('trend');
   const labels     =_cm.map(mkLabel);
+  const lastActualTrendIdx=_cm.reduce((last,m,i)=>m<=_cToday?i:last,-1);
   const actualVals =_cm.map(m=>m<=_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
-  const forecastVals=_cm.map(m=>m>_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
+  const forecastVals=_cm.map((m,i)=>m>_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):i===lastActualTrendIdx?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
 
   // 3-month rolling average (shown only when ≥3 actual data points exist)
   const nonNull=actualVals.filter(v=>v!==null);
@@ -890,8 +891,9 @@ function renderSubTrendChart(){
   const labels=filteredTrendMonths.map(mkLabel);
   const costs =subCostPerMonth(_subs,filteredTrendMonths);
   const hasSubForecast=filteredTrendMonths.some(m=>m>_cToday);
+  const lastActualIdx=filteredTrendMonths.reduce((last,m,i)=>m<=_cToday?i:last,-1);
   const actualCosts  =filteredTrendMonths.map((m,i)=>m<=_cToday?costs[i]:null);
-  const forecastCosts=filteredTrendMonths.map((m,i)=>m> _cToday?costs[i]:null);
+  const forecastCosts=filteredTrendMonths.map((m,i)=>m>_cToday?costs[i]:i===lastActualIdx?costs[i]:null);
   const datasets=[{
     label:'Sub Cost',data:actualCosts,borderColor:'#0891b2',
     backgroundColor:'rgba(8,145,178,.15)',borderWidth:2,fill:true,
