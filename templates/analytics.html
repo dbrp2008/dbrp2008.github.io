@@ -443,7 +443,9 @@ function periodOptions(allMonths){
 }
 function filterMonths(allMonths, period){
   if(period==='all') return allMonths;
-  return allMonths.slice(-parseInt(period));
+  // Slice from actual months only — forecast months don't count toward "last N months"
+  const actual=allMonths.filter(m=>m<=_cToday);
+  return actual.slice(-parseInt(period));
 }
 
 // ── Chart registry ────────────────────────────────────────────────────────────
