@@ -178,6 +178,7 @@
   <div class="nav">
     <a href="/">← Home</a>
     <span id="auth-badge-container"></span>
+    <span id="sync-status"></span>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
   <script>
@@ -401,15 +402,25 @@ function loadState(){
 let state=loadState();
 // ── Server sync (fire-and-forget; localStorage is source of truth) ─────────────
 let _syncTimer=null;
+function setSyncStatus(msg,cls){
+  const el=document.getElementById('sync-status');if(!el)return;
+  el.textContent=msg;el.className=cls||'';
+}
 function syncToServer(){
-  if(!window.__currentUser) return;
+  if(!window.__currentUser){setSyncStatus('Offline','');return;}
   clearTimeout(_syncTimer);
+  setSyncStatus('Saving…','');
   _syncTimer=setTimeout(()=>{
     fetch('/api/save/subs',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:localStorage.getItem(STORAGE_KEY)||'null'
-    }).catch(()=>{});
+    })
+    .then(r=>{
+      if(r.ok) setSyncStatus('☁ Saved at '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),'synced');
+      else setSyncStatus('⚠ Save failed','failed');
+    })
+    .catch(()=>setSyncStatus('⚠ Offline','failed'));
   },1500);
 }
 async function loadFromServer(){
@@ -1546,6 +1557,7 @@ async function preloadRates(){
       }
     }
   }catch(e){ window.__currentUser=null; }
+  if(!window.__currentUser) setSyncStatus('Offline','');
   await loadFromServer();   // no-op if not logged in; server overwrites localStorage if logged in
   state=loadState();        // re-read state after potential server load
   loadHistory();
