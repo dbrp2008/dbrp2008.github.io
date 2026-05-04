@@ -210,7 +210,11 @@
     if(typeof renderChart==='function') renderChart();
   }
   if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
-  function logOut(){ fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; }); }
+  function logOut(){
+    localStorage.removeItem('fiapp_expenses_v4');
+    localStorage.removeItem('fiapp_subs_v4');
+    fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
+  }
   </script>
   <h1>Expense Tracker</h1>
   <p style="color:#6b7280;font-size:.88rem;margin-top:0">Monthly expenses by category. Click "+Sub" on a row to add a subcategory. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
