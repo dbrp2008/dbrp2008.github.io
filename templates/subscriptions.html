@@ -424,6 +424,13 @@ function showSaveQuotaWarning(){
   el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
   document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
 }
+function showToast(msg, isError=true, duration=4000){
+  const el=document.createElement('div');
+  el.className=isError?'error':'success';
+  el.style.cssText='position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:99999;max-width:480px;text-align:center;padding:.6rem 1rem;white-space:pre-wrap;';
+  el.textContent=msg;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),duration);
+}
 
 // ── Undo / Redo ────────────────────────────────────────────────────────────────
 let undoStack=[], redoStack=[];
@@ -815,10 +822,10 @@ function nameAlreadyExists(name){
 }
 function addSubscription(){
   const sel=document.getElementById('sub-sel'); let name=sel.value;
-  if(!name){alert('Please select a service.');return;}
+  if(!name){showToast('Please select a service.');return;}
   if(name==='__other__'){
     name=document.getElementById('custom-inp').value.trim();
-    if(!name){alert('Enter a service name.');return;}
+    if(!name){showToast('Enter a service name.');return;}
   }
   if(nameAlreadyExists(name)){
     if(!confirm(`You already track "${name}". Add another anyway?`)) return;
@@ -1148,7 +1155,7 @@ async function exportXlsx(filename){
     XLSX.utils.book_append_sheet(wb,ws,'Subscriptions');
     XLSX.writeFile(wb,filename);
   }catch(e){
-    alert('Could not download XLSX: '+e.message);
+    showToast('Could not download XLSX: '+e.message);
   }
 }
 let _exportMenuEl=null;
@@ -1329,7 +1336,7 @@ function makeCellEl(row,col){
     inp.addEventListener('focus',()=>snapshot());
     inp.addEventListener('change',()=>{
       if(inp.value && inp.value<inp.min){
-        alert('Start date can\'t be earlier than '+inp.min+' (the start of the viewed month). To back-date, navigate to that month first.');
+        showToast('Start date can\'t be before '+inp.min+'. To back-date, navigate to that month first.');
         inp.value=v; return;
       }
       setCell(row.id,col.id,inp.value);
@@ -1352,11 +1359,11 @@ function makeCellEl(row,col){
     inp.addEventListener('focus',()=>snapshot());
     inp.addEventListener('change',()=>{
       if(startStr && inp.value && inp.value<startStr){
-        alert('Cancel date can\'t be earlier than the start date ('+startStr+').');
+        showToast('Cancel date can\'t be before the start date ('+startStr+').');
         inp.value=v; return;
       }
       if(inp.value && (inp.value<monthFirstStr||inp.value>monthLastStr)){
-        alert('Cancel date must be within the viewed month ('+monthFirstStr+' – '+monthLastStr+').');
+        showToast('Cancel date must be within the viewed month ('+monthFirstStr+' – '+monthLastStr+').');
         inp.value=v; return;
       }
       setCell(row.id,col.id,inp.value); recalcTotals(); renderChart();
