@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>FiApp — Log In</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function(){
+      var pref=localStorage.getItem('fiapp_theme');
+      var dark=pref==='dark'||(!pref&&matchMedia('(prefers-color-scheme: dark)').matches);
+      if(dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { max-width: 420px; padding-top: 3rem; }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+    .login-logo h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin: 0 0 .25rem;
+      background: linear-gradient(135deg, #7c3aed, #0891b2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    html.dark .login-logo h1 {
+      background: linear-gradient(135deg, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .login-logo p {
+      color: var(--muted);
+      font-size: .9rem;
+      margin: 0;
+    }
+
+    .tab-bar {
+      display: flex;
+      border-bottom: 2px solid var(--panel-border);
+      margin-bottom: 1.5rem;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: .6rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .login-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 1.75rem 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .form-group input {
+      padding: .55rem .75rem;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--fg);
+      font-size: .95rem;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--input-focus);
+    }
+
+    .form-hint {
+      font-size: .78rem;
+      color: var(--muted);
+      margin: -.5rem 0 1rem;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: .65rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s;
+      margin-top: .25rem;
+    }
+    .login-btn:hover { opacity: .88; }
+    .login-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .auth-error {
+      background: var(--error-bg);
+      color: var(--error-fg);
+      border: 1px solid var(--error-border);
+      border-radius: 8px;
+      padding: .55rem .75rem;
+      font-size: .85rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .auth-error.show { display: block; }
+
+    .back-link {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: .85rem;
+      color: var(--muted);
+    }
+    .back-link a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .back-link a:hover { text-decoration: underline; }
+
+    .nav { justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="login-logo">
+    <h1>FiApp</h1>
+    <p>Sign in to sync your data across devices</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Log In</button>
+    <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Register</button>
+  </div>
+
+  <!-- Log In form -->
+  <div id="panel-login" class="login-panel">
+    <div class="auth-error" id="login-error"></div>
+    <div class="form-group">
+      <label for="login-username">Username</label>
+      <input type="text" id="login-username" autocomplete="username"
+             placeholder="Your username" />
+    </div>
+    <div class="form-group">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" autocomplete="current-password"
+             placeholder="Your password" />
+    </div>
+    <button class="login-btn" id="login-btn" onclick="submitLogin()">Log In</button>
+    <div class="back-link"><a href="/">← Back to FiApp</a></div>
+  </div>
+
+  <!-- Register form -->
+  <div id="panel-register" class="login-panel" style="display:none;">
+    <div class="auth-error" id="register-error"></div>
+    <div class="form-group">
+      <label for="reg-username">Username</label>
+      <input type="text" id="reg-username" autocomplete="username"
+             placeholder="Choose a username" minlength="3" />
+    </div>
+    <p class="form-hint">At least 3 characters.</p>
+    <div class="form-group">
+      <label for="reg-password">Password</label>
+      <input type="password" id="reg-password" autocomplete="new-password"
+             placeholder="Choose a password" minlength="6" />
+    </div>
+    <p class="form-hint">At least 6 characters.</p>
+    <button class="login-btn" id="register-btn" onclick="submitRegister()">Create Account</button>
+    <div class="back-link"><a href="/">← Back to FiApp</a></div>
+  </div>
+
+<script>
+function toggleTheme(){
+  const d=document.documentElement.classList.toggle('dark');
+  localStorage.setItem('fiapp_theme',d?'dark':'light');
+  document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+}
+if(document.documentElement.classList.contains('dark'))
+  document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+
+function switchTab(tab){
+  document.getElementById('panel-login').style.display    = tab==='login'    ? '' : 'none';
+  document.getElementById('panel-register').style.display = tab==='register' ? '' : 'none';
+  document.getElementById('tab-login').classList.toggle('active',    tab==='login');
+  document.getElementById('tab-register').classList.toggle('active', tab==='register');
+}
+
+function showError(id, msg){
+  const el=document.getElementById(id);
+  el.textContent=msg;
+  el.classList.add('show');
+}
+function clearError(id){
+  const el=document.getElementById(id);
+  el.textContent='';
+  el.classList.remove('show');
+}
+
+async function submitLogin(){
+  clearError('login-error');
+  const username=document.getElementById('login-username').value.trim();
+  const password=document.getElementById('login-password').value;
+  if(!username||!password){ showError('login-error','Please fill in all fields.'); return; }
+
+  const btn=document.getElementById('login-btn');
+  btn.disabled=true; btn.textContent='Logging in…';
+  try{
+    const res=await fetch('/auth/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username,password})
+    });
+    const data=await res.json();
+    if(res.ok){ window.location='/'; }
+    else{ showError('login-error', data.error||'Login failed.'); }
+  }catch(e){
+    showError('login-error','Network error. Please try again.');
+  }finally{
+    btn.disabled=false; btn.textContent='Log In';
+  }
+}
+
+async function submitRegister(){
+  clearError('register-error');
+  const username=document.getElementById('reg-username').value.trim();
+  const password=document.getElementById('reg-password').value;
+  if(!username||!password){ showError('register-error','Please fill in all fields.'); return; }
+  if(username.length<3){ showError('register-error','Username must be at least 3 characters.'); return; }
+  if(password.length<6){ showError('register-error','Password must be at least 6 characters.'); return; }
+
+  const btn=document.getElementById('register-btn');
+  btn.disabled=true; btn.textContent='Creating account…';
+  try{
+    const res=await fetch('/auth/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username,password})
+    });
+    const data=await res.json();
+    if(res.ok){ window.location='/'; }
+    else{ showError('register-error', data.error||'Registration failed.'); }
+  }catch(e){
+    showError('register-error','Network error. Please try again.');
+  }finally{
+    btn.disabled=false; btn.textContent='Create Account';
+  }
+}
+
+// Allow Enter key to submit
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Enter') return;
+  const loginVisible = document.getElementById('panel-login').style.display !== 'none';
+  if(loginVisible) submitLogin();
+  else submitRegister();
+});
+</script>
+</body>
+</html>

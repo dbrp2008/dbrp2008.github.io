@@ -1,0 +1,244 @@
+:root{
+  --bg:#ffffff;
+  --fg:#1f2937;
+  --muted:#6b7280;
+  --panel-bg:#f9fafb;
+  --panel-border:#e5e7eb;
+  --input-bg:#ffffff;
+  --input-border:#d1d5db;
+  --input-focus:#eff6ff;
+  --row-header-bg:#f3f4f6;
+  --row-header-fg:#374151;
+  --total-bg:#dcfce7;
+  --total-fg:#166534;
+  --total-soft:#f0fdf4;
+  --accent:#7c3aed;
+  --link:#0366d6;
+  --error-bg:#fee2e2;
+  --error-fg:#991b1b;
+  --error-border:#fca5a5;
+  --success-bg:#dcfce7;
+  --success-fg:#15803d;
+  --success-border:#86efac;
+  --tooltip-bg:#1f2937;
+  --tooltip-fg:#ffffff;
+  --result-bg:#f0f7ff;
+  --result-border:#cccccc;
+  --shadow:0 4px 16px rgba(0,0,0,.15);
+  --shadow-soft:0 2px 8px rgba(0,0,0,.08);
+  --overlay:rgba(0,0,0,.45);
+  --th-bg:#f3f4f6;
+  --th-fg:#374151;
+  --hover-bg:#f3f4f6;
+  --secondary-bg:#e5e7eb;
+  --secondary-fg:#374151;
+  --secondary-hover:#d1d5db;
+}
+
+html.dark{
+  --bg:#0f172a;
+  --fg:#e2e8f0;
+  --muted:#94a3b8;
+  --panel-bg:#1e293b;
+  --panel-border:#334155;
+  --input-bg:#1e293b;
+  --input-border:#475569;
+  --input-focus:#1e3a8a;
+  --row-header-bg:#1e293b;
+  --row-header-fg:#cbd5e1;
+  --total-bg:#064e3b;
+  --total-fg:#a7f3d0;
+  --total-soft:#022c22;
+  --accent:#a78bfa;
+  --link:#60a5fa;
+  --error-bg:#7f1d1d;
+  --error-fg:#fecaca;
+  --error-border:#991b1b;
+  --success-bg:#064e3b;
+  --success-fg:#86efac;
+  --success-border:#065f46;
+  --tooltip-bg:#f1f5f9;
+  --tooltip-fg:#0f172a;
+  --result-bg:#1e293b;
+  --result-border:#334155;
+  --shadow:0 4px 16px rgba(0,0,0,.45);
+  --shadow-soft:0 2px 8px rgba(0,0,0,.3);
+  --overlay:rgba(0,0,0,.7);
+  --th-bg:#1e293b;
+  --th-fg:#cbd5e1;
+  --hover-bg:#334155;
+  --secondary-bg:#334155;
+  --secondary-fg:#e2e8f0;
+  --secondary-hover:#475569;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background: var(--bg);
+  color: var(--fg);
+  transition: background .2s, color .2s;
+}
+
+.error {
+  background: var(--error-bg);
+  padding: 0.75rem;
+  border: 1px solid var(--error-border);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  color: var(--error-fg);
+}
+
+.success {
+  background: var(--success-bg);
+  padding: 0.75rem;
+  border: 1px solid var(--success-border);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  color: var(--success-fg);
+}
+
+.result {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: var(--result-bg);
+  color: var(--fg);
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--fg);
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--fg);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.btn{
+  background: var(--link);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-block;
+  font-family: inherit;
+  font-size: .95rem;
+}
+.btn:hover{ filter: brightness(1.08); }
+
+.btn.btn-tax     { background: #d97706; }
+.btn.btn-currency{ background: #02cc05; }
+.btn.btn-expenses{ background: #7c3aed; }
+.btn.btn-subs    { background: #0891b2; }
+
+.nav {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+h1, h2, h3, h4 { color: var(--fg); }
+
+/* ── Theme toggle button (in .nav of every page) ──────────────────────────── */
+.theme-toggle {
+  background: var(--secondary-bg);
+  color: var(--secondary-fg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: .35rem .6rem;
+  font-size: .95rem;
+  margin-left: auto;
+  font-family: inherit;
+  transition: background .2s;
+}
+.theme-toggle:hover { background: var(--secondary-hover); }
+
+/* ── Auth badge + ghost button (used in .nav across all pages) ────────────── */
+.auth-badge {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--fg);
+  padding: .25rem .5rem;
+}
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--fg);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: .3rem .65rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  font-family: inherit;
+  transition: background .15s;
+}
+.btn-ghost:hover { background: var(--hover-bg); text-decoration: none; }
+.btn-ghost.btn-sm { font-size: .78rem; padding: .25rem .55rem; }
+
+/* ── Global iOS tap-delay removal ─────────────────────────────────────────── */
+* { touch-action: manipulation; }
+
+/* ── Hover-bubble tooltip helper (used by colour swatches and others) ─────── */
+.tip-host { position: relative; }
+/* Trigger on both :hover (mouse) and .tip-visible class (touch — set via JS) */
+.tip-host:hover::after, .tip-host.tip-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--tooltip-bg);
+  color: var(--tooltip-fg);
+  padding: .35rem .6rem;
+  border-radius: 6px;
+  font-size: .72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 10001;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+.tip-host:hover::before, .tip-host.tip-visible::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--tooltip-bg);
+  z-index: 10001;
+  pointer-events: none;
+}

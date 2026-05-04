@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Analytics — FiApp</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function(){
+      var pref=localStorage.getItem('fiapp_theme');
+      var dark=pref==='dark'||(!pref&&matchMedia('(prefers-color-scheme: dark)').matches);
+      if(dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { max-width: 960px; }
+
+    /* ── Stat cards ─────────────────────────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+    }
+    .stat-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: .9rem 1rem;
+    }
+    .stat-label  { font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:.3rem; }
+    .stat-value  { font-size:1.45rem; font-weight:800; color:var(--fg); line-height:1.1; }
+    .stat-sub    { font-size:.75rem; color:var(--muted); margin-top:.2rem; }
+
+    /* ── Chart cards ────────────────────────────────────────────────────────── */
+    .chart-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .chart-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-bottom: .75rem;
+    }
+    .chart-card-header h2 { font-size:1rem; font-weight:700; margin:0; color:var(--fg); }
+    .chart-controls { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
+    .chart-canvas-wrap { position:relative; }
+    .chart-canvas-wrap canvas { max-height:320px; }
+
+    /* ── Toggle buttons ─────────────────────────────────────────────────────── */
+    .btn-toggle {
+      padding: .28rem .65rem;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--fg);
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .btn-toggle:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-toggle-active { background:var(--accent); color:#fff !important; border-color:var(--accent); }
+
+    /* ── Period row ─────────────────────────────────────────────────────────── */
+    .period-row {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: 1rem;
+    }
+    .period-label { font-size:.85rem; font-weight:600; color:var(--muted); }
+    .period-select {
+      padding: .3rem .55rem;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      font-size: .85rem;
+      background: var(--input-bg);
+      color: var(--fg);
+      cursor: pointer;
+    }
+
+    /* ── Section title separator ────────────────────────────────────────────── */
+    .section-title {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 1.5rem 0 .65rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--panel-border);
+    }
+
+    /* ── No-data state ──────────────────────────────────────────────────────── */
+    .no-data { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:.9rem; }
+    .no-data a { color:var(--accent); text-decoration:none; }
+    .no-data a:hover { text-decoration:underline; }
+
+    /* ── Insight list ───────────────────────────────────────────────────────── */
+    .insight-list { list-style:none; padding:0; margin:.65rem 0 0; }
+    .insight-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: .35rem 0;
+      border-bottom: 1px solid var(--panel-border);
+      font-size: .88rem;
+      gap: .5rem;
+    }
+    .insight-list li:last-child { border-bottom:none; }
+    .insight-name { color:var(--fg); font-weight:600; }
+    .insight-val  { color:var(--muted); white-space:nowrap; }
+
+    /* ── Chart note (sub-total line) ────────────────────────────────────────── */
+    .chart-note {
+      text-align: right;
+      font-size: .82rem;
+      color: var(--muted);
+      margin: .5rem 0 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <a href="/">← Home</a>
+    {% if current_user %}
+      <span class="auth-badge">👤 {{ current_user }}</span>
+      <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+    {% else %}
+      <a class="btn-ghost btn-sm" href="/login">Log in</a>
+    {% endif %}
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+  </div>
+  <script>
+  function toggleTheme(){
+    const d=document.documentElement.classList.toggle('dark');
+    localStorage.setItem('fiapp_theme',d?'dark':'light');
+    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+    renderAll();
+  }
+  if(document.documentElement.classList.contains('dark'))
+    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+  function logOut(){ fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; }); }
+  </script>
+
+  <h1>Analytics</h1>
+  <div id="root"></div>
+
+<script>
+// ── Storage keys ──────────────────────────────────────────────────────────────
+const EXP_KEY  = 'fiapp_expenses_v4';
+const SUBS_KEY = 'fiapp_subs_v4';
+
+// ── Security helpers ──────────────────────────────────────────────────────────
+function escapeHtml(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── Utility helpers ───────────────────────────────────────────────────────────
+function mk(y,m){ return y+'-'+String(m+1).padStart(2,'0'); }
+function todayMK(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
+function fmtMoney(v){ return '$'+Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function fmtMoneyShort(v){ if(v>=1000) return '$'+(v/1000).toFixed(1)+'k'; return '$'+Number(v).toFixed(0); }
+function fmtPct(v){ return Number(v).toFixed(1)+'%'; }
+function mkLabel(mkStr){ const [y,mo]=mkStr.split('-'); return MONTHS_SHORT[parseInt(mo)-1]+" '"+y.slice(2); }
+
+function themeColors(){
+  const dark=document.documentElement.classList.contains('dark');
+  return {
+    fg:    dark?'#e2e8f0':'#1f2937',
+    muted: dark?'#94a3b8':'#6b7280',
+    grid:  dark?'rgba(255,255,255,.08)':'rgba(0,0,0,.07)',
+    panel: dark?'#1e293b':'#f9fafb',
+  };
+}
+
+// ── Load raw data ─────────────────────────────────────────────────────────────
+function loadExp(){
+  try{ const s=localStorage.getItem(EXP_KEY); return s?JSON.parse(s):null; }
+  catch(e){ console.warn('Analytics: expense data error',e.message); return null; }
+}
+function loadSubs(){
+  try{ const s=localStorage.getItem(SUBS_KEY); return s?JSON.parse(s):null; }
+  catch(e){ console.warn('Analytics: subs data error',e.message); return null; }
+}
+
+// ── Expense income helper ─────────────────────────────────────────────────────
+
+// {monthKey: grossIncome}
+function expMonthIncomes(exp){
+  if(!exp||!exp.income) return {};
+  const out={};
+  Object.entries(exp.income).forEach(([mk2,v])=>{
+    const g=parseFloat(v.gross)||0; if(g>0) out[mk2]=g;
+  });
+  return out;
+}
+
+// ── Combined helpers (expenses + subscriptions merged) ────────────────────────
+
+// Returns all monthKeys that have any spending (expenses or subs), sorted
+function allSpendingMonths(exp, subs){
+  const mks=new Set();
+
+  // Expense months
+  if(exp&&exp.cells){
+    Object.keys(exp.cells).forEach(k=>{
+      const p=k.split('|'); if(p.length>=3&&parseFloat(exp.cells[k])>0) mks.add(p[0]);
+    });
+  }
+
+  // Sub months: from each sub's start date up to today
+  if(subs&&subs.rows&&subs.cols){
+    const startCol=subs.cols.find(c=>c.ctype==='date');
+    if(startCol){
+      const now=new Date();
+      (subs.rows||[]).forEach(r=>{
+        const dateStr=(subs.cells||{})[r.id+'|'+startCol.id]||'';
+        if(!dateStr) return;
+        const first=new Date(dateStr);
+        let y=first.getFullYear(), m=first.getMonth();
+        while(y*12+m<=now.getFullYear()*12+now.getMonth()){
+          mks.add(mk(y,m)); m++; if(m===12){m=0;y++;}
+        }
+      });
+    }
+  }
+
+  return [...mks].sort();
+}
+
+// {monthKey: totalSpend} combining expense cells + sub costs per month
+function combinedMonthTotals(exp, subs, allMonths){
+  const totals={};
+  allMonths.forEach(mk2=>{
+    let sum=0;
+    // Expense cells
+    if(exp&&exp.cells&&exp.cols&&exp.rows){
+      exp.rows.forEach(row=>{
+        (exp.cols||[]).forEach(col=>{
+          sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0;
+        });
+      });
+    }
+    // Sub costs for this month
+    if(subs&&subs.rows&&subs.cols){
+      const [y,m]=mk2.split('-').map(Number);
+      sum+=(subs.rows||[]).reduce((s,r)=>s+calcSubCostForMonth(r,subs,y,m-1),0);
+    }
+    if(sum>0) totals[mk2]=parseFloat(sum.toFixed(2));
+  });
+  return totals;
+}
+
+// {category: {value, color}} for expense categories + 'Subscriptions' entry
+// Uses _rowMonthIdx for O(1) cell lookups instead of iterating all cols per month
+function combinedCategoryTotals(exp, subs, monthKeys){
+  const totals={};
+  const set=new Set(monthKeys);
+
+  // Expense categories (top-level rows only — exclude the linked row, it's covered by subs below)
+  if(exp&&exp.rows){
+    exp.rows.filter(r=>!r.parentId&&!r.linked).forEach(row=>{
+      let sum=0;
+      set.forEach(mk2=>{
+        sum+=(_rowMonthIdx[row.id]&&_rowMonthIdx[row.id][mk2])||0;
+        (exp.rows||[]).filter(c=>c.parentId===row.id).forEach(child=>{
+          sum+=(_rowMonthIdx[child.id]&&_rowMonthIdx[child.id][mk2])||0;
+        });
+      });
+      if(sum>0) totals[row.label]={value:parseFloat(sum.toFixed(2)), color:row.color||'#93c5fd'};
+    });
+  }
+
+  // Subscription costs — merged into 'Subscriptions' category (additive in case user has same-named row)
+  if(subs&&subs.rows&&subs.cols){
+    let subTotal=0;
+    set.forEach(mk2=>{
+      const [y,m]=mk2.split('-').map(Number);
+      subTotal+=(subs.rows||[]).reduce((s,r)=>s+calcSubCostForMonth(r,subs,y,m-1),0);
+    });
+    if(subTotal>0){
+      const existing=totals['Subscriptions'];
+      totals['Subscriptions']={
+        value: parseFloat(((existing?existing.value:0)+subTotal).toFixed(2)),
+        color: (existing&&existing.color)||'#0891b2'
+      };
+    }
+  }
+
+  return totals;
+}
+
+// Map: categoryLabel → {color, values:[spend per month]} — expenses + subs line
+// Uses _rowMonthIdx for O(1) cell lookups instead of iterating all cols per month
+function combinedCategoryMonthlyData(exp, subs, months){
+  const map=new Map();
+
+  // Expense categories (exclude linked row)
+  if(exp&&exp.rows){
+    exp.rows.filter(r=>!r.parentId&&!r.linked).forEach(row=>{
+      const vals=months.map(mk2=>{
+        let sum=(_rowMonthIdx[row.id]&&_rowMonthIdx[row.id][mk2])||0;
+        (exp.rows||[]).filter(c=>c.parentId===row.id).forEach(child=>{
+          sum+=(_rowMonthIdx[child.id]&&_rowMonthIdx[child.id][mk2])||0;
+        });
+        return parseFloat(sum.toFixed(2));
+      });
+      if(vals.some(v=>v>0)) map.set(row.label,{color:row.color||'#93c5fd',values:vals});
+    });
+  }
+
+  // Subscriptions as a line — merge into existing 'Subscriptions' entry if present
+  if(subs&&subs.rows&&subs.cols){
+    const subVals=subCostPerMonth(subs,months);
+    if(subVals.some(v=>v>0)){
+      const existing=map.get('Subscriptions');
+      if(existing){
+        map.set('Subscriptions',{
+          color:existing.color||'#0891b2',
+          values:existing.values.map((v,i)=>parseFloat((v+subVals[i]).toFixed(2)))
+        });
+      } else {
+        map.set('Subscriptions',{color:'#0891b2',values:subVals});
+      }
+    }
+  }
+
+  return map;
+}
+
+// ── Subscription analytics helpers ───────────────────────────────────────────
+
+// Amortized monthly cost for one sub row in a specific year/month (0 if not active)
+function calcSubCostForMonth(row, subs, year, month){
+  const cols=subs.cols||[];
+  const get =id=>(subs.cells||{})[row.id+'|'+id]||'';
+  const startCol   =cols.find(c=>c.ctype==='date');
+  const cancelCol  =cols.find(c=>c.ctype==='canceldate');
+  const statusCol  =cols.find(c=>c.ctype==='status');
+  const costCol    =cols.find(c=>c.ctype==='number');
+  const billingCol =cols.find(c=>c.ctype==='billing');
+
+  const status   =statusCol  ? get(statusCol.id)||'Active'  : 'Active';
+  const startStr =startCol   ? get(startCol.id)             : '';
+  const cancelStr=cancelCol  ? get(cancelCol.id)            : '';
+  const cost     =parseFloat(costCol?get(costCol.id):0)||0;
+  const billing  =billingCol ? get(billingCol.id)||'Monthly': 'Monthly';
+
+  const monthStart=new Date(year,month,1);
+  const monthEnd  =new Date(year,month+1,0);
+
+  if(startStr){ const sd=new Date(startStr); if(sd>monthEnd) return 0; }
+  if(status==='Cancelled'&&cancelStr){ const cd=new Date(cancelStr); if(cd<monthStart) return 0; }
+
+  if(billing==='Monthly')    return cost;
+  if(billing==='Yearly')     return cost/12;
+  if(billing==='Weekly')     return cost*4.33;
+  if(billing==='Bi-Weekly')  return cost*2.17;
+  if(billing==='Quarterly')  return cost/3;
+  return cost;
+}
+
+// Array of total sub costs aligned with months[]
+function subCostPerMonth(subs, months){
+  if(!subs||!subs.rows) return months.map(()=>0);
+  return months.map(mk2=>{
+    const [y,m]=mk2.split('-').map(Number);
+    const total=(subs.rows||[]).reduce((s,r)=>s+calcSubCostForMonth(r,subs,y,m-1),0);
+    return parseFloat(total.toFixed(2));
+  });
+}
+
+// Current-state snapshot of active subs (for stat cards + breakdown chart)
+function subMonthlySnapshot(subs){
+  if(!subs||!subs.rows||!subs.cols) return [];
+  const billingCol=subs.cols.find(c=>c.ctype==='billing');
+  const costCol   =subs.cols.find(c=>c.ctype==='number');
+  const statusCol =subs.cols.find(c=>c.ctype==='status');
+  const nameCol   =subs.cols.find(c=>c.ctype==='text');
+  return (subs.rows||[]).map(r=>{
+    const status=statusCol?subs.cells[r.id+'|'+statusCol.id]||'Active':'Active';
+    if(status==='Cancelled') return null;
+    const name  =nameCol  ?subs.cells[r.id+'|'+nameCol.id]  ||'—':'—';
+    const cost  =parseFloat(costCol?subs.cells[r.id+'|'+costCol.id]||0:0)||0;
+    const bill  =billingCol?subs.cells[r.id+'|'+billingCol.id]||'Monthly':'Monthly';
+    let monthly=0;
+    if(bill==='Monthly')        monthly=cost;
+    else if(bill==='Yearly')    monthly=cost/12;
+    else if(bill==='Weekly')    monthly=cost*4.33;
+    else if(bill==='Bi-Weekly') monthly=cost*2.17;
+    else if(bill==='Quarterly') monthly=cost/3;
+    return monthly>0?{name,monthly,annual:monthly*12}:null;
+  }).filter(Boolean);
+}
+
+// ── Pre-index expense cells for fast O(1) per-row-per-month lookups ──────────
+// Builds {rowId: {mk: sumOfAllCols}} from exp.cells in a single pass.
+function buildRowMonthIndex(exp){
+  const idx={};
+  if(!exp||!exp.cells) return idx;
+  Object.entries(exp.cells).forEach(([key,val])=>{
+    const n=parseFloat(val)||0; if(!n) return;
+    const parts=key.split('|'); if(parts.length!==3) return;
+    const [mk2,rowId]=parts;
+    if(!idx[rowId]) idx[rowId]={};
+    idx[rowId][mk2]=(idx[rowId][mk2]||0)+n;
+  });
+  return idx;
+}
+
+// ── Period filter ─────────────────────────────────────────────────────────────
+function periodOptions(allMonths){
+  const opts=[{label:'All time',value:'all'}];
+  if(allMonths.length>=3)  opts.push({label:'Last 3 months', value:'3'});
+  if(allMonths.length>=6)  opts.push({label:'Last 6 months', value:'6'});
+  if(allMonths.length>=12) opts.push({label:'Last 12 months',value:'12'});
+  return opts;
+}
+function filterMonths(allMonths, period){
+  if(period==='all') return allMonths;
+  return allMonths.slice(-parseInt(period));
+}
+
+// ── Chart registry ────────────────────────────────────────────────────────────
+const charts={};
+function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+// ── Toggle state (module-level so setters don't need rerenderAll) ─────────────
+let trendType    = 'bar';
+let catBreakType = 'doughnut';
+let subBreakType = 'doughnut';
+
+// ── Module-level data vars (populated by renderAll, reused by reRenderCharts) ─
+let _exp, _subs, _allMonths, _monthTotals, _monthIncomes, _subRows, _subTrendMonths;
+// Pre-indexed cell sums: {rowId: {mk: colSum}} — built once, avoids O(rows×cols×months)
+let _rowMonthIdx = {};
+// Cached period-filter results — updated by _refreshPeriodCache() so individual
+// chart functions don't each re-derive them independently
+let _cm=[], _cTc={fg:'#1f2937',muted:'#6b7280',grid:'rgba(0,0,0,.07)',panel:'#f9fafb'},
+    _cToday='', _cHasForecast=false, _cStatMs=[], _cActualMs=[];
+
+// ── Toggle setters — only redraw the one affected chart, not everything ───────
+function setTrendType(t){
+  trendType=t;
+  document.querySelectorAll('.tt-trend').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
+  renderTrendChart();
+}
+function setCatBreakType(t){
+  catBreakType=t;
+  document.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
+  renderBreakdownChart();
+}
+function setSubBreakType(t){
+  subBreakType=t;
+  document.querySelectorAll('.tt-sub').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
+  renderSubBreakChart();
+}
+
+// ── Build a toggle button ─────────────────────────────────────────────────────
+function mkToggleBtn(groupClass, val, label, isActive, handler){
+  const b=document.createElement('button');
+  b.className='btn-toggle '+groupClass+(isActive?' btn-toggle-active':'');
+  b.dataset.v=val; b.textContent=label;
+  b.onclick=handler;
+  return b;
+}
+
+// ── Render entry point ────────────────────────────────────────────────────────
+function renderAll(){
+  _exp  = loadExp();
+  _subs = loadSubs();
+
+  // Pre-index expense cells once — used by all category helpers
+  _rowMonthIdx = buildRowMonthIndex(_exp);
+
+  // All months from BOTH sources (combined)
+  _allMonths    = allSpendingMonths(_exp, _subs);
+  _monthTotals  = combinedMonthTotals(_exp, _subs, _allMonths);
+  _monthIncomes = expMonthIncomes(_exp);
+  _subRows      = subMonthlySnapshot(_subs);
+  // Sub trend uses the same unified month range
+  _subTrendMonths = _allMonths;
+
+  const root=document.getElementById('root');
+  const hasAnyData=_allMonths.length>0||_subRows.length>0;
+  const hasSubData=_subRows.length>0||(_subs&&_subs.rows&&_subs.rows.length>0);
+
+  if(!hasAnyData&&!hasSubData){
+    root.innerHTML=`<div class="no-data">
+      <p style="font-size:2rem;margin-bottom:.5rem">📭</p>
+      <p>No data yet — add expenses or subscriptions first.</p>
+      <p style="margin-top:.5rem"><a href="/expenses">Go to Expense Tracker →</a></p>
+    </div>`;
+    return;
+  }
+
+  root.innerHTML='';
+
+  // ── Period filter ─────────────────────────────────────────────────────────
+  if(_allMonths.length){
+    const periodRow=document.createElement('div');
+    periodRow.className='period-row';
+    const lbl=document.createElement('span');
+    lbl.className='period-label'; lbl.textContent='Period:';
+    const sel=document.createElement('select');
+    sel.id='period-global'; sel.className='period-select';
+    periodOptions(_allMonths).forEach(o=>{
+      const opt=document.createElement('option');
+      opt.value=o.value; opt.textContent=o.label;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', reRenderCharts);
+    periodRow.appendChild(lbl);
+    periodRow.appendChild(sel);
+    root.appendChild(periodRow);
+  }
+
+  // ── Top stat grid ─────────────────────────────────────────────────────────
+  const statGrid=document.createElement('div');
+  statGrid.id='stat-grid'; statGrid.className='stat-grid';
+  root.appendChild(statGrid);
+
+  // ── Chart card factory ────────────────────────────────────────────────────
+  function addChartCard(id, title){
+    const card=document.createElement('div');
+    card.className='chart-card'; card.id='card-'+id;
+    const hdr=document.createElement('div'); hdr.className='chart-card-header';
+    const h2=document.createElement('h2'); h2.textContent=title;
+    const ctrl=document.createElement('div'); ctrl.className='chart-controls'; ctrl.id='controls-'+id;
+    hdr.appendChild(h2); hdr.appendChild(ctrl);
+    card.appendChild(hdr);
+    const wrap=document.createElement('div'); wrap.className='chart-canvas-wrap';
+    const canvas=document.createElement('canvas'); canvas.id='chart-'+id;
+    wrap.appendChild(canvas);
+    card.appendChild(wrap);
+    root.appendChild(card);
+    return card;
+  }
+
+  function addSectionTitle(text){
+    const d=document.createElement('div');
+    d.className='section-title'; d.textContent=text;
+    root.appendChild(d);
+  }
+
+  // ── Spending section (expenses + subs combined) ───────────────────────────
+  if(_allMonths.length){
+    addSectionTitle('Spending');
+    addChartCard('trend',     'Monthly Spending Trend');
+    addChartCard('breakdown', 'Category Breakdown');
+    if(_allMonths.length>=2) addChartCard('cattrends', 'Category Trends Over Time');
+    if(Object.keys(_monthIncomes).length) addChartCard('savings', 'Income vs Expenses');
+  }
+
+  // ── Subscription section (drill-down) ─────────────────────────────────────
+  if(hasSubData){
+    addSectionTitle('Subscriptions');
+    const subStatGrid=document.createElement('div');
+    subStatGrid.id='sub-stat-grid'; subStatGrid.className='stat-grid';
+    subStatGrid.style.marginBottom='.75rem';
+    root.appendChild(subStatGrid);
+
+    if(_subRows.length) addChartCard('subbreak', 'Subscription Breakdown');
+    if(_subTrendMonths.length>=2) addChartCard('subtrend', 'Subscription Cost Trend');
+  }
+
+  reRenderCharts();
+}
+
+// ── Period cache refresh — call before any chart render ───────────────────────
+function _refreshPeriodCache(){
+  const period=(document.getElementById('period-global')||{}).value||'all';
+  _cm         = filterMonths(_allMonths, period);
+  _cTc        = themeColors();
+  _cToday     = todayMK();
+  _cActualMs  = _cm.filter(m=>m<=_cToday);
+  _cStatMs    = _cActualMs.length ? _cActualMs : _cm;
+  _cHasForecast = _cm.some(m=>m>_cToday);
+}
+
+// ── A: Stat cards ─────────────────────────────────────────────────────────────
+function renderStatCards(){
+  const statGrid=document.getElementById('stat-grid'); if(!statGrid) return;
+  statGrid.innerHTML='';
+  const sc=(label,value,sub)=>{
+    const c=document.createElement('div'); c.className='stat-card';
+    c.innerHTML=`<div class="stat-label">${escapeHtml(label)}</div>`+
+      `<div class="stat-value">${escapeHtml(String(value))}</div>`+
+      (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
+    return c;
+  };
+  if(_cStatMs.length){
+    const totalSpend=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0);
+    const avgMonthly=totalSpend/(_cStatMs.length||1);
+    statGrid.appendChild(sc('Total Spent',fmtMoney(totalSpend),
+      _cStatMs.length+' month'+(_cStatMs.length!==1?'s':'')+(_cHasForecast?' · actuals only':'')));
+    statGrid.appendChild(sc('Monthly Avg',fmtMoney(avgMonthly),
+      'per month'+(_cHasForecast?' · actuals only':'')));
+    const catTotals=combinedCategoryTotals(_exp,_subs,_cStatMs);
+    const catSorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
+    if(catSorted.length)
+      statGrid.appendChild(sc('Top Category',catSorted[0][0],fmtMoney(catSorted[0][1].value)+' spent'));
+    const withData=_cStatMs.map(m=>({m,v:_monthTotals[m]||0})).filter(x=>x.v>0);
+    if(withData.length>=2){
+      const best =withData.reduce((a,b)=>a.v<b.v?a:b);
+      const worst=withData.reduce((a,b)=>a.v>b.v?a:b);
+      statGrid.appendChild(sc('Best Month', mkLabel(best.m), fmtMoney(best.v)+' · lowest'));
+      statGrid.appendChild(sc('Worst Month',mkLabel(worst.m),fmtMoney(worst.v)+' · highest'));
+    }
+    const incMonths=_cStatMs.filter(m=>_monthIncomes[m]);
+    if(incMonths.length){
+      const totInc=incMonths.reduce((s,m)=>s+(_monthIncomes[m]||0),0);
+      const totExp=incMonths.reduce((s,m)=>s+(_monthTotals[m]||0),0);
+      const rate=totInc>0?Math.max(0,(totInc-totExp)/totInc*100):0;
+      statGrid.appendChild(sc('Savings Rate',fmtPct(rate),
+        'across '+incMonths.length+' month'+(incMonths.length!==1?'s':'')));
+    }
+  }
+  if(_subRows.length){
+    const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
+    statGrid.appendChild(sc('Active Subs',_subRows.length,
+      _subRows.length===1?'subscription':'subscriptions'));
+    statGrid.appendChild(sc('Sub Monthly',fmtMoney(totalMo)+'/mo',fmtMoney(totalMo*12)+'/yr'));
+    if(_cStatMs.length){
+      const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
+      if(avgExp>0) statGrid.appendChild(sc('Subs % of Spend',
+        fmtPct(totalMo/avgExp*100),'of avg monthly expenses'));
+    }
+    const costliest=_subRows.reduce((a,b)=>a.monthly>b.monthly?a:b,_subRows[0]);
+    if(costliest) statGrid.appendChild(sc('Costliest Sub',costliest.name,fmtMoney(costliest.monthly)+'/mo'));
+  }
+}
+
+// ── Sub mini-stat cards ───────────────────────────────────────────────────────
+function renderSubStatCards(){
+  const subStatGrid=document.getElementById('sub-stat-grid');
+  if(!subStatGrid||!_subRows.length) return;
+  subStatGrid.innerHTML='';
+  const ssc=(label,value,sub)=>{
+    const c=document.createElement('div'); c.className='stat-card';
+    c.innerHTML=`<div class="stat-label">${escapeHtml(label)}</div>`+
+      `<div class="stat-value">${escapeHtml(String(value))}</div>`+
+      (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
+    return c;
+  };
+  const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
+  [ssc('Active',      _subRows.length, _subRows.length===1?'subscription':'subscriptions'),
+   ssc('Monthly Cost',fmtMoney(totalMo),'per month'),
+   ssc('Annual Cost', fmtMoney(totalMo*12),'per year'),
+  ].forEach(c=>subStatGrid.appendChild(c));
+  if(_cStatMs&&_cStatMs.length){
+    const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
+    if(avgExp>0) subStatGrid.appendChild(ssc('% of Expenses',fmtPct(totalMo/avgExp*100),'of avg monthly spend'));
+  }
+}
+
+// ── B: Monthly Spending Trend ─────────────────────────────────────────────────
+function renderTrendChart(){
+  const trendCanvas=document.getElementById('chart-trend');
+  if(!trendCanvas||!_cm.length) return;
+  const ctrl=document.getElementById('controls-trend');
+  if(ctrl&&!ctrl.querySelector('.tt-trend')){
+    ctrl.appendChild(mkToggleBtn('tt-trend','bar', '📊 Bar',  trendType==='bar',  ()=>setTrendType('bar')));
+    ctrl.appendChild(mkToggleBtn('tt-trend','line','📈 Line', trendType==='line', ()=>setTrendType('line')));
+  } else if(ctrl){
+    ctrl.querySelectorAll('.tt-trend').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===trendType));
+  }
+  destroyChart('trend');
+  const labels     =_cm.map(mkLabel);
+  const actualVals =_cm.map(m=>m<=_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
+  const forecastVals=_cm.map(m=>m>_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
+
+  // 3-month rolling average (shown only when ≥3 actual data points exist)
+  const nonNull=actualVals.filter(v=>v!==null);
+  const maData=nonNull.length>=3 ? actualVals.map((v,i,arr)=>{
+    if(v===null) return null;
+    const win=arr.slice(Math.max(0,i-2),i+1).filter(x=>x!==null);
+    return win.length>=2 ? parseFloat((win.reduce((a,b)=>a+b,0)/win.length).toFixed(2)) : null;
+  }) : null;
+
+  const makeDs=(label,data,color,rgba)=>{
+    const ds={label,data,borderColor:color,borderWidth:2};
+    if(trendType==='bar'){
+      ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
+    } else {
+      ds.backgroundColor='transparent'; ds.fill=false;
+      ds.tension=0.3; ds.pointRadius=4; ds.pointBackgroundColor=color;
+    }
+    return ds;
+  };
+  const datasets=[makeDs('Actual',actualVals,'#7c3aed','rgba(124,58,237,.7)')];
+  if(_cHasForecast) datasets.push(makeDs('Forecast',forecastVals,'#f59e0b','rgba(251,191,36,.55)'));
+  if(maData) datasets.push({
+    label:'3-mo avg', data:maData,
+    borderColor:'rgba(107,114,128,.65)', borderWidth:2, borderDash:[5,4],
+    backgroundColor:'transparent', fill:false, tension:0.4,
+    pointRadius:0, type:'line',
+  });
+  charts['trend']=new Chart(trendCanvas,{
+    type:trendType==='bar'?'bar':'line',
+    data:{labels,datasets},
+    options:{responsive:true,plugins:{
+      legend:{display:_cHasForecast||(maData!=null),labels:{color:_cTc.fg,boxWidth:14,padding:10}},
+      tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
+    },scales:{
+      x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+      y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+    }}
+  });
+}
+
+// ── C: Category Breakdown ─────────────────────────────────────────────────────
+function renderBreakdownChart(){
+  const breakCanvas=document.getElementById('chart-breakdown');
+  if(!breakCanvas||!_cm.length) return;
+  const ctrl=document.getElementById('controls-breakdown');
+  if(ctrl&&!ctrl.querySelector('.tt-cat')){
+    ctrl.appendChild(mkToggleBtn('tt-cat','doughnut','🥧 Doughnut',catBreakType==='doughnut',()=>setCatBreakType('doughnut')));
+    ctrl.appendChild(mkToggleBtn('tt-cat','bar',     '📊 Bar',      catBreakType==='bar',     ()=>setCatBreakType('bar')));
+  } else if(ctrl){
+    ctrl.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===catBreakType));
+  }
+  destroyChart('breakdown');
+  const catTotals=combinedCategoryTotals(_exp,_subs,_cm);
+  const sorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
+  if(sorted.length){
+    const labels=sorted.map(e=>e[0]);
+    const vals  =sorted.map(e=>parseFloat(e[1].value.toFixed(2)));
+    const colors=sorted.map(e=>e[1].color);
+    const total =vals.reduce((a,b)=>a+b,0);
+    const cfg=catBreakType==='doughnut'
+      ? {type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:_cTc.panel,hoverOffset:8}]},
+          options:{responsive:true,plugins:{
+            legend:{display:true,position:'right',labels:{color:_cTc.fg,boxWidth:14,padding:10,font:{size:12}}},
+            tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+' ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
+          }}}
+      : {type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4}]},
+          options:{responsive:true,plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.y)+' ('+(ctx.parsed.y/total*100).toFixed(1)+'%)'}}
+          },scales:{
+            x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+            y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+          }}};
+    charts['breakdown']=new Chart(breakCanvas,cfg);
+    const card=document.getElementById('card-breakdown');
+    let list=card.querySelector('.insight-list');
+    if(!list){ list=document.createElement('ul'); list.className='insight-list'; card.appendChild(list); }
+    list.innerHTML=sorted.map(([name,d])=>{
+      const pct=(d.value/total*100).toFixed(1);
+      return `<li><span class="insight-name">${escapeHtml(name)}</span>`+
+        `<span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span></span></li>`;
+    }).join('');
+  }
+}
+
+// ── D: Category Trends Over Time ──────────────────────────────────────────────
+function renderCatTrendsChart(){
+  const catTrendsCanvas=document.getElementById('chart-cattrends');
+  if(!catTrendsCanvas||_cm.length<2) return;
+  destroyChart('cattrends');
+  const catData=combinedCategoryMonthlyData(_exp,_subs,_cm);
+  const entries=[...catData.entries()]
+    .map(([label,d])=>({label,color:d.color,values:d.values,total:d.values.reduce((a,b)=>a+b,0)}))
+    .filter(e=>e.total>0).sort((a,b)=>b.total-a.total).slice(0,8);
+  if(entries.length){
+    charts['cattrends']=new Chart(catTrendsCanvas,{
+      type:'line',
+      data:{labels:_cm.map(mkLabel),datasets:entries.map(e=>({
+        label:e.label,data:e.values,borderColor:e.color,
+        backgroundColor:'transparent',borderWidth:2,fill:false,
+        tension:0.3,pointRadius:3,pointBackgroundColor:e.color,
+      }))},
+      options:{responsive:true,plugins:{
+        legend:{display:true,position:'bottom',labels:{color:_cTc.fg,boxWidth:12,padding:10,font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
+      },scales:{
+        x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+        y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+      }}
+    });
+  }
+}
+
+// ── E: Income vs Expenses ─────────────────────────────────────────────────────
+function renderSavingsChart(){
+  const savingsCanvas=document.getElementById('chart-savings');
+  if(!savingsCanvas) return;
+  destroyChart('savings');
+  const incMonths=_cm.filter(m=>_monthIncomes[m]);
+  if(incMonths.length){
+    charts['savings']=new Chart(savingsCanvas,{
+      type:'bar',
+      data:{labels:incMonths.map(mkLabel),datasets:[
+        {label:'Income',  data:incMonths.map(m=>parseFloat((_monthIncomes[m]||0).toFixed(2))),
+          backgroundColor:'rgba(21,128,61,.6)',borderColor:'#15803d',borderWidth:1,borderRadius:4},
+        {label:'Expenses',data:incMonths.map(m=>parseFloat((_monthTotals[m]||0).toFixed(2))),
+          backgroundColor:'rgba(220,38,38,.55)',borderColor:'#dc2626',borderWidth:1,borderRadius:4},
+      ]},
+      options:{responsive:true,plugins:{
+        legend:{display:true,labels:{color:_cTc.fg,boxWidth:14,padding:10}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
+      },scales:{
+        x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+        y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+      }}
+    });
+  }
+}
+
+// ── F: Subscription Breakdown ─────────────────────────────────────────────────
+function renderSubBreakChart(){
+  const subBreakCanvas=document.getElementById('chart-subbreak');
+  if(!subBreakCanvas||!_subRows.length) return;
+  const ctrl=document.getElementById('controls-subbreak');
+  if(ctrl&&!ctrl.querySelector('.tt-sub')){
+    ctrl.appendChild(mkToggleBtn('tt-sub','doughnut','🥧 Doughnut',subBreakType==='doughnut',()=>setSubBreakType('doughnut')));
+    ctrl.appendChild(mkToggleBtn('tt-sub','bar',     '📊 Bar',      subBreakType==='bar',     ()=>setSubBreakType('bar')));
+  } else if(ctrl){
+    ctrl.querySelectorAll('.tt-sub').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===subBreakType));
+  }
+  destroyChart('subbreak');
+  const sorted=[..._subRows].sort((a,b)=>b.monthly-a.monthly);
+  const cyan=['#0e7490','#0891b2','#22d3ee','#67e8f9','#a5f3fc','#cffafe'];
+  const colors=sorted.map((_,i)=>cyan[i%cyan.length]);
+  const vals  =sorted.map(r=>parseFloat(r.monthly.toFixed(2)));
+  const names =sorted.map(r=>r.name);
+  const total =vals.reduce((a,b)=>a+b,0);
+  const subCfg=subBreakType==='doughnut'
+    ? {type:'doughnut',data:{labels:names,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:_cTc.panel,hoverOffset:8}]},
+        options:{responsive:true,plugins:{
+          legend:{display:true,position:'right',labels:{color:_cTc.fg,boxWidth:14,padding:10,font:{size:12}}},
+          tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+'/mo ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
+        }}}
+    : {type:'bar',data:{labels:names,datasets:[{label:'Monthly Cost',data:vals,backgroundColor:colors,borderRadius:4}]},
+        options:{indexAxis:'y',responsive:true,plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.x)+'/mo  ('+fmtMoney(ctx.parsed.x*12)+'/yr)'}}
+        },scales:{
+          x:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+          y:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+        }}};
+  charts['subbreak']=new Chart(subBreakCanvas,subCfg);
+  const card=document.getElementById('card-subbreak');
+  let list=card.querySelector('.insight-list');
+  if(!list){ list=document.createElement('ul'); list.className='insight-list'; card.appendChild(list); }
+  list.innerHTML=sorted.map(r=>
+    `<li><span class="insight-name">${escapeHtml(r.name)}</span>`+
+    `<span class="insight-val">${fmtMoney(r.monthly)}/mo &nbsp;<span style="color:var(--muted)">(${fmtMoney(r.annual)}/yr)</span></span></li>`
+  ).join('');
+  let note=card.querySelector('.chart-note');
+  if(!note){ note=document.createElement('p'); note.className='chart-note'; card.appendChild(note); }
+  note.textContent=`${_subRows.length} active subscription${_subRows.length!==1?'s':''} · `+
+    fmtMoney(total)+'/mo · '+fmtMoney(total*12)+'/yr';
+}
+
+// ── G: Subscription Cost Trend ────────────────────────────────────────────────
+function renderSubTrendChart(){
+  const subTrendCanvas=document.getElementById('chart-subtrend');
+  if(!subTrendCanvas||!_subs||_subTrendMonths.length<2) return;
+  destroyChart('subtrend');
+  const period=(document.getElementById('period-global')||{}).value||'all';
+  const filteredTrendMonths=filterMonths(_subTrendMonths,period);
+  if(filteredTrendMonths.length<2) return;
+  const labels=filteredTrendMonths.map(mkLabel);
+  const costs =subCostPerMonth(_subs,filteredTrendMonths);
+  const hasSubForecast=filteredTrendMonths.some(m=>m>_cToday);
+  const actualCosts  =filteredTrendMonths.map((m,i)=>m<=_cToday?costs[i]:null);
+  const forecastCosts=filteredTrendMonths.map((m,i)=>m> _cToday?costs[i]:null);
+  const datasets=[{
+    label:'Sub Cost',data:actualCosts,borderColor:'#0891b2',
+    backgroundColor:'rgba(8,145,178,.15)',borderWidth:2,fill:true,
+    tension:0.3,pointRadius:4,pointBackgroundColor:'#0891b2',
+  }];
+  if(hasSubForecast) datasets.push({
+    label:'Forecast',data:forecastCosts,borderColor:'#f59e0b',
+    backgroundColor:'rgba(251,191,36,.08)',borderWidth:2,borderDash:[5,5],
+    fill:true,tension:0.3,pointRadius:4,pointBackgroundColor:'#f59e0b',
+  });
+  charts['subtrend']=new Chart(subTrendCanvas,{
+    type:'line',data:{labels,datasets},
+    options:{responsive:true,plugins:{
+      legend:{display:hasSubForecast,labels:{color:_cTc.fg,boxWidth:14,padding:10}},
+      tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)+'/mo'}}
+    },scales:{
+      x:{ticks:{color:_cTc.fg},grid:{color:_cTc.grid},border:{color:_cTc.grid}},
+      y:{beginAtZero:true,ticks:{color:_cTc.fg,callback:v=>fmtMoneyShort(v)},grid:{color:_cTc.grid},border:{color:_cTc.grid}}
+    }}
+  });
+}
+
+// ── Re-render ALL charts (period change / theme change / data change) ──────────
+// Toggle button clicks call the individual functions above — not this one.
+function reRenderCharts(){
+  _refreshPeriodCache();
+  renderStatCards();
+  renderSubStatCards();
+  renderTrendChart();
+  renderBreakdownChart();
+  renderCatTrendsChart();
+  renderSavingsChart();
+  renderSubBreakChart();
+  renderSubTrendChart();
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+renderAll();
+
+// Re-render when another tab updates either tracker
+window.addEventListener('storage', e=>{
+  if(e.key===EXP_KEY||e.key===SUBS_KEY) renderAll();
+});
+</script>
+</body>
+</html>

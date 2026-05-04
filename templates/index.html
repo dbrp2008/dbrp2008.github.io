@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>FiApp</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function(){
+      var pref=localStorage.getItem('fiapp_theme');
+      var dark = pref==='dark' || (!pref && matchMedia('(prefers-color-scheme: dark)').matches);
+      if(dark) document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { max-width: 680px; }
+
+    .home-nav {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      margin: 0 0 .4rem;
+      background: linear-gradient(135deg, #7c3aed, #0891b2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    html.dark .hero h1 {
+      background: linear-gradient(135deg, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .cards { display: flex; flex-direction: column; gap: .85rem; }
+
+    .app-card {
+      display: block;
+      text-decoration: none;
+      border-radius: 14px;
+      padding: 1.35rem 1.5rem;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      transition: transform .15s, box-shadow .15s, filter .15s;
+      box-shadow: 0 4px 18px rgba(0,0,0,.18);
+      border: none;
+      cursor: pointer;
+    }
+    .app-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 28px rgba(0,0,0,.28);
+      filter: brightness(1.06);
+      text-decoration: none;
+      color: #fff;
+    }
+    .app-card:active { transform: translateY(0); filter: brightness(.97); }
+
+    /* Shimmer overlay */
+    .app-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 60%);
+      pointer-events: none;
+    }
+
+    .card-body { display: flex; align-items: center; gap: 1.1rem; }
+    .card-icon {
+      font-size: 2.2rem;
+      flex-shrink: 0;
+      line-height: 1;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
+    }
+    .card-text { flex: 1; min-width: 0; }
+    .card-num {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      opacity: .75;
+      margin-bottom: .15rem;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin: 0 0 .25rem;
+      line-height: 1.15;
+    }
+    .card-desc {
+      font-size: .83rem;
+      opacity: .85;
+      line-height: 1.45;
+      margin: 0;
+    }
+    .card-arrow {
+      font-size: 1.4rem;
+      opacity: .7;
+      flex-shrink: 0;
+      transition: transform .15s;
+    }
+    .app-card:hover .card-arrow { transform: translateX(4px); opacity: 1; }
+
+    /* Per-card gradients */
+    .card-interest   { background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%); }
+    .card-tax        { background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); }
+    .card-currency   { background: linear-gradient(135deg, #15803d 0%, #22c55e 100%); }
+    .card-expenses   { background: linear-gradient(135deg, #6d28d9 0%, #a855f7 100%); }
+    .card-subs       { background: linear-gradient(135deg, #0e7490 0%, #22d3ee 100%); }
+    .card-analytics  { background: linear-gradient(135deg, #be185d 0%, #f472b6 100%); }
+  </style>
+</head>
+<body>
+  <div class="home-nav">
+    {% if current_user %}
+      <span class="auth-badge">👤 {{ current_user }}</span>
+      <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+    {% else %}
+      <a class="btn-ghost btn-sm" href="/login">Log in</a>
+    {% endif %}
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="hero">
+    <h1>FiApp</h1>
+    <p>Your 6-in-1 personal finance toolkit</p>
+  </div>
+
+  <div class="cards">
+    <a class="app-card card-currency" href="/currency">
+      <div class="card-body">
+        <span class="card-icon">💱</span>
+        <div class="card-text">
+          <div class="card-num">01</div>
+          <div class="card-title">Currency Converter</div>
+          <p class="card-desc">Live exchange rates for the world's currencies. Gives you a preset list with the option to put your own currency code.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-expenses" href="/expenses">
+      <div class="card-body">
+        <span class="card-icon">📊</span>
+        <div class="card-text">
+          <div class="card-num">02</div>
+          <div class="card-title">Expense Tracker</div>
+          <p class="card-desc">Organise your monthly expenses in a stylised spreadsheet that can be sent to others seamlessly!</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-subs" href="/subscriptions">
+      <div class="card-body">
+        <span class="card-icon">🔄</span>
+        <div class="card-text">
+          <div class="card-num">03</div>
+          <div class="card-title">Subscription Tracker</div>
+          <p class="card-desc">Using too many subscriptions? Track them all in one place (integrated with Expense Tracker).</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-interest" href="/interest">
+      <div class="card-body">
+        <span class="card-icon">📈</span>
+        <div class="card-text">
+          <div class="card-num">04</div>
+          <div class="card-title">Interest Calculator</div>
+          <p class="card-desc">Compute simple, compound, or continuous interest. See how your money grows over time (and by how much).</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-analytics" href="/analytics">
+      <div class="card-body">
+        <span class="card-icon">📉</span>
+        <div class="card-text">
+          <div class="card-num">05</div>
+          <div class="card-title">Analytics</div>
+          <p class="card-desc">Cross-tracker insights: spending trends, category breakdowns, income vs expenses, and subscription costs over time.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-tax" href="/tax">
+      <div class="card-body">
+        <span class="card-icon">🧾</span>
+        <div class="card-text">
+          <div class="card-num">06</div>
+          <div class="card-title">Income Tax Calculator</div>
+          <p class="card-desc">Estimate your 2024 US federal income tax by filing status. Auto-fills to AND from your Expense Tracker.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+  </div>
+
+<script>
+function toggleTheme(){
+  const d=document.documentElement.classList.toggle('dark');
+  localStorage.setItem('fiapp_theme', d?'dark':'light');
+  document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+}
+if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
+function logOut(){
+  fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
+}
+</script>
+</body>
+</html>
