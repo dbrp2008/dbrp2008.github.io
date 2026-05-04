@@ -4,8 +4,8 @@ from flask import Flask, render_template, request, flash
 import requests
 
 app = Flask(__name__)
-app.secret_key = "ALL-HAIL-THE-SECRET-KEY"
-EXCHANGE_API_KEY = "081a97e88979627d1194f7ee"
+app.secret_key = os.environ.get("SECRET_KEY")
+EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
 
 @app.route("/", methods=["GET", "POST"])
 def home():
