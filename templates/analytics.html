@@ -694,7 +694,8 @@ function renderTrendChart(){
   const labels     =_cm.map(mkLabel);
   const lastActualTrendIdx=_cm.reduce((last,m,i)=>m<=_cToday?i:last,-1);
   const actualVals =_cm.map(m=>m<=_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
-  const forecastVals=_cm.map((m,i)=>m>_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):i===lastActualTrendIdx?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
+  // Line: include bridge point at last actual month so lines connect; Bar: no bridge (avoids double bar)
+  const forecastVals=_cm.map((m,i)=>m>_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):(trendType==='line'&&i===lastActualTrendIdx)?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
 
   // 3-month rolling average (shown only when ≥3 actual data points exist)
   const nonNull=actualVals.filter(v=>v!==null);
