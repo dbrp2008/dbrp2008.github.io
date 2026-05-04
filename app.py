@@ -9,7 +9,7 @@ EXCHANGE_API_KEY = "081a97e88979627d1194f7ee"
 
 @app.route("/", methods=["GET", "POST"])
 def home():
-    return ("TEST")
+    return "TEST"
 
 @app.route("/interest", methods=["GET", "POST"])
 def interest():
