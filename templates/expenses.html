@@ -70,6 +70,15 @@
 
     /* Spreadsheet */
     .sheet-wrap{overflow-x:auto;margin-top:.5rem;-webkit-overflow-scrolling:touch;}
+    /* Row drag-to-reorder */
+    .drag-handle{cursor:grab;color:var(--muted);font-size:1rem;padding:0 4px;opacity:.45;user-select:none;flex-shrink:0;}
+    .drag-handle:active{cursor:grabbing;}
+    tr.tr-dragging{opacity:.3;}
+    tr.tr-drop-before>td{border-top:2px solid var(--accent)!important;}
+    tr.tr-drop-after>td{border-bottom:2px solid var(--accent)!important;}
+    /* Subscription Tracker link button */
+    .subs-link-btn{display:inline-flex;align-items:center;margin-left:5px;padding:1px 7px;border-radius:4px;background:var(--accent);color:#fff!important;font-size:.72rem;font-weight:700;text-decoration:none;opacity:.82;transition:opacity .15s;cursor:pointer;border:none;}
+    .subs-link-btn:hover{opacity:1;text-decoration:none;}
     table.sheet{border-collapse:collapse;table-layout:fixed;min-width:max-content;}
     table.sheet th,table.sheet td{border:1px solid var(--input-border);position:relative;overflow:hidden;padding:0;}
     table.sheet th{background:var(--th-bg);color:var(--fg);user-select:none;}
@@ -215,6 +224,16 @@
     localStorage.removeItem('fiapp_subs_v4');
     fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
   }
+  // Block negative signs and 'e' in ALL number inputs globally
+  document.addEventListener('keydown',e=>{
+    if(e.target.type==='number'&&(e.key==='-'||e.key==='e'||e.key==='E'))e.preventDefault();
+  });
+  document.addEventListener('paste',e=>{
+    if(e.target.type==='number'){
+      const txt=(e.clipboardData||window.clipboardData).getData('text');
+      if(txt&&parseFloat(txt)<0){e.preventDefault();e.target.value=String(Math.abs(parseFloat(txt)));}
+    }
+  });
   </script>
   <h1>Expense Tracker</h1>
   <p style="color:#6b7280;font-size:.88rem;margin-top:0">Monthly expenses by category. Click "+Sub" on a row to add a subcategory. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
@@ -844,6 +863,29 @@ function deleteCol(id){
   Object.keys(state.cells).filter(k=>k.endsWith('|'+id)).forEach(k=>delete state.cells[k]);
   save(); render();
 }
+// Move a parent row (and all its children) before/after another parent row
+function moveParentRow(fromId, toId, before){
+  if(fromId===toId) return;
+  snapshot();
+  // Collect the "from" group: parent + its children in order
+  const fromGroup=[fromId,...state.rows.filter(r=>r.parentId===fromId).map(r=>r.id)];
+  // Remove from current positions
+  const fromRows=fromGroup.map(id=>state.rows.find(r=>r.id===id)).filter(Boolean);
+  state.rows=state.rows.filter(r=>!fromGroup.includes(r.id));
+  // Find insertion point relative to the "to" parent
+  const toParentIdx=state.rows.findIndex(r=>r.id===toId);
+  if(toParentIdx===-1){state.rows.push(...fromRows);save();render();return;}
+  if(before){
+    state.rows.splice(toParentIdx,0,...fromRows);
+  } else {
+    // Insert after the "to" group (parent + its children)
+    const toKids=state.rows.reduce((acc,r,i)=>r.parentId===toId?[...acc,i]:acc,[]);
+    const insertAfter=toKids.length?Math.max(...toKids):toParentIdx;
+    state.rows.splice(insertAfter+1,0,...fromRows);
+  }
+  save(); render();
+}
+let _dragRowId=null;
 
 // ── Security helpers ───────────────────────────────────────────────────────────
 function escapeHtml(s){
@@ -1154,6 +1196,37 @@ function render(){
 
     const rhTd=document.createElement('td');rhTd.className='rh-cell';rhTd.style.backgroundColor=row.color;
     const rhIn=document.createElement('div');rhIn.className='rh-inner';
+    if(!isChild){
+      const dh=document.createElement('span');dh.className='drag-handle';dh.textContent='⠿';dh.title='Drag to reorder';
+      dh.addEventListener('mousedown',()=>{ tr.draggable=true; });
+      dh.addEventListener('mouseup',()=>{ tr.draggable=false; });
+      rhIn.appendChild(dh);
+      tr.addEventListener('dragstart',e=>{
+        _dragRowId=row.id;
+        tr.classList.add('tr-dragging');
+        e.dataTransfer.effectAllowed='move';
+      });
+      tr.addEventListener('dragend',()=>{
+        _dragRowId=null;
+        tr.classList.remove('tr-dragging');
+        document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+      });
+      tr.addEventListener('dragover',e=>{
+        if(!_dragRowId||_dragRowId===row.id) return;
+        e.preventDefault();
+        document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+        const rect=tr.getBoundingClientRect();
+        if(e.clientY<rect.top+rect.height/2) tr.classList.add('tr-drop-before');
+        else tr.classList.add('tr-drop-after');
+      });
+      tr.addEventListener('drop',e=>{
+        e.preventDefault();
+        if(!_dragRowId||_dragRowId===row.id) return;
+        const before=tr.classList.contains('tr-drop-before');
+        tr.classList.remove('tr-drop-before','tr-drop-after');
+        moveParentRow(_dragRowId,row.id,before);
+      });
+    }
     if(hasKids){
       const cb=document.createElement('button');cb.className='collapse-btn';cb.title=collapsed?'Expand':'Collapse';cb.textContent=collapsed?'▸':'▾';
       cb.addEventListener('click',()=>toggleCollapse(row.id));rhIn.appendChild(cb);
@@ -1193,10 +1266,13 @@ function render(){
       dd.appendChild(addBtn);rhIn.appendChild(dd);
     }
     if(row.linked==='subscriptions'){
-      const badge=document.createElement('span');
-      badge.style.cssText='font-size:.72rem;margin-left:3px;opacity:.7;';
-      badge.textContent='🔗'; badge.title='Auto-linked from Subscription Tracker';
-      rhIn.appendChild(badge);
+      const linkBtn=document.createElement('a');
+      linkBtn.href='/subscriptions';
+      linkBtn.className='subs-link-btn tip-host';
+      linkBtn.dataset.tip='This category is linked to your Subscription Tracker — click to open it';
+      linkBtn.title='This category is linked to your Subscription Tracker — click to open it';
+      linkBtn.textContent='→ Subscriptions';
+      rhIn.appendChild(linkBtn);
     }
     rhTd.appendChild(rhIn);
     const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);rhTd.appendChild(rr);
