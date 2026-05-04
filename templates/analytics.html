@@ -751,7 +751,11 @@ function renderBreakdownChart(){
     ctrl.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===catBreakType));
   }
   destroyChart('breakdown');
-  const catTotals=combinedCategoryTotals(_exp,_subs,_cm);
+  // Split months into actual vs forecast so chart reflects real spending only
+  const actualMs=_cm.filter(m=>m<=_cToday);
+  const forecastMs=_cm.filter(m=>m>_cToday);
+  const catTotals=combinedCategoryTotals(_exp,_subs,actualMs);
+  const catFcTotals=forecastMs.length?combinedCategoryTotals(_exp,_subs,forecastMs):{};
   const sorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
   if(sorted.length){
     const labels=sorted.map(e=>e[0]);
@@ -778,9 +782,16 @@ function renderBreakdownChart(){
     if(!list){ list=document.createElement('ul'); list.className='insight-list'; card.appendChild(list); }
     list.innerHTML=sorted.map(([name,d])=>{
       const pct=(d.value/total*100).toFixed(1);
+      const fcVal=catFcTotals[name]?catFcTotals[name].value:0;
+      const fcTag=fcVal>0?` <span style="color:var(--muted);font-size:.8em">+${fmtMoney(fcVal)} forecast</span>`:'';
       return `<li><span class="insight-name">${escapeHtml(name)}</span>`+
-        `<span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span></span></li>`;
+        `<span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span>${fcTag}</span></li>`;
     }).join('');
+    // Add forecast-only categories that have no actual spend
+    Object.entries(catFcTotals).filter(([n])=>!catTotals[n]).forEach(([name,d])=>{
+      list.innerHTML+=`<li><span class="insight-name">${escapeHtml(name)}</span>`+
+        `<span class="insight-val"><span style="color:var(--muted)">—</span> <span style="color:var(--muted);font-size:.8em">+${fmtMoney(d.value)} forecast</span></span></li>`;
+    });
   }
 }
 
