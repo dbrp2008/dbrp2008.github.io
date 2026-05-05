@@ -372,21 +372,21 @@ async function ensureRate(currency){
   if(!currency||currency==='USD'||ratesCache[currency]) return;
   await fetchAndCacheUSDRates();
 }
-function rowCurrency(rowId){ return (state.rowCurrencies||{})[rowId]||'USD'; }
-function setRowCurrency(rowId,cur){
-  if(!state.rowCurrencies) state.rowCurrencies={};
-  state.rowCurrencies[rowId]=cur; save();
+function rowCurrency(monthKey, rowId){ return (state.monthRowCurrencies||{})[monthKey+'|'+rowId]||'USD'; }
+function setRowCurrency(monthKey, rowId, cur){
+  if(!state.monthRowCurrencies) state.monthRowCurrencies={};
+  state.monthRowCurrencies[monthKey+'|'+rowId]=cur; save();
 }
-function amountToUSD(rawAmt, rowId){
+function amountToUSD(rawAmt, monthKey, rowId){
   if(!rawAmt) return 0;
-  const cur=rowCurrency(rowId);
+  const cur=rowCurrency(monthKey, rowId);
   if(cur==='USD') return rawAmt;
   const rate=ratesCache[cur];
   return rate?rawAmt/rate:rawAmt;
 }
 function getAllUsedCurrencies(){
   const set=new Set(CELL_CURRENCIES);
-  Object.values(state.rowCurrencies||{}).forEach(c=>{ if(c) set.add(c); });
+  Object.values(state.monthRowCurrencies||{}).forEach(c=>{ if(c) set.add(c); });
   return [...set];
 }
 // Display currency controls
@@ -473,16 +473,16 @@ function showCellCurrencyOther(wrap, sel, row){
   wrap.appendChild(form);
   setTimeout(()=>inp.focus(),20);
   function showErr(msg){ const old=form.querySelector('.curr-other-err'); if(old) old.remove(); const e=document.createElement('span'); e.className='curr-other-err'; e.textContent=msg; form.style.position='relative'; form.appendChild(e); }
-  function close(){ form.remove(); sel.style.display=''; sel.value=rowCurrency(row.id); }
+  function close(){ form.remove(); sel.style.display=''; sel.value=rowCurrency(currentMK(), row.id); }
   async function apply(){
     const code=inp.value.trim().toUpperCase();
     if(!code){showErr('Enter a code.');return;}
     if(!/^[A-Z]{2,5}$/.test(code)){showErr('2–5 letters only.');return;}
-    if(code==='USD'){setRowCurrency(row.id,code);close();render();renderChart();return;}
+    if(code==='USD'){setRowCurrency(currentMK(), row.id, code);close();render();renderChart();return;}
     ok.disabled=true; ok.textContent='…';
     await ensureRate(code);
     if(!ratesCache[code]){showErr('Unknown: '+code);ok.disabled=false;ok.textContent='✓';return;}
-    setRowCurrency(row.id,code); close(); render(); renderChart();
+    setRowCurrency(currentMK(), row.id, code); close(); render(); renderChart();
   }
   ok.addEventListener('click',e=>{e.stopPropagation();apply();});
   cancel.addEventListener('click',e=>{e.stopPropagation();close();});
@@ -515,7 +515,7 @@ function freshState(){
       {id:uid(),label:'Amount',width:160},
     ],
     headerColWidth:185, totalColWidth:110,
-    cells:{}, collapsed:{}, rowCurrencies:{},
+    cells:{}, collapsed:{}, monthRowCurrencies:{},
     displayCurrency:'USD',
     currentYear:y, currentMonth:m,
   };
@@ -527,7 +527,7 @@ function loadState(){
       const s=JSON.parse(r);
       if(!s.cells)          s.cells={};
       if(!s.collapsed)      s.collapsed={};
-      if(!s.rowCurrencies)  s.rowCurrencies={};
+      if(!s.monthRowCurrencies)  s.monthRowCurrencies={};
       if(!s.displayCurrency) s.displayCurrency='USD';
       return s;
     }
@@ -744,7 +744,7 @@ function rowTotalUSD(rId){
   // Returns total in USD (converts non-USD cell values)
   const kids=children(rId);
   if(kids.length) return kids.reduce((s,c)=>s+rowTotalUSD(c.id),0);
-  return state.cols.reduce((s,col)=>s+amountToUSD(getCell(rId,col.id),rId),0);
+  return state.cols.reduce((s,col)=>s+amountToUSD(getCell(rId,col.id), currentMK(), rId),0);
 }
 function rowTotal(rId){
   // Returns total in display currency
@@ -766,8 +766,8 @@ function grandTotalDisplay(){
 }
 function colTotal(cId){
   return state.rows.filter(r=>!r.parentId).reduce((s,r)=>{
-    if(hasChildren(r.id)) return s+children(r.id).reduce((cs,c)=>cs+amountToUSD(getCell(c.id,cId),c.id),0);
-    return s+amountToUSD(getCell(r.id,cId),r.id);
+    if(hasChildren(r.id)) return s+children(r.id).reduce((cs,c)=>cs+amountToUSD(getCell(c.id,cId), currentMK(), c.id),0);
+    return s+amountToUSD(getCell(r.id,cId), currentMK(), r.id);
   },0);
 }
 function fmt(n){ return '$'+Math.max(0,n).toFixed(2); }
@@ -988,7 +988,7 @@ function rowTotalForMonthKey(rId, monthKey){
   if(kids.length) return kids.reduce((s,c)=>s+rowTotalForMonthKey(c.id,monthKey),0);
   return state.cols.reduce((s,col)=>{
     const k=monthKey+'|'+rId+'|'+col.id;
-    return s+amountToUSD(parseFloat(state.cells[k])||0,rId);
+    return s+amountToUSD(parseFloat(state.cells[k])||0, monthKey, rId);
   },0);
 }
 function rowTotalForYear(rId,year){
@@ -1261,11 +1261,11 @@ function render(){
         inp.addEventListener('change',()=>{
           if(parseFloat(inp.value)<0) inp.value='0';
           setCell(row.id,col.id,inp.value);
-          ensureRate(rowCurrency(row.id)).then(()=>updateAll(row.id));
+          ensureRate(rowCurrency(currentMK(), row.id)).then(()=>updateAll(row.id));
         });
         wrap.appendChild(inp);
         // Per-row currency selector
-        const cur=rowCurrency(row.id);
+        const cur=rowCurrency(currentMK(), row.id);
         const sel=document.createElement('select'); sel.className='cell-curr-sel'; sel.title='Currency for this row';
         const codes=getAllUsedCurrencies();
         if(!codes.includes(cur)) codes.push(cur);
@@ -1273,7 +1273,7 @@ function render(){
         const otherOpt=document.createElement('option'); otherOpt.value='__other__'; otherOpt.textContent='Other…'; sel.appendChild(otherOpt);
         sel.addEventListener('change',()=>{
           if(sel.value==='__other__'){ showCellCurrencyOther(wrap,sel,row); return; }
-          setRowCurrency(row.id,sel.value);
+          setRowCurrency(currentMK(), row.id, sel.value);
           ensureRate(sel.value).then(()=>{ updateAll(row.id); renderChart(); });
         });
         wrap.appendChild(sel);
@@ -1480,12 +1480,14 @@ function buildIncMonthBlob(){
   const mk2=currentMK();
   const cells={};
   Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) cells[k]=state.cells[k]; });
+  const rowCurrencies={};
+  Object.keys(state.monthRowCurrencies||{}).forEach(k=>{ if(k.startsWith(mk2+'|')) rowCurrencies[k]=state.monthRowCurrencies[k]; });
   return {
     kind:'INC-MONTH', v:1, monthKey:mk2,
     rows:JSON.parse(JSON.stringify(state.rows)),
     cols:JSON.parse(JSON.stringify(state.cols)),
     cells,
-    rowCurrencies:JSON.parse(JSON.stringify(state.rowCurrencies||{})),
+    rowCurrencies,
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
   };
 }
@@ -1501,7 +1503,7 @@ function buildIncFullBlob(){
     cols:JSON.parse(JSON.stringify(state.cols)),
     cellsByMonth,
     collapsed:JSON.parse(JSON.stringify(state.collapsed||{})),
-    rowCurrencies:JSON.parse(JSON.stringify(state.rowCurrencies||{})),
+    rowCurrencies:JSON.parse(JSON.stringify(state.monthRowCurrencies||{})),
     displayCurrency:state.displayCurrency||'USD',
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
     currentYear:state.currentYear, currentMonth:state.currentMonth,
@@ -1876,7 +1878,7 @@ function showShareModal(title,text){
     });
   }
   // Pre-load any non-USD row rates
-  const usedCurs=[...new Set(Object.values(state.rowCurrencies||{}).filter(c=>c&&c!=='USD'))];
+  const usedCurs=[...new Set(Object.values(state.monthRowCurrencies||{}).filter(c=>c&&c!=='USD'))];
   if(usedCurs.length) await fetchAndCacheUSDRates();
   render();
 })();
