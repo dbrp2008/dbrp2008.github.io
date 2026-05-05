@@ -42,10 +42,18 @@
   <div id="msg-area"></div>
 
   <script>
-    // Pre-fill annual income if the expense tracker sent one
+    // Pre-fill annual income from either localStorage (Expense Tracker) or ?annual= URL param (Income Tracker)
     window.addEventListener('DOMContentLoaded', () => {
-      const prefill = localStorage.getItem('fiapp_prefill_income');
       const incomeInput = document.getElementById('income');
+      // URL param takes priority (direct link from Income Tracker)
+      const params = new URLSearchParams(window.location.search);
+      const urlVal = params.get('annual') || params.get('gross');
+      if (urlVal && !incomeInput.value) {
+        incomeInput.value = urlVal;
+        return;
+      }
+      // Fallback: localStorage prefill from Expense Tracker
+      const prefill = localStorage.getItem('fiapp_prefill_income');
       if (prefill && !incomeInput.value) {
         incomeInput.value = prefill;
         localStorage.removeItem('fiapp_prefill_income');
