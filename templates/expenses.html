@@ -756,23 +756,37 @@ function updateIncomeSummary(){
 }
 
 // Tax carryover: applies a freshly-calculated tax result exactly once per recalculation.
+function _fmtMkLabel(mk2){
+  const [y,m]=mk2.split('-');
+  return MONTHS_SHORT[parseInt(m)-1]+' '+y;
+}
 function loadTaxCarryover(){
   try{
     const t=JSON.parse(localStorage.getItem(TAX_KEY)); if(!t) return;
     const isFresh = t.consumed===false || (t.ts && t.ts>(state.lastTaxTs||0));
     if(!isFresh) return;
 
-    const obj=monthIncomeObj();
-    obj.tax = (parseFloat(t.tax)/12).toFixed(2);
-    if(!obj.gross) obj.gross = (parseFloat(t.income)/12).toFixed(2);
+    const monthlyTax=(parseFloat(t.tax)/12).toFixed(2);
+    const monthlyIncome=(parseFloat(t.income)/12).toFixed(2);
+
+    // Apply to the specific months stored in the result, or current month as fallback
+    const targetMonths=t.months&&t.months.length ? t.months : [currentMK()];
+    targetMonths.forEach(mk2=>{
+      if(!state.income[mk2]) state.income[mk2]={};
+      state.income[mk2].tax=monthlyTax;
+      if(!state.income[mk2].gross) state.income[mk2].gross=monthlyIncome;
+    });
 
     t.consumed=true;
     state.lastTaxTs = t.ts || Date.now();
     localStorage.setItem(TAX_KEY,JSON.stringify(t));
     save();
 
+    const monthLabel=targetMonths.length===1
+      ? _fmtMkLabel(targetMonths[0])
+      : targetMonths.length+' months ('+targetMonths.map(_fmtMkLabel).join(', ')+')';
     const banner=document.createElement('div'); banner.className='tax-banner';
-    banner.innerHTML=`✓ Tax data applied (annual: $${Number(t.income).toLocaleString()}, tax: $${Number(t.tax).toLocaleString()}). <a href="/tax">Recalculate →</a>`;
+    banner.innerHTML=`✓ Monthly tax ($${Number(monthlyTax).toLocaleString()}) applied to ${monthLabel}. Annual: $${Number(t.income).toLocaleString()}, tax: $${Number(t.tax).toLocaleString()}. <a href="/tax">Recalculate →</a>`;
     document.getElementById('income-grid').prepend(banner);
     document.getElementById('tax-link').style.display='none';
   }catch(e){ console.warn('FiApp: loadTaxCarryover failed —',e.message); }
