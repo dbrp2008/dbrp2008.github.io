@@ -1838,6 +1838,7 @@ function showShareModal(title,text){
     if(badge){
       if(me.username){
         badge.innerHTML='<span class="auth-badge">👤 '+me.username+'</span>'
+          +'<a class="btn-ghost btn-sm" href="/account" title="Account settings">⚙</a>'
           +'<button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>';
       } else {
         badge.innerHTML='<a class="btn-ghost btn-sm" href="/login">Log in</a>';
