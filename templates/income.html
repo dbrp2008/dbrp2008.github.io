@@ -355,15 +355,14 @@ let ratesReady   = false;
 let currentRate  = 1; // display currency rate vs USD
 async function fetchAndCacheUSDRates(){
   try{
-    const r=await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const r=await fetch('https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd.json');
     const d=await r.json();
-    if(d.rates){
-      const rates=d.rates;
+    if(d.usd){
+      const rates=d.usd;
       if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
         Object.keys(rates).forEach(k=>{
-          if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];
-        });
-        ratesReady=true;
+          if(/^[a-z]{3}$/.test(k)&&typeof rates[k]==='number') ratesCache[k.toUpperCase()]=rates[k];
+        });        ratesReady=true;
       }
     }
   }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
@@ -420,12 +419,12 @@ function onCurrencyChange(){
     document.getElementById('curr-note').textContent='1 USD = '+ratesCache[cur].toFixed(4)+' '+cur;
     showConvFields(cur,ratesCache[cur]); return;
   }
-  fetch('https://api.exchangerate-api.com/v4/latest/USD')
+  fetch('https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd.json')
     .then(r=>r.json()).then(d=>{
-      if(!d.rates){document.getElementById('curr-note').textContent='Error';return;}
-      const rates=d.rates;
+      if(!d.usd){document.getElementById('curr-note').textContent='Error';return;}
+      const rates=d.usd;
       if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
-        Object.keys(rates).forEach(k=>{if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];});
+        Object.keys(rates).forEach(k=>{if(/^[a-z]{3}$/.test(k)&&typeof rates[k]==='number') ratesCache[k.toUpperCase()]=rates[k];});
         ratesReady=true;
       }
       const rate=ratesCache[cur];
@@ -439,12 +438,12 @@ function applyOtherCurrency(){
   if(!raw||!/^[A-Z]{2,5}$/.test(raw)){document.getElementById('curr-note').textContent='Invalid code (2–5 letters).';return;}
   if(raw==='USD'){state.displayCurrency='USD';save();hideConvFields();document.getElementById('curr-sel').value='USD';return;}
   document.getElementById('curr-note').textContent='Fetching…';
-  fetch('https://api.exchangerate-api.com/v4/latest/USD')
+  fetch('https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd.json')
     .then(r=>r.json()).then(d=>{
-      if(!d.rates){document.getElementById('curr-note').textContent='API error';return;}
-      const rates=d.rates;
+      if(!d.usd){document.getElementById('curr-note').textContent='API error';return;}
+      const rates=d.usd;
       if(rates&&typeof rates==='object'){
-        Object.keys(rates).forEach(k=>{if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];});
+        Object.keys(rates).forEach(k=>{if(/^[a-z]{3}$/.test(k)&&typeof rates[k]==='number') ratesCache[k.toUpperCase()]=rates[k];});
         ratesReady=true;
       }
       const rate=ratesCache[raw];
