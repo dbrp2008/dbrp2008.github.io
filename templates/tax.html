@@ -269,18 +269,20 @@ function _isFullYr(y){
 function _mksForYear(y){ const r=[]; for(let m=0;m<12;m++) if(_inRng(y,m)) r.push(_mk(y,m)); return r; }
 function _getInc(){ try{ return JSON.parse(localStorage.getItem(_IK))||null; }catch{ return null; } }
 
-// Returns all leaf rows across ALL income categories (matches grandTotal() in income.html)
-function _allLeafs(inc){
+// Returns true leaf descendants of all top-level "Salary" rows — fully recursive,
+// matching rowTotalUSD() in income.html (data always lives at leaf nodes)
+function _salaryLeafs(inc){
   if(!inc||!inc.rows) return [];
-  const res=[];
-  inc.rows.filter(r=>!r.parentId).forEach(p=>{
-    const kids=inc.rows.filter(r=>r.parentId===p.id);
-    res.push(...(kids.length?kids:[p]));
-  });
-  return res;
+  const ps=inc.rows.filter(r=>!r.parentId&&r.label.trim().toLowerCase()==='salary');
+  function collectLeafs(id){
+    const kids=inc.rows.filter(r=>r.parentId===id);
+    if(!kids.length) return [inc.rows.find(r=>r.id===id)].filter(Boolean);
+    return kids.flatMap(k=>collectLeafs(k.id));
+  }
+  return ps.flatMap(p=>collectLeafs(p.id));
 }
 function _mthTotal(mk,inc){
-  const rows=_allLeafs(inc); let t=0;
+  const rows=_salaryLeafs(inc); let t=0;
   for(const row of rows) for(const col of (inc.cols||[])){
     const v=parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0;
     if(!v) continue;
@@ -293,15 +295,15 @@ function _mthTotal(mk,inc){
   return t;
 }
 function _mthHas(mk,inc){
-  for(const row of _allLeafs(inc))
+  for(const row of _salaryLeafs(inc))
     for(const col of (inc.cols||[]))
       if((parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0)>0) return true;
   return false;
 }
 async function _loadRates(inc){
   if(_ratesOk) return;
-  // Collect all non-USD currencies across all income rows (supports both storage schemas)
-  const rows=_allLeafs(inc);
+  // Collect all non-USD currencies from salary leaf rows (supports both storage schemas)
+  const rows=_salaryLeafs(inc);
   const curs=[...new Set(rows.flatMap(r=>{
     const fromNew=Object.entries(inc.monthRowCurrencies||{})
       .filter(([k])=>k.endsWith('|'+r.id)).map(([,v])=>v);
