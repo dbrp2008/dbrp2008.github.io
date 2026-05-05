@@ -530,6 +530,20 @@ function _buildUI(inc){
 window.addEventListener('DOMContentLoaded', async ()=>{
   const incomeInput=document.getElementById('income');
 
+  // Restrict input to positive numbers only
+  incomeInput.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/[^0-9.]/g, ''); // Allow only digits and decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    // Remove leading zeros except for decimal
+    value = value.replace(/^0+(?=\d)/, '');
+    // Ensure no negative sign
+    value = value.replace(/^-/, '');
+    e.target.value = value;
+  });
+
   // Pre-fill from URL param or localStorage
   const params=new URLSearchParams(window.location.search);
   const urlVal=params.get('annual')||params.get('gross');
