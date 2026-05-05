@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
+    body { max-width: 700px; }
     .toolbar{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
     .toolbar-row-1,.toolbar-row-2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;}
     .toolbar-row-1{margin-bottom:.4rem;}
@@ -40,6 +41,18 @@
     .summary-val{font-size:1.05rem;font-weight:800;color:var(--total-fg);}
     .summary-link{font-size:.82rem;font-weight:600;color:var(--link);text-decoration:none;margin-top:2px;}
     .summary-link:hover{text-decoration:underline;}
+    /* Currency: inline "Other…" form */
+    .curr-other-cell{display:inline-flex;align-items:center;gap:3px;font-size:.82rem;}
+    .curr-other-cell input{width:52px;padding:2px 5px;border:1px solid var(--input-border);border-radius:3px;font-size:.8rem;background:var(--input-bg);color:var(--fg);}
+    .curr-other-cell button{padding:.1rem .4rem;border:none;border-radius:3px;cursor:pointer;font-size:.78rem;background:var(--accent);color:#fff;}
+    .curr-other-cell button.x{background:var(--secondary-bg);color:var(--secondary-fg);}
+    .curr-other-err{position:absolute;top:calc(100% + 2px);left:0;background:var(--error-bg);color:var(--error-fg);font-size:.72rem;padding:.2rem .4rem;border-radius:4px;white-space:nowrap;z-index:9999;}
+    /* Per-cell currency selector */
+    .cost-wrap{display:flex;align-items:center;gap:3px;}
+    .c-num{flex:1;min-width:0;}
+    .cell-curr-sel{flex-shrink:0;font-size:.72rem;padding:2px 3px;border:1px solid var(--input-border);border-radius:3px;background:var(--input-bg);color:var(--fg);max-width:62px;}
+    /* Center the sheet table */
+    .sheet-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;width:fit-content;max-width:100%;margin:0 auto;}
 
     /* Chart */
     .chart-section{display:none;margin-bottom:1rem;padding:.75rem 1rem;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;}
@@ -84,6 +97,11 @@
     .col-del:hover{color:#ef4444;background:rgba(239,68,68,.1);}
     .col-resize{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
     .col-resize:hover,.col-resize.dragging{background:#86efac;}
+    /* Column drag */
+    .col-drag-handle{cursor:grab;color:var(--muted);font-size:.75rem;margin-right:.3rem;user-select:none;opacity:.55;}
+    .col-drag-handle:hover{opacity:1;}
+    th.th-drop-before{border-left:3px solid #065f46!important;}
+    th.th-drop-after {border-right:3px solid #065f46!important;}
     .row-resize{position:absolute;left:0;right:0;bottom:0;height:5px;cursor:row-resize;z-index:2;}
     .row-resize:hover,.row-resize.dragging{background:#86efac;}
 
@@ -249,16 +267,41 @@
     <h3>Income Summary — <span id="summary-month"></span></h3>
     <div class="summary-grid">
       <div class="summary-item">
-        <span class="summary-label">Total This Month</span>
+        <span class="summary-label">Total This Month (USD)</span>
         <span class="summary-val" id="disp-total">$0.00</span>
       </div>
+      <div class="summary-item" id="conv-wrap" style="display:none">
+        <span class="summary-label" id="conv-lbl">Total</span>
+        <span class="summary-val" id="disp-conv">—</span>
+      </div>
       <div class="summary-item">
-        <span class="summary-label">Annual (×12)</span>
+        <span class="summary-label">Annual (×12, USD)</span>
         <span class="summary-val" id="disp-annual">—</span>
       </div>
-      <div class="summary-item">
-        <a class="summary-link" href="/expenses">→ Open Expense Tracker</a>
+      <div class="summary-item" style="display:flex;flex-direction:column;gap:4px;">
+        <a class="summary-link" href="/expenses">→ Expense Tracker</a>
+        <a class="summary-link" id="tax-calc-link" href="/tax" style="color:#d97706;">🧾 Calculate Income Tax</a>
       </div>
+    </div>
+    <!-- Currency row -->
+    <div class="curr-row" style="margin-top:.6rem;">
+      <label style="font-size:.78rem;font-weight:600;color:var(--muted);margin-right:.4rem;">Display currency:</label>
+      <select id="curr-sel" onchange="onCurrencyChange()" style="padding:.25rem .5rem;border:1px solid var(--input-border);border-radius:5px;font-size:.82rem;background:var(--input-bg);color:var(--fg);">
+        <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
+        <option value="CAD">CAD</option><option value="AUD">AUD</option><option value="JPY">JPY</option>
+        <option value="CNY">CNY</option><option value="INR">INR</option><option value="MXN">MXN</option>
+        <option value="BRL">BRL</option><option value="SGD">SGD</option><option value="HKD">HKD</option>
+        <option value="CHF">CHF</option><option value="NZD">NZD</option><option value="ZAR">ZAR</option>
+        <option value="AED">AED</option><option value="KRW">KRW</option><option value="NOK">NOK</option>
+        <option value="SEK">SEK</option><option value="PKR">PKR</option><option value="NGN">NGN</option>
+        <option value="THB">THB</option><option value="MYR">MYR</option><option value="IDR">IDR</option>
+        <option value="__other__">Other…</option>
+      </select>
+      <input type="text" id="curr-other-inp" placeholder="e.g. VND" maxlength="5"
+        style="display:none;width:72px;padding:3px 7px;border:1px solid var(--input-border);border-radius:4px;font-size:.82rem;background:var(--input-bg);color:var(--fg);margin-left:.35rem;">
+      <button id="curr-other-btn" class="btn btn-sm" onclick="applyOtherCurrency()"
+        style="display:none;padding:.25rem .6rem;font-size:.8rem;margin-left:.25rem;">OK</button>
+      <span id="curr-note" style="font-size:.75rem;color:var(--muted);margin-left:.5rem;"></span>
     </div>
   </div>
 
@@ -303,6 +346,148 @@ const REDO_KEY    = 'fiapp_income_redo_v1';
 const PUSH_KEY    = 'fiapp_income_push_v1';
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTHS_SHORT= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const EXCHANGE_API_KEY = '081a97e88979627d1194f7ee';
+const CELL_CURRENCIES  = ['USD','EUR','GBP','AED','HKD','SGD','CAD','AUD','JPY','CNY','INR','CHF','MYR','THB','KRW','BRL','MXN'];
+
+// ── Rate cache ─────────────────────────────────────────────────────────────────
+const ratesCache = {};
+let ratesReady   = false;
+let currentRate  = 1; // display currency rate vs USD
+async function fetchAndCacheUSDRates(){
+  try{
+    const r=await fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD');
+    const d=await r.json();
+    if(d.result==='success'){
+      const rates=d.conversion_rates;
+      if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
+        Object.keys(rates).forEach(k=>{
+          if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];
+        });
+        ratesReady=true;
+      }
+    }
+  }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
+}
+async function ensureRate(currency){
+  if(!currency||currency==='USD'||ratesCache[currency]) return;
+  await fetchAndCacheUSDRates();
+}
+function rowCurrency(rowId){ return (state.rowCurrencies||{})[rowId]||'USD'; }
+function setRowCurrency(rowId,cur){
+  if(!state.rowCurrencies) state.rowCurrencies={};
+  state.rowCurrencies[rowId]=cur; save();
+}
+function amountToUSD(rawAmt, rowId){
+  if(!rawAmt) return 0;
+  const cur=rowCurrency(rowId);
+  if(cur==='USD') return rawAmt;
+  const rate=ratesCache[cur];
+  return rate?rawAmt/rate:rawAmt;
+}
+function getAllUsedCurrencies(){
+  const set=new Set(CELL_CURRENCIES);
+  Object.values(state.rowCurrencies||{}).forEach(c=>{ if(c) set.add(c); });
+  return [...set];
+}
+// Display currency controls
+function showConvFields(cur,rate){
+  currentRate=rate;
+  document.getElementById('conv-lbl').textContent='Total ('+cur+')';
+  document.getElementById('conv-wrap').style.display='';
+  updateSummaryBar();
+}
+function hideConvFields(){
+  currentRate=1;
+  document.getElementById('conv-wrap').style.display='none';
+  document.getElementById('curr-note').textContent='';
+  updateSummaryBar();
+}
+function onCurrencyChange(){
+  const sel=document.getElementById('curr-sel');
+  const cur=sel.value;
+  const otherInp=document.getElementById('curr-other-inp');
+  const otherBtn=document.getElementById('curr-other-btn');
+  if(cur==='__other__'){
+    otherInp.style.display='inline-block'; otherBtn.style.display='inline-block';
+    document.getElementById('curr-note').textContent='Enter a currency code then click OK.';
+    return;
+  }
+  otherInp.style.display='none'; otherBtn.style.display='none';
+  state.displayCurrency=cur; save();
+  if(cur==='USD'){ hideConvFields(); return; }
+  document.getElementById('curr-note').textContent='Fetching…';
+  if(ratesCache[cur]){
+    document.getElementById('curr-note').textContent='1 USD = '+ratesCache[cur].toFixed(4)+' '+cur;
+    showConvFields(cur,ratesCache[cur]); return;
+  }
+  fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD')
+    .then(r=>r.json()).then(d=>{
+      if(d.result!=='success'){document.getElementById('curr-note').textContent='Error';return;}
+      const rates=d.conversion_rates;
+      if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
+        Object.keys(rates).forEach(k=>{if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];});
+        ratesReady=true;
+      }
+      const rate=ratesCache[cur];
+      if(!rate){document.getElementById('curr-note').textContent='Unknown currency: '+cur;return;}
+      document.getElementById('curr-note').textContent='1 USD = '+rate.toFixed(4)+' '+cur;
+      showConvFields(cur,rate);
+    }).catch(()=>{document.getElementById('curr-note').textContent='Network error';});
+}
+function applyOtherCurrency(){
+  const raw=(document.getElementById('curr-other-inp').value||'').trim().toUpperCase();
+  if(!raw||!/^[A-Z]{2,5}$/.test(raw)){document.getElementById('curr-note').textContent='Invalid code (2–5 letters).';return;}
+  if(raw==='USD'){state.displayCurrency='USD';save();hideConvFields();document.getElementById('curr-sel').value='USD';return;}
+  document.getElementById('curr-note').textContent='Fetching…';
+  fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD')
+    .then(r=>r.json()).then(d=>{
+      if(d.result!=='success'){document.getElementById('curr-note').textContent='API error';return;}
+      const rates=d.conversion_rates;
+      if(rates&&typeof rates==='object'){
+        Object.keys(rates).forEach(k=>{if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];});
+        ratesReady=true;
+      }
+      const rate=ratesCache[raw];
+      if(!rate){document.getElementById('curr-note').textContent='Unknown currency: '+raw;return;}
+      // Add as custom option
+      const sel=document.getElementById('curr-sel');
+      if(![...sel.options].find(o=>o.value===raw)){
+        const opt=document.createElement('option'); opt.value=raw; opt.textContent=raw; opt.dataset.custom='1';
+        sel.insertBefore(opt, sel.querySelector('option[value="__other__"]'));
+      }
+      sel.value=raw;
+      document.getElementById('curr-other-inp').style.display='none';
+      document.getElementById('curr-other-btn').style.display='none';
+      state.displayCurrency=raw; save();
+      document.getElementById('curr-note').textContent='1 USD = '+rate.toFixed(4)+' '+raw;
+      showConvFields(raw,rate);
+    }).catch(()=>{document.getElementById('curr-note').textContent='Network error';});
+}
+function showCellCurrencyOther(wrap, sel, row){
+  sel.style.display='none';
+  const form=document.createElement('span'); form.className='curr-other-cell';
+  const inp=document.createElement('input'); inp.type='text'; inp.maxLength=5; inp.placeholder='VND';
+  const ok=document.createElement('button'); ok.textContent='✓'; ok.title='Apply';
+  const cancel=document.createElement('button'); cancel.textContent='✕'; cancel.title='Cancel'; cancel.className='x';
+  form.appendChild(inp); form.appendChild(ok); form.appendChild(cancel);
+  wrap.appendChild(form);
+  setTimeout(()=>inp.focus(),20);
+  function showErr(msg){ const old=form.querySelector('.curr-other-err'); if(old) old.remove(); const e=document.createElement('span'); e.className='curr-other-err'; e.textContent=msg; form.style.position='relative'; form.appendChild(e); }
+  function close(){ form.remove(); sel.style.display=''; sel.value=rowCurrency(row.id); }
+  async function apply(){
+    const code=inp.value.trim().toUpperCase();
+    if(!code){showErr('Enter a code.');return;}
+    if(!/^[A-Z]{2,5}$/.test(code)){showErr('2–5 letters only.');return;}
+    if(code==='USD'){setRowCurrency(row.id,code);close();render();renderChart();return;}
+    ok.disabled=true; ok.textContent='…';
+    await ensureRate(code);
+    if(!ratesCache[code]){showErr('Unknown: '+code);ok.disabled=false;ok.textContent='✓';return;}
+    setRowCurrency(row.id,code); close(); render(); renderChart();
+  }
+  ok.addEventListener('click',e=>{e.stopPropagation();apply();});
+  cancel.addEventListener('click',e=>{e.stopPropagation();close();});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();apply();}if(e.key==='Escape'){close();}});
+}
 
 const CATEGORIES = {
   'Salary':       ['Base Pay','Overtime','Bonus','Commission','Tips'],
@@ -330,7 +515,8 @@ function freshState(){
       {id:uid(),label:'Amount',width:160},
     ],
     headerColWidth:185, totalColWidth:110,
-    cells:{}, collapsed:{},
+    cells:{}, collapsed:{}, rowCurrencies:{},
+    displayCurrency:'USD',
     currentYear:y, currentMonth:m,
   };
 }
@@ -339,8 +525,10 @@ function loadState(){
     const r=localStorage.getItem(STORAGE_KEY);
     if(r){
       const s=JSON.parse(r);
-      if(!s.cells)     s.cells={};
-      if(!s.collapsed) s.collapsed={};
+      if(!s.cells)          s.cells={};
+      if(!s.collapsed)      s.collapsed={};
+      if(!s.rowCurrencies)  s.rowCurrencies={};
+      if(!s.displayCurrency) s.displayCurrency='USD';
       return s;
     }
   }catch(e){ console.warn('FiApp: loadState failed, using fresh state —',e.message); }
@@ -552,16 +740,28 @@ function hasChildren(rId){ return state.rows.some(r=>r.parentId===rId); }
 function isCollapsed(rId){ return state.collapsed[rId]===true; }
 
 // ── Calculations ───────────────────────────────────────────────────────────────
-function rowTotal(rId){
+function rowTotalUSD(rId){
+  // Returns total in USD (converts non-USD cell values)
   const kids=children(rId);
-  if(kids.length) return kids.reduce((s,c)=>s+rowTotal(c.id),0);
-  return state.cols.reduce((s,col)=>s+getCell(rId,col.id),0);
+  if(kids.length) return kids.reduce((s,c)=>s+rowTotalUSD(c.id),0);
+  return state.cols.reduce((s,col)=>s+amountToUSD(getCell(rId,col.id),rId),0);
 }
-function grandTotal(){ return state.rows.filter(r=>!r.parentId).reduce((s,r)=>s+rowTotal(r.id),0); }
+function rowTotal(rId){
+  // Returns total in display currency
+  const usd=rowTotalUSD(rId);
+  return usd*currentRate;
+}
+function grandTotal(){
+  const usd=state.rows.filter(r=>!r.parentId).reduce((s,r)=>s+rowTotalUSD(r.id),0);
+  return usd; // always USD — display conversion done in updateSummaryBar
+}
+function grandTotalDisplay(){
+  return grandTotal()*currentRate;
+}
 function colTotal(cId){
   return state.rows.filter(r=>!r.parentId).reduce((s,r)=>{
-    if(hasChildren(r.id)) return s+children(r.id).reduce((cs,c)=>cs+getCell(c.id,cId),0);
-    return s+getCell(r.id,cId);
+    if(hasChildren(r.id)) return s+children(r.id).reduce((cs,c)=>cs+amountToUSD(getCell(c.id,cId),c.id),0);
+    return s+amountToUSD(getCell(r.id,cId),r.id);
   },0);
 }
 function fmt(n){ return '$'+Math.max(0,n).toFixed(2); }
@@ -592,11 +792,26 @@ function updateAll(rId){ updateRowTotal(rId); updateGrandTotal(); if(chartVisibl
 
 // ── Summary bar ────────────────────────────────────────────────────────────────
 function updateSummaryBar(){
-  const total=grandTotal();
+  const totalUSD=grandTotal(); // always USD
   const el=document.getElementById('disp-total');
   const annualEl=document.getElementById('disp-annual');
-  if(el) el.textContent=total>0?'$'+total.toFixed(2):'$0.00';
-  if(annualEl) annualEl.textContent=total>0?'$'+(total*12).toFixed(2):'—';
+  const convEl=document.getElementById('disp-conv');
+  if(el) el.textContent=totalUSD>0?'$'+totalUSD.toFixed(2):'$0.00';
+  if(annualEl) annualEl.textContent=totalUSD>0?'$'+(totalUSD*12).toFixed(2):'—';
+  if(convEl&&currentRate!==1){
+    const cur=state.displayCurrency||'USD';
+    convEl.textContent=totalUSD>0?cur+' '+(totalUSD*currentRate).toFixed(2):'—';
+    const annualConvEl=document.getElementById('conv-annual');
+    if(annualConvEl) annualConvEl.textContent=totalUSD>0?cur+' '+(totalUSD*12*currentRate).toFixed(2):'—';
+  }
+  // Update tax calculator link with current annual total
+  const taxLink=document.getElementById('tax-calc-link');
+  if(taxLink&&totalUSD>0){
+    taxLink.href='/tax?annual='+Math.round(totalUSD*12);
+    taxLink.style.display='';
+  } else if(taxLink){
+    taxLink.style.display='none';
+  }
 }
 
 // ── Expand / Collapse ──────────────────────────────────────────────────────────
@@ -728,6 +943,7 @@ function moveParentRow(fromId, toId, before){
   save(); render();
 }
 let _dragRowId=null;
+let _dragColId=null;
 
 // ── Security helpers ───────────────────────────────────────────────────────────
 function escapeHtml(s){
@@ -765,7 +981,7 @@ function rowTotalForMonthKey(rId, monthKey){
   if(kids.length) return kids.reduce((s,c)=>s+rowTotalForMonthKey(c.id,monthKey),0);
   return state.cols.reduce((s,col)=>{
     const k=monthKey+'|'+rId+'|'+col.id;
-    return s+(parseFloat(state.cells[k])||0);
+    return s+amountToUSD(parseFloat(state.cells[k])||0,rId);
   },0);
 }
 function rowTotalForYear(rId,year){
@@ -888,7 +1104,12 @@ function render(){
   htr.appendChild(corner);
   state.cols.forEach(col=>{
     const th=document.createElement('th');
+    th.dataset.colId=col.id;
     const inner=document.createElement('div');inner.className='th-inner';
+    const cdh=document.createElement('span');cdh.className='col-drag-handle';cdh.textContent='⠿';cdh.title='Drag to reorder column';
+    cdh.addEventListener('mousedown',()=>{ th.draggable=true; });
+    cdh.addEventListener('mouseup',()=>{ th.draggable=false; });
+    inner.appendChild(cdh);
     const lbl=document.createElement('span');lbl.className='th-label';lbl.contentEditable='true';lbl.textContent=col.label;
     lbl.addEventListener('blur',()=>{col.label=lbl.textContent.trim()||col.label;save();});
     lbl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbl.blur();}});
@@ -896,6 +1117,33 @@ function render(){
     const del=document.createElement('button');del.className='col-del';del.title='Delete column';del.textContent='×';del.addEventListener('click',()=>deleteCol(col.id));inner.appendChild(del);
     th.appendChild(inner);
     const cr=document.createElement('div');cr.className='col-resize';attachColResize(cr,col);th.appendChild(cr);
+    th.addEventListener('dragstart',e=>{ _dragColId=col.id; e.dataTransfer.effectAllowed='move'; });
+    th.addEventListener('dragend',()=>{
+      _dragColId=null; th.draggable=false;
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+    });
+    th.addEventListener('dragover',e=>{
+      if(!_dragColId||_dragColId===col.id) return;
+      e.preventDefault();
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+      const rect=th.getBoundingClientRect();
+      th.classList.add(e.clientX<rect.left+rect.width/2?'th-drop-before':'th-drop-after');
+    });
+    th.addEventListener('drop',e=>{
+      if(!_dragColId||_dragColId===col.id) return;
+      e.preventDefault();
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+      const fromIdx=state.cols.findIndex(c=>c.id===_dragColId);
+      const toCol=state.cols.findIndex(c=>c.id===col.id);
+      if(fromIdx===-1||toCol===-1) return;
+      const rect=th.getBoundingClientRect();
+      const before=e.clientX<rect.left+rect.width/2;
+      snapshot();
+      const [moved]=state.cols.splice(fromIdx,1);
+      const insertAt=state.cols.findIndex(c=>c.id===col.id);
+      state.cols.splice(before?insertAt:insertAt+1,0,moved);
+      save(); render();
+    });
     htr.appendChild(th);
   });
   const tth=document.createElement('th');tth.className='th-total';
@@ -999,15 +1247,30 @@ function render(){
         span.title='Sum of sub-sources';
         span.textContent=s>0?fmt(s):'';td.appendChild(span);
       } else {
-        const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.01';inp.inputMode='decimal';inp.className='num-input';
+        const wrap=document.createElement('div'); wrap.className='cost-wrap';
+        const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.01';inp.inputMode='decimal';inp.className='num-input c-num';
         const stored=getRawCell(row.id,col.id);inp.value=stored!==''?stored:'';
         inp.addEventListener('focus',()=>snapshot());
         inp.addEventListener('change',()=>{
           if(parseFloat(inp.value)<0) inp.value='0';
           setCell(row.id,col.id,inp.value);
-          updateAll(row.id);
+          ensureRate(rowCurrency(row.id)).then(()=>updateAll(row.id));
         });
-        td.appendChild(inp);
+        wrap.appendChild(inp);
+        // Per-row currency selector
+        const cur=rowCurrency(row.id);
+        const sel=document.createElement('select'); sel.className='cell-curr-sel'; sel.title='Currency for this row';
+        const codes=getAllUsedCurrencies();
+        if(!codes.includes(cur)) codes.push(cur);
+        codes.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; if(c===cur) o.selected=true; sel.appendChild(o); });
+        const otherOpt=document.createElement('option'); otherOpt.value='__other__'; otherOpt.textContent='Other…'; sel.appendChild(otherOpt);
+        sel.addEventListener('change',()=>{
+          if(sel.value==='__other__'){ showCellCurrencyOther(wrap,sel,row); return; }
+          setRowCurrency(row.id,sel.value);
+          ensureRate(sel.value).then(()=>{ updateAll(row.id); renderChart(); });
+        });
+        wrap.appendChild(sel);
+        td.appendChild(wrap);
       }
       tr.appendChild(td);
     });
@@ -1215,6 +1478,7 @@ function buildIncMonthBlob(){
     rows:JSON.parse(JSON.stringify(state.rows)),
     cols:JSON.parse(JSON.stringify(state.cols)),
     cells,
+    rowCurrencies:JSON.parse(JSON.stringify(state.rowCurrencies||{})),
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
   };
 }
@@ -1230,6 +1494,8 @@ function buildIncFullBlob(){
     cols:JSON.parse(JSON.stringify(state.cols)),
     cellsByMonth,
     collapsed:JSON.parse(JSON.stringify(state.collapsed||{})),
+    rowCurrencies:JSON.parse(JSON.stringify(state.rowCurrencies||{})),
+    displayCurrency:state.displayCurrency||'USD',
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
     currentYear:state.currentYear, currentMonth:state.currentMonth,
   };
@@ -1584,6 +1850,26 @@ function showShareModal(title,text){
   loadHistory();
   updateHistBtns();
   updateMonthNav();
+  // Restore saved display currency
+  const dc=state.displayCurrency||'USD';
+  const dcSel=document.getElementById('curr-sel');
+  if(dc!=='USD'){
+    if(![...dcSel.options].find(o=>o.value===dc)){
+      const opt=document.createElement('option'); opt.value=dc; opt.textContent=dc; opt.dataset.custom='1';
+      dcSel.insertBefore(opt, dcSel.querySelector('option[value="__other__"]'));
+    }
+    dcSel.value=dc;
+    // Fetch rate and show conversion fields
+    ensureRate(dc).then(()=>{
+      if(ratesCache[dc]){
+        document.getElementById('curr-note').textContent='1 USD = '+ratesCache[dc].toFixed(4)+' '+dc;
+        showConvFields(dc,ratesCache[dc]);
+      }
+    });
+  }
+  // Pre-load any non-USD row rates
+  const usedCurs=[...new Set(Object.values(state.rowCurrencies||{}).filter(c=>c&&c!=='USD'))];
+  if(usedCurs.length) fetchAndCacheUSDRates();
   render();
 })();
 </script>
