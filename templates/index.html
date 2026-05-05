@@ -46,7 +46,21 @@
       margin: 0;
     }
 
-    .cards { display: flex; flex-direction: column; gap: .85rem; }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .85rem;
+    }
+    /* Last card (Currency) spans full width and centers itself at half width */
+    .app-card-last {
+      grid-column: 1 / -1;
+      justify-self: center;
+      width: calc(50% - .425rem);
+    }
+    @media (max-width: 520px) {
+      .cards { grid-template-columns: 1fr; }
+      .app-card-last { width: 100%; }
+    }
 
     .app-card {
       display: block;
@@ -142,23 +156,11 @@
   </div>
 
   <div class="cards">
-    <a class="app-card card-currency" href="/currency">
-      <div class="card-body">
-        <span class="card-icon">💱</span>
-        <div class="card-text">
-          <div class="card-num">01</div>
-          <div class="card-title">Currency Converter</div>
-          <p class="card-desc">Live exchange rates for the world's currencies. Gives you a preset list with the option to put your own currency code.</p>
-        </div>
-        <span class="card-arrow">→</span>
-      </div>
-    </a>
-
     <a class="app-card card-expenses" href="/expenses">
       <div class="card-body">
         <span class="card-icon">📊</span>
         <div class="card-text">
-          <div class="card-num">02</div>
+          <div class="card-num">01</div>
           <div class="card-title">Expense Tracker</div>
           <p class="card-desc">Organise your monthly expenses in a stylised spreadsheet that can be sent to others seamlessly!</p>
         </div>
@@ -170,9 +172,21 @@
       <div class="card-body">
         <span class="card-icon">💰</span>
         <div class="card-text">
-          <div class="card-num">03</div>
+          <div class="card-num">02</div>
           <div class="card-title">Income Tracker</div>
           <p class="card-desc">Track all your income sources month by month. Auto-links gross income to your Expense Tracker budget panel.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-analytics" href="/analytics">
+      <div class="card-body">
+        <span class="card-icon">📉</span>
+        <div class="card-text">
+          <div class="card-num">03</div>
+          <div class="card-title">Analytics</div>
+          <p class="card-desc">Cross-tracker insights: spending trends, category breakdowns, income vs expenses, and subscription costs over time.</p>
         </div>
         <span class="card-arrow">→</span>
       </div>
@@ -202,25 +216,25 @@
       </div>
     </a>
 
-    <a class="app-card card-analytics" href="/analytics">
+    <a class="app-card card-tax" href="/tax">
       <div class="card-body">
-        <span class="card-icon">📉</span>
+        <span class="card-icon">🧾</span>
         <div class="card-text">
           <div class="card-num">06</div>
-          <div class="card-title">Analytics</div>
-          <p class="card-desc">Cross-tracker insights: spending trends, category breakdowns, income vs expenses, and subscription costs over time.</p>
+          <div class="card-title">Income Tax Calculator</div>
+          <p class="card-desc">Estimate your US federal income tax by filing status. Auto-fills from Income Tracker and syncs with Expense Tracker.</p>
         </div>
         <span class="card-arrow">→</span>
       </div>
     </a>
 
-    <a class="app-card card-tax" href="/tax">
+    <a class="app-card card-currency app-card-last" href="/currency">
       <div class="card-body">
-        <span class="card-icon">🧾</span>
+        <span class="card-icon">💱</span>
         <div class="card-text">
           <div class="card-num">07</div>
-          <div class="card-title">Income Tax Calculator</div>
-          <p class="card-desc">Estimate your 2024 US federal income tax by filing status. Auto-fills to AND from your Expense Tracker.</p>
+          <div class="card-title">Currency Converter</div>
+          <p class="card-desc">Live exchange rates for the world's currencies. Preset list with the option to enter your own currency code.</p>
         </div>
         <span class="card-arrow">→</span>
       </div>
