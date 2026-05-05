@@ -294,7 +294,11 @@ function _mthHas(mk,inc){
 }
 async function _loadRates(inc){
   if(_ratesOk) return;
-  const curs=[...new Set(_salaryLeafs(inc).flatMap(r=>Object.keys(inc.rowCurrencies||{}).filter(k=>k.endsWith('|'+r.id)).map(k=>(inc.rowCurrencies||{})[k]))).filter(c=>c&&c!=='USD')];
+  const curs=[...new Set(_salaryLeafs(inc).flatMap(r=>
+    Object.keys(inc.rowCurrencies||{})
+      .filter(k=>k.endsWith('|'+r.id))
+      .map(k=>(inc.rowCurrencies||{})[k])
+  ))].filter(c=>c&&c!=='USD');
   if(!curs.length) return;
   try{
     const d=await fetch(`https://v6.exchangerate-api.com/v6/${_EK}/latest/USD`).then(r=>r.json());
