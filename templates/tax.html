@@ -301,9 +301,9 @@ async function _loadRates(inc){
   ))].filter(c=>c&&c!=='USD');
   if(!curs.length) return;
   try{
-    const d=await fetch(`https://api.exchangerate-api.com/v4/latest/USD`).then(r=>r.json());
-    if(d.rates){
-      Object.entries(d.rates).forEach(([k,v])=>{ if(/^[A-Z]{2,5}$/.test(k)) _rates[k]=v; });
+    const d=await fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd.json`).then(r=>r.json());
+    if(d.usd){
+      Object.entries(d.usd).forEach(([k,v])=>{ if(/^[a-z]{3}$/.test(k)) _rates[k.toUpperCase()]=v; });
       _ratesOk=true;
     }
   }catch{}
