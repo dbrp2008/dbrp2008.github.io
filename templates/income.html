@@ -709,10 +709,14 @@ function useAverages(){
   let filled=0, hasHistory=false;
   state.rows.forEach(r=>{
     state.cols.forEach(col=>{
-      const vals=srcMonths.map(m=>safeNum(state.cells[m+'|'+r.id+'|'+col.id])).filter(v=>v>0);
-      if(!vals.length) return;
+      // Convert each historical month's value to USD before averaging
+      const usdVals=srcMonths.map(m=>{
+        const raw=safeNum(state.cells[m+'|'+r.id+'|'+col.id]);
+        return raw>0 ? amountToUSD(raw,m,r.id) : 0;
+      }).filter(v=>v>0);
+      if(!usdVals.length) return;
       hasHistory=true;
-      const avg=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2);
+      const avg=(usdVals.reduce((a,b)=>a+b,0)/usdVals.length).toFixed(2);
       state.cells[curMk+'|'+r.id+'|'+col.id]=avg;
       filled++;
     });
