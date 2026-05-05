@@ -286,10 +286,7 @@ function _mthTotal(mk,inc){
   for(const row of rows) for(const col of (inc.cols||[])){
     const v=parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0;
     if(!v) continue;
-    // Support new per-month key (monthRowCurrencies) and old per-row key (rowCurrencies)
-    const cur=(inc.monthRowCurrencies||{})[`${mk}|${row.id}`]
-           ||(inc.rowCurrencies||{})[row.id]
-           ||'USD';
+    const cur=(inc.monthRowCurrencies||{})[`${mk}|${row.id}`]||'USD';
     t+= cur==='USD'?v:(_rates[cur]?v/_rates[cur]:v);
   }
   return t;
@@ -302,14 +299,13 @@ function _mthHas(mk,inc){
 }
 async function _loadRates(inc){
   if(_ratesOk) return;
-  // Collect all non-USD currencies from salary leaf rows (supports both storage schemas)
+  // Collect all non-USD currencies from salary leaf rows (monthRowCurrencies only)
   const rows=_salaryLeafs(inc);
-  const curs=[...new Set(rows.flatMap(r=>{
-    const fromNew=Object.entries(inc.monthRowCurrencies||{})
-      .filter(([k])=>k.endsWith('|'+r.id)).map(([,v])=>v);
-    const fromOld=(inc.rowCurrencies||{})[r.id];
-    return [...fromNew, fromOld].filter(c=>c&&c!=='USD');
-  }))];
+  const curs=[...new Set(rows.flatMap(r=>
+    Object.entries(inc.monthRowCurrencies||{})
+      .filter(([k])=>k.endsWith('|'+r.id)).map(([,v])=>v)
+      .filter(c=>c&&c!=='USD')
+  ))];
   if(!curs.length) return;
   try{
     const d=await fetch(`https://v6.exchangerate-api.com/v6/${_EK}/latest/USD`).then(r=>r.json());
