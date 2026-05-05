@@ -110,6 +110,11 @@
     .col-del:hover{color:#ef4444;}
     .col-resize{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
     .col-resize:hover,.col-resize.dragging{background:#93c5fd;}
+    /* Column drag */
+    .col-drag-handle{cursor:grab;color:var(--muted);font-size:.75rem;margin-right:.3rem;user-select:none;opacity:.55;}
+    .col-drag-handle:hover{opacity:1;}
+    th.th-drop-before{border-left:3px solid var(--accent)!important;}
+    th.th-drop-after {border-right:3px solid var(--accent)!important;}
     .row-resize{position:absolute;left:0;right:0;bottom:0;height:5px;cursor:row-resize;z-index:2;}
     .row-resize:hover,.row-resize.dragging{background:#93c5fd;}
     .c-text{display:block;width:100%;outline:none;padding:4px 7px;box-sizing:border-box;min-height:32px;background:transparent;font-family:inherit;font-size:.85rem;border:none;color:var(--fg);}
@@ -894,6 +899,7 @@ function moveSubRow(fromId, toId, before){
   save(); render(); recalcTotals(); renderChart();
 }
 let _dragSubId=null;
+let _dragColId=null;
 
 // ── Resize ─────────────────────────────────────────────────────────────────────
 function attachColResize(handle,col){
@@ -1428,7 +1434,12 @@ function render(){
   const thead=document.createElement('thead'),htr=document.createElement('tr');
   state.cols.forEach(col=>{
     const th=document.createElement('th');
+    th.dataset.colId=col.id;
     const inner=document.createElement('div');inner.className='th-inner';
+    const cdh=document.createElement('span');cdh.className='col-drag-handle';cdh.textContent='⠿';cdh.title='Drag to reorder column';
+    cdh.addEventListener('mousedown',()=>{ th.draggable=true; });
+    cdh.addEventListener('mouseup',()=>{ th.draggable=false; });
+    inner.appendChild(cdh);
     const lbl=document.createElement('span');lbl.className='th-label';lbl.contentEditable='true';lbl.textContent=col.label;
     lbl.addEventListener('blur',()=>{col.label=lbl.textContent.trim()||col.label;save();});
     lbl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbl.blur();}});
@@ -1436,6 +1447,33 @@ function render(){
     const del=document.createElement('button');del.className='col-del';del.title='Delete column';del.textContent='×';del.addEventListener('click',()=>deleteCol(col.id));inner.appendChild(del);
     th.appendChild(inner);
     const cr=document.createElement('div');cr.className='col-resize';attachColResize(cr,col);th.appendChild(cr);
+    th.addEventListener('dragstart',e=>{ _dragColId=col.id; e.dataTransfer.effectAllowed='move'; });
+    th.addEventListener('dragend',()=>{
+      _dragColId=null; th.draggable=false;
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+    });
+    th.addEventListener('dragover',e=>{
+      if(!_dragColId||_dragColId===col.id) return;
+      e.preventDefault();
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+      const rect=th.getBoundingClientRect();
+      th.classList.add(e.clientX<rect.left+rect.width/2?'th-drop-before':'th-drop-after');
+    });
+    th.addEventListener('drop',e=>{
+      if(!_dragColId||_dragColId===col.id) return;
+      e.preventDefault();
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+      const fromIdx=state.cols.findIndex(c=>c.id===_dragColId);
+      const toCol=state.cols.findIndex(c=>c.id===col.id);
+      if(fromIdx===-1||toCol===-1) return;
+      const rect=th.getBoundingClientRect();
+      const before=e.clientX<rect.left+rect.width/2;
+      snapshot();
+      const [moved]=state.cols.splice(fromIdx,1);
+      const insertAt=state.cols.findIndex(c=>c.id===col.id);
+      state.cols.splice(before?insertAt:insertAt+1,0,moved);
+      save(); render();
+    });
     htr.appendChild(th);
   });
   const act=document.createElement('th');act.style.cssText='background:#f9fafb;border:1px dashed #d1d5db;';
