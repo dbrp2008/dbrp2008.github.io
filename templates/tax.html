@@ -12,6 +12,127 @@
     })();
   </script>
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* ── Income Source Picker ─────────────────────────────────────── */
+    .tax-src-wrap {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+    .tax-src-head {
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .7rem;
+    }
+    .tax-mode-bar { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .tax-mode-btn {
+      padding: .3rem .72rem;
+      border: 1.5px solid var(--panel-border);
+      border-radius: 20px;
+      background: var(--panel-bg);
+      color: var(--fg);
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .12s, color .12s, border-color .12s;
+      white-space: nowrap;
+    }
+    .tax-mode-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .tax-mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tax-mode-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    .tax-picker { margin-top: .85rem; }
+    .tax-hint { font-size: .82rem; color: var(--muted); display: block; margin-bottom: .4rem; }
+
+    .tax-year-bar { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .6rem; }
+    .tax-year-btn {
+      padding: .28rem .65rem;
+      border: 1.5px solid var(--panel-border);
+      border-radius: 8px;
+      background: var(--panel-bg);
+      color: var(--fg);
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .12s, color .12s;
+    }
+    .tax-year-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .tax-year-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tax-year-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    .tax-month-sel {
+      padding: .42rem .7rem;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--fg);
+      font-size: .88rem;
+      font-family: inherit;
+      min-width: 200px;
+    }
+    .tax-month-sel:focus { outline: none; border-color: var(--accent); }
+
+    .tax-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+    .tax-chip {
+      padding: .28rem .6rem;
+      border: 1.5px solid var(--panel-border);
+      border-radius: 6px;
+      background: var(--panel-bg);
+      color: var(--fg);
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .12s, color .12s;
+    }
+    .tax-chip:hover:not(:disabled):not(.at-limit) { border-color: var(--accent); }
+    .tax-chip.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tax-chip.no-data, .tax-chip:disabled { opacity: .32; cursor: not-allowed; }
+    .tax-chip.at-limit { opacity: .42; cursor: not-allowed; }
+
+    .tax-preview {
+      display: none;
+      margin-top: .85rem;
+      padding: .65rem 1rem;
+      background: var(--success-bg, #dcfce7);
+      border: 1px solid var(--success-border, #86efac);
+      border-radius: 8px;
+      font-size: .88rem;
+      color: var(--success-fg, #166534);
+      font-weight: 600;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      flex-wrap: wrap;
+    }
+    .tax-preview-lbl { font-weight: 400; opacity: .85; }
+    .tax-use-btn {
+      padding: .32rem .75rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .tax-use-btn:hover { opacity: .88; }
+    .tax-no-data-note {
+      font-size: .82rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .tax-no-data-note a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .tax-no-data-note a:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
   <div class="nav">
@@ -38,33 +159,26 @@
     fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
   }
   </script>
-  <h1>Income Tax Calculator</h1>
 
+  <h1>Income Tax Calculator</h1>
   <div id="msg-area"></div>
 
-  <script>
-    // Pre-fill annual income from either localStorage (Expense Tracker) or ?annual= URL param (Income Tracker)
-    window.addEventListener('DOMContentLoaded', () => {
-      const incomeInput = document.getElementById('income');
-      // URL param takes priority (direct link from Income Tracker)
-      const params = new URLSearchParams(window.location.search);
-      const urlVal = params.get('annual') || params.get('gross');
-      if (urlVal && !incomeInput.value) {
-        incomeInput.value = urlVal;
-        return;
-      }
-      // Fallback: localStorage prefill from Expense Tracker
-      const prefill = localStorage.getItem('fiapp_prefill_income');
-      if (prefill && !incomeInput.value) {
-        incomeInput.value = prefill;
-        localStorage.removeItem('fiapp_prefill_income');
-      }
-    });
-  </script>
+  <!-- ── Income source picker ──────────────────────────────────────── -->
+  <div class="tax-src-wrap">
+    <div class="tax-src-head">Income Source</div>
+    <div id="tracker-panel"></div>
+    <div class="tax-preview" id="tax-preview">
+      <div>
+        <span class="tax-preview-lbl">Estimated annual salary: </span>
+        <strong id="tax-preview-val"></strong>
+      </div>
+      <button type="button" class="tax-use-btn" id="tax-use-btn">↓ Use this value</button>
+    </div>
+  </div>
 
   <form id="tax-form">
     <div>
-      <label for="income">Annual Income (no $ sign) <small style="font-weight:400;color:#6b7280">— auto-filled from monthly income × 12 if set in Expense Tracker</small></label>
+      <label for="income">Annual Income (no $ sign) <small style="font-weight:400;color:var(--muted)">— or pick from Income Source above</small></label>
       <input type="text" name="income" id="income" required>
     </div>
     <div>
@@ -85,109 +199,360 @@
     <p><strong>Status:</strong> <span id="res-status"></span></p>
     <p><strong>Federal Income Tax:</strong> $<span id="res-tax"></span></p>
     <p style="margin-top:.75rem">
-      <a class="btn" href="/expenses" style="font-size:.85rem">
-        → Use in Expense Tracker
-      </a>
+      <a class="btn" href="/expenses" style="font-size:.85rem">→ Use in Expense Tracker</a>
     </p>
   </div>
 
 <script>
-// ── 2024 US Federal Income Tax Brackets ───────────────────────────────────────
+// ── Tax brackets ──────────────────────────────────────────────────────────────
 const BRACKETS = {
-  single: [
-    [11600,  0.10],
-    [47150,  0.12],
-    [100525, 0.22],
-    [191950, 0.24],
-    [243725, 0.32],
-    [609350, 0.35],
-    [Infinity, 0.37],
-  ],
-  married: [
-    [23200,  0.10],
-    [94300,  0.12],
-    [201050, 0.22],
-    [383900, 0.24],
-    [487450, 0.32],
-    [731200, 0.35],
-    [Infinity, 0.37],
-  ],
-  'head of household': [
-    [16550,  0.10],
-    [63100,  0.12],
-    [100500, 0.22],
-    [191950, 0.24],
-    [243700, 0.32],
-    [609350, 0.35],
-    [Infinity, 0.37],
-  ],
+  single: [[11600,.10],[47150,.12],[100525,.22],[191950,.24],[243725,.32],[609350,.35],[Infinity,.37]],
+  married: [[23200,.10],[94300,.12],[201050,.22],[383900,.24],[487450,.32],[731200,.35],[Infinity,.37]],
+  'head of household': [[16550,.10],[63100,.12],[100500,.22],[191950,.24],[243700,.32],[609350,.35],[Infinity,.37]],
 };
-
 function calcFederalTax(income, status){
-  const brackets = BRACKETS[status];
-  if(!brackets) throw new Error('Unknown filing status.');
-  let tax = 0, prev = 0;
-  for(const [limit, rate] of brackets){
-    if(income <= prev) break;
-    const taxable = Math.min(income, limit) - prev;
-    tax += taxable * rate;
-    prev = limit;
-    if(limit === Infinity) break;
+  const brackets=BRACKETS[status]; if(!brackets) throw new Error('Unknown filing status.');
+  let tax=0, prev=0;
+  for(const [limit,rate] of brackets){
+    if(income<=prev) break;
+    tax+=(Math.min(income,limit)-prev)*rate; prev=limit;
+    if(limit===Infinity) break;
   }
   return tax;
 }
+function showError(msg){ document.getElementById('msg-area').innerHTML='<div class="error">'+msg+'</div>'; document.getElementById('result-box').style.display='none'; }
+function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
 
-function showError(msg){
-  const area = document.getElementById('msg-area');
-  area.innerHTML = '<div class="error">' + msg + '</div>';
-  document.getElementById('result-box').style.display = 'none';
+document.getElementById('tax-form').addEventListener('submit',function(e){
+  e.preventDefault(); clearMsg();
+  const incomeRaw=document.getElementById('income').value.trim().replace(/[$,]/g,'');
+  const status=document.getElementById('status').value;
+  const income=parseFloat(incomeRaw);
+  if(isNaN(income)||income<0){ showError('Please enter a valid non-negative income amount.'); return; }
+  if(!status){ showError('Please select a filing status.'); return; }
+  let tax; try{ tax=calcFederalTax(income,status); }catch(err){ showError(err.message); return; }
+  document.getElementById('res-income').textContent=Number(income.toFixed(2)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('res-status').textContent=status.charAt(0).toUpperCase()+status.slice(1);
+  document.getElementById('res-tax').textContent=Number(tax.toFixed(2)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('result-box').style.display='block';
+  try{ localStorage.setItem('fiapp_tax_result',JSON.stringify({income:income.toFixed(2),tax:tax.toFixed(2),status,ts:Date.now(),consumed:false})); }catch{}
+});
+
+// ── Income Tracker integration ────────────────────────────────────────────────
+const _EK  = '081a97e88979627d1194f7ee';
+const _IK  = 'fiapp_income_v1';
+const _MOS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const _td   = new Date();
+const _mnY  = _td.getFullYear()-1, _mnM = _td.getMonth(); // min year/month (0-idx)
+const _mxY  = _td.getFullYear()+1, _mxM = _td.getMonth(); // max year/month (0-idx)
+const _cY   = _td.getFullYear();
+const _YRS  = [_mnY, _cY, _mxY]; // always 3 distinct years
+
+let _rates={}, _ratesOk=false;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function _mk(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; } // m = 0-indexed
+function _inRng(y,m){
+  if(y<_mnY||y>_mxY) return false;
+  if(y===_mnY&&m<_mnM) return false;
+  if(y===_mxY&&m>_mxM) return false;
+  return true;
 }
-function clearMsg(){ document.getElementById('msg-area').innerHTML = ''; }
+function _isFullYr(y){
+  // All 12 months of this year are within the ±1 year range
+  if(y<_mnY||y>_mxY) return false;
+  if(y===_mnY&&_mnM>0) return false;  // partial: starts mid-year
+  if(y===_mxY&&_mxM<11) return false; // partial: ends mid-year
+  return true;
+}
+function _mksForYear(y){ const r=[]; for(let m=0;m<12;m++) if(_inRng(y,m)) r.push(_mk(y,m)); return r; }
+function _getInc(){ try{ return JSON.parse(localStorage.getItem(_IK))||null; }catch{ return null; } }
 
-document.getElementById('tax-form').addEventListener('submit', function(e){
-  e.preventDefault();
-  clearMsg();
-
-  const incomeRaw = document.getElementById('income').value.trim().replace(/[$,]/g,'');
-  const status    = document.getElementById('status').value;
-  const income    = parseFloat(incomeRaw);
-
-  if(isNaN(income) || income < 0){
-    showError('Please enter a valid non-negative income amount.');
-    return;
+function _salaryLeafs(inc){
+  if(!inc||!inc.rows) return [];
+  const ps=inc.rows.filter(r=>!r.parentId&&r.label.trim().toLowerCase()==='salary');
+  const res=[];
+  for(const p of ps){ const kids=inc.rows.filter(r=>r.parentId===p.id); res.push(...(kids.length?kids:[p])); }
+  return res;
+}
+function _mthTotal(mk,inc){
+  const rows=_salaryLeafs(inc); let t=0;
+  for(const row of rows) for(const col of (inc.cols||[])){
+    const v=parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0;
+    if(!v) continue;
+    const cur=(inc.rowCurrencies||{})[row.id]||'USD';
+    t+= cur==='USD'?v:(_rates[cur]?v/_rates[cur]:v);
   }
-  if(!status){
-    showError('Please select a filing status.');
-    return;
-  }
-
-  let tax;
+  return t;
+}
+function _mthHas(mk,inc){
+  for(const row of _salaryLeafs(inc))
+    for(const col of (inc.cols||[]))
+      if((parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0)>0) return true;
+  return false;
+}
+async function _loadRates(inc){
+  if(_ratesOk) return;
+  const curs=[...new Set(_salaryLeafs(inc).map(r=>(inc.rowCurrencies||{})[r.id]||'USD').filter(c=>c!=='USD'))];
+  if(!curs.length) return;
   try{
-    tax = calcFederalTax(income, status);
-  }catch(err){
-    showError(err.message);
-    return;
+    const d=await fetch(`https://v6.exchangerate-api.com/v6/${_EK}/latest/USD`).then(r=>r.json());
+    if(d.result==='success'){
+      Object.entries(d.conversion_rates).forEach(([k,v])=>{ if(/^[A-Z]{2,5}$/.test(k)) _rates[k]=v; });
+      _ratesOk=true;
+    }
+  }catch{}
+}
+
+// ── Mode config ───────────────────────────────────────────────────────────────
+const _MODES=[
+  {id:'manual', label:'✏ Manual',    n:0,  mult:null},
+  {id:'1',      label:'1 month ×12', n:1,  mult:12},
+  {id:'2',      label:'2 months ×6', n:2,  mult:6},
+  {id:'3',      label:'3 months ×4', n:3,  mult:4},
+  {id:'4',      label:'4 months ×3', n:4,  mult:3},
+  {id:'6',      label:'6 months ×2', n:6,  mult:2},
+  {id:'12',     label:'Full year',   n:12, mult:1},
+];
+let _mode='manual', _pY=_cY, _pSel=[];
+
+function _modeAvail(n,inc){
+  if(!inc) return false;
+  if(n===1)  return _YRS.some(y=>_mksForYear(y).some(mk=>_mthHas(mk,inc)));
+  if(n===12) return _YRS.some(y=>_isFullYr(y)&&_mksForYear(y).some(mk=>_mthHas(mk,inc)));
+  // n=2,3,4,6: need a year with ≥n in-range months that have data
+  return _YRS.some(y=>_mksForYear(y).filter(mk=>_mthHas(mk,inc)).length>=n);
+}
+
+// ── Compute annual value from current picker state ────────────────────────────
+function _calcAnnual(inc){
+  if(_mode==='manual'||!inc) return null;
+  if(_mode==='1'){
+    if(_pSel.length!==1) return null;
+    return _mthTotal(_pSel[0],inc)*12;
+  }
+  if(_mode==='12'){
+    return _mksForYear(_pY).reduce((s,mk)=>s+_mthTotal(mk,inc),0);
+  }
+  const n=parseInt(_mode);
+  const mode=_MODES.find(m=>m.id===_mode);
+  if(_pSel.length!==n) return null;
+  return _pSel.reduce((s,mk)=>s+_mthTotal(mk,inc),0)*mode.mult;
+}
+
+// ── Render preview bar ────────────────────────────────────────────────────────
+function _showPreview(inc){
+  const prev=document.getElementById('tax-preview');
+  const annual=_calcAnnual(inc);
+  if(annual!==null&&annual>=0){
+    prev.style.display='flex';
+    document.getElementById('tax-preview-val').textContent=
+      '$'+annual.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  } else {
+    prev.style.display='none';
+  }
+}
+
+// ── Build the full picker UI ──────────────────────────────────────────────────
+function _buildUI(inc){
+  const panel=document.getElementById('tracker-panel');
+  if(!panel) return;
+  panel.innerHTML='';
+
+  // ── Mode bar ──
+  const bar=document.createElement('div'); bar.className='tax-mode-bar';
+  _MODES.forEach(mode=>{
+    const btn=document.createElement('button');
+    btn.type='button'; btn.className='tax-mode-btn'; btn.textContent=mode.label;
+    if(mode.id===_mode) btn.classList.add('active');
+    if(mode.id!=='manual'){
+      if(!_modeAvail(mode.n,inc)){ btn.disabled=true; btn.title='Not enough salary data in Income Tracker'; }
+    }
+    btn.addEventListener('click',()=>{
+      if(btn.disabled) return;
+      _mode=mode.id; _pSel=[]; _buildUI(inc);
+    });
+    bar.appendChild(btn);
+  });
+  panel.appendChild(bar);
+
+  // Manual: no picker, hide preview
+  if(_mode==='manual'){ _showPreview(inc); return; }
+
+  // No income data at all
+  if(!inc){
+    const note=document.createElement('p'); note.className='tax-no-data-note';
+    note.style.marginTop='.6rem';
+    note.innerHTML='No income tracker data. <a href="/income">Open Income Tracker</a> to add salary data.';
+    panel.appendChild(note); return;
   }
 
-  const incomeStr = income.toFixed(2);
-  const taxStr    = tax.toFixed(2);
-  const statusStr = status.charAt(0).toUpperCase() + status.slice(1);
+  const picker=document.createElement('div'); picker.className='tax-picker';
 
-  document.getElementById('res-income').textContent = Number(incomeStr).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('res-status').textContent = statusStr;
-  document.getElementById('res-tax').textContent    = Number(taxStr).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('result-box').style.display = 'block';
+  // ── Mode 1: single month dropdown ──
+  if(_mode==='1'){
+    const hint=document.createElement('span'); hint.className='tax-hint';
+    hint.textContent='Pick a month — its salary total will be multiplied by 12:';
+    picker.appendChild(hint);
 
-  // Write to localStorage for the Expense Tracker to consume
-  try{
-    localStorage.setItem('fiapp_tax_result', JSON.stringify({
-      income:   incomeStr,
-      tax:      taxStr,
-      status:   status,
-      ts:       Date.now(),
-      consumed: false
-    }));
-  }catch(ex){}
+    const sel=document.createElement('select'); sel.className='tax-month-sel';
+    const def=document.createElement('option'); def.value=''; def.textContent='— select a month —';
+    sel.appendChild(def);
+
+    for(const y of _YRS){
+      const grp=document.createElement('optgroup'); grp.label=String(y); let added=0;
+      for(let m=0;m<12;m++){
+        if(!_inRng(y,m)) continue;
+        const mk=_mk(y,m);
+        const opt=document.createElement('option');
+        opt.value=mk;
+        opt.textContent=_MOS[m]+' '+y+((!_mthHas(mk,inc))?' — no data':'');
+        if(!_mthHas(mk,inc)) opt.disabled=true;
+        grp.appendChild(opt); added++;
+      }
+      if(added) sel.appendChild(grp);
+    }
+    if(_pSel.length===1) sel.value=_pSel[0];
+    sel.addEventListener('change',()=>{ _pSel=sel.value?[sel.value]:[]; _showPreview(inc); });
+    picker.appendChild(sel);
+
+  // ── Mode 12: full year selector ──
+  } else if(_mode==='12'){
+    const fullYrs=_YRS.filter(y=>_isFullYr(y));
+    if(!fullYrs.length){
+      const note=document.createElement('span'); note.className='tax-hint';
+      note.textContent='No fully-available year in the ±1 year range.';
+      picker.appendChild(note);
+    } else {
+      const hint=document.createElement('span'); hint.className='tax-hint';
+      hint.textContent='Select a year — all salary entries will be summed:';
+      picker.appendChild(hint);
+
+      const ybar=document.createElement('div'); ybar.className='tax-year-bar';
+      fullYrs.forEach(y=>{
+        const btn=document.createElement('button');
+        btn.type='button'; btn.className='tax-year-btn'; btn.textContent=y;
+        const hasDat=_mksForYear(y).some(mk=>_mthHas(mk,inc));
+        if(!hasDat){ btn.disabled=true; btn.title='No salary data for '+y; }
+        if(y===_pY&&hasDat) btn.classList.add('active');
+        btn.addEventListener('click',()=>{ _pY=y; _buildUI(inc); });
+        ybar.appendChild(btn);
+      });
+      picker.appendChild(ybar);
+
+      // Auto-show preview for selected year
+      if(fullYrs.includes(_pY)&&_mksForYear(_pY).some(mk=>_mthHas(mk,inc))){
+        // Show breakdown of which months contributed
+        const months=_mksForYear(_pY).filter(mk=>_mthHas(mk,inc));
+        if(months.length){
+          const sub=document.createElement('span'); sub.className='tax-hint';
+          sub.style.marginTop='.3rem';
+          const parts=months.map(mk=>{ const m=parseInt(mk.split('-')[1])-1; return _MOS[m]; });
+          sub.textContent=`${months.length} month${months.length>1?'s':''} with data: ${parts.join(', ')}`;
+          picker.appendChild(sub);
+        }
+      }
+    }
+
+  // ── Modes 2/3/4/6: N months from same year ──
+  } else {
+    const n=parseInt(_mode);
+    const mult=_MODES.find(m=>m.id===_mode).mult;
+
+    // Ensure _pY is a valid choice; if not, pick first valid
+    const validYrs=_YRS.filter(y=>{
+      const inR=_mksForYear(y);
+      return inR.length>=n && inR.filter(mk=>_mthHas(mk,inc)).length>=n;
+    });
+    if(validYrs.length&&!validYrs.includes(_pY)){ _pY=validYrs[0]; _pSel=[]; }
+
+    const hint=document.createElement('span'); hint.className='tax-hint';
+    hint.textContent=`Select year, then pick exactly ${n} month${n>1?'s':''} (sum × ${mult} = annual):`;
+    picker.appendChild(hint);
+
+    // Year pills
+    const ybar=document.createElement('div'); ybar.className='tax-year-bar';
+    _YRS.forEach(y=>{
+      const btn=document.createElement('button');
+      btn.type='button'; btn.className='tax-year-btn'; btn.textContent=y;
+      const inR=_mksForYear(y);
+      const dataMks=inR.filter(mk=>_mthHas(mk,inc));
+      if(inR.length<n){
+        btn.disabled=true;
+        btn.title=`Only ${inR.length} month${inR.length!==1?'s':''} in range for ${y} (need ${n})`;
+      } else if(dataMks.length<n){
+        btn.disabled=true;
+        btn.title=`Only ${dataMks.length} month${dataMks.length!==1?'s':''} have data in ${y} (need ${n})`;
+      }
+      if(y===_pY&&!btn.disabled) btn.classList.add('active');
+      btn.addEventListener('click',()=>{ if(btn.disabled) return; _pY=y; _pSel=[]; _buildUI(inc); });
+      ybar.appendChild(btn);
+    });
+    picker.appendChild(ybar);
+
+    // Month chips (only if _pY is valid)
+    if(validYrs.includes(_pY)){
+      const atLimit=_pSel.length>=n;
+      const cHint=document.createElement('span'); cHint.className='tax-hint';
+      cHint.style.marginTop='.35rem';
+      cHint.textContent=`${_pY} — ${_pSel.length} of ${n} selected:`;
+      picker.appendChild(cHint);
+
+      const chips=document.createElement('div'); chips.className='tax-chips';
+      _mksForYear(_pY).forEach(mk=>{
+        const m=parseInt(mk.split('-')[1])-1;
+        const hasD=_mthHas(mk,inc);
+        const isSel=_pSel.includes(mk);
+        const chip=document.createElement('button');
+        chip.type='button'; chip.className='tax-chip';
+        chip.textContent=_MOS[m];
+        if(isSel) chip.classList.add('selected');
+        if(!hasD){ chip.disabled=true; chip.classList.add('no-data'); chip.title='No salary data'; }
+        else if(atLimit&&!isSel){ chip.classList.add('at-limit'); }
+        chip.addEventListener('click',()=>{
+          if(!hasD) return;
+          if(isSel){ _pSel=_pSel.filter(x=>x!==mk); }
+          else if(_pSel.length<n){ _pSel=[..._pSel,mk]; }
+          _buildUI(inc);
+        });
+        chips.appendChild(chip);
+      });
+      picker.appendChild(chips);
+    }
+  }
+
+  panel.appendChild(picker);
+  _showPreview(inc);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async ()=>{
+  const incomeInput=document.getElementById('income');
+
+  // Pre-fill from URL param or localStorage
+  const params=new URLSearchParams(window.location.search);
+  const urlVal=params.get('annual')||params.get('gross');
+  if(urlVal){ incomeInput.value=urlVal; }
+  else{
+    const prefill=localStorage.getItem('fiapp_prefill_income');
+    if(prefill){ incomeInput.value=prefill; localStorage.removeItem('fiapp_prefill_income'); }
+  }
+
+  // "Use this value" button
+  document.getElementById('tax-use-btn').addEventListener('click',()=>{
+    const inc=_getInc();
+    const annual=_calcAnnual(inc);
+    if(annual!==null){
+      incomeInput.value=annual.toFixed(2);
+      document.getElementById('tax-preview').style.display='none';
+    }
+  });
+
+  // Build picker
+  const inc=_getInc();
+  if(inc) await _loadRates(inc);
+  _buildUI(inc);
 });
 </script>
 </body>
