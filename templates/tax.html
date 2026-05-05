@@ -573,10 +573,13 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     }
   });
 
-  // Build picker
+  // Build picker immediately so the UI is never blank
   const inc=_getInc();
-  if(inc) await _loadRates(inc);
   _buildUI(inc);
+  // Load rates in background, then re-render to apply currency conversions
+  if(inc){
+    _loadRates(inc).then(()=>_buildUI(inc)).catch(()=>{});
+  }
 });
 </script>
 </body>
