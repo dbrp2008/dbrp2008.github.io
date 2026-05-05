@@ -90,6 +90,11 @@
     .col-resize:hover,.col-resize.dragging{background:#93c5fd;}
     .row-resize{position:absolute;left:0;right:0;bottom:0;height:5px;cursor:row-resize;z-index:2;}
     .row-resize:hover,.row-resize.dragging{background:#93c5fd;}
+    /* Column drag-and-drop */
+    .col-drag-handle{cursor:grab;color:var(--muted);font-size:.75rem;margin-right:.3rem;user-select:none;opacity:.55;}
+    .col-drag-handle:hover{opacity:1;}
+    th.th-drop-before{border-left:3px solid var(--accent)!important;}
+    th.th-drop-after {border-right:3px solid var(--accent)!important;}
 
     /* Row header */
     .rh-cell{position:relative;overflow:visible;}
@@ -263,7 +268,7 @@
         <div id="income-sync-badge" style="margin-top:4px;"></div>
       </div>
       <div class="income-field">
-        <label>Monthly Tax / Deductions ($) <a href="/tax" id="tax-link" style="font-weight:400;font-size:.75rem">— calculate →</a></label>
+        <label>Monthly Tax / Deductions ($) <span id="tax-link" style="font-weight:400;font-size:.75rem;color:var(--muted)"> — auto-filled from Tax Calculator</span></label>
         <input type="number" id="inp-tax" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="onIncomeInput()">
       </div>
       <div class="income-field">
@@ -959,6 +964,7 @@ function moveParentRow(fromId, toId, before){
   save(); render();
 }
 let _dragRowId=null;
+let _dragColId=null;
 
 // ── Security helpers ───────────────────────────────────────────────────────────
 function escapeHtml(s){
@@ -1242,7 +1248,13 @@ function render(){
   htr.appendChild(corner);
   state.cols.forEach(col=>{
     const th=document.createElement('th');
+    th.dataset.colId=col.id;
     const inner=document.createElement('div');inner.className='th-inner';
+    // Column drag handle
+    const cdh=document.createElement('span');cdh.className='col-drag-handle';cdh.textContent='⠿';cdh.title='Drag to reorder column';
+    cdh.addEventListener('mousedown',()=>{ th.draggable=true; });
+    cdh.addEventListener('mouseup',()=>{ th.draggable=false; });
+    inner.appendChild(cdh);
     const lbl=document.createElement('span');lbl.className='th-label';lbl.contentEditable='true';lbl.textContent=col.label;
     lbl.addEventListener('blur',()=>{col.label=lbl.textContent.trim()||col.label;save();});
     lbl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbl.blur();}});
@@ -1250,6 +1262,34 @@ function render(){
     const del=document.createElement('button');del.className='col-del';del.title='Delete column';del.textContent='×';del.addEventListener('click',()=>deleteCol(col.id));inner.appendChild(del);
     th.appendChild(inner);
     const cr=document.createElement('div');cr.className='col-resize';attachColResize(cr,col);th.appendChild(cr);
+    // Column drag events
+    th.addEventListener('dragstart',e=>{ _dragColId=col.id; e.dataTransfer.effectAllowed='move'; });
+    th.addEventListener('dragend',()=>{
+      _dragColId=null; th.draggable=false;
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+    });
+    th.addEventListener('dragover',e=>{
+      if(!_dragColId||_dragColId===col.id) return;
+      e.preventDefault();
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+      const rect=th.getBoundingClientRect();
+      th.classList.add(e.clientX<rect.left+rect.width/2?'th-drop-before':'th-drop-after');
+    });
+    th.addEventListener('drop',e=>{
+      if(!_dragColId||_dragColId===col.id) return;
+      e.preventDefault();
+      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+      const fromIdx=state.cols.findIndex(c=>c.id===_dragColId);
+      const toCol=state.cols.findIndex(c=>c.id===col.id);
+      if(fromIdx===-1||toCol===-1) return;
+      const rect=th.getBoundingClientRect();
+      const before=e.clientX<rect.left+rect.width/2;
+      snapshot();
+      const [moved]=state.cols.splice(fromIdx,1);
+      const insertAt=state.cols.findIndex(c=>c.id===col.id);
+      state.cols.splice(before?insertAt:insertAt+1,0,moved);
+      save(); render();
+    });
     htr.appendChild(th);
   });
   const tth=document.createElement('th');tth.className='th-total';
