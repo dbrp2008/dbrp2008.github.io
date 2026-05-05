@@ -198,9 +198,17 @@
     <p><strong>Income:</strong> $<span id="res-income"></span></p>
     <p><strong>Status:</strong> <span id="res-status"></span></p>
     <p><strong>Federal Income Tax:</strong> $<span id="res-tax"></span></p>
-    <p style="margin-top:.75rem">
-      <a class="btn" href="/expenses" style="font-size:.85rem">→ Use in Expense Tracker</a>
-    </p>
+    <div style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;">
+      <button type="button" class="btn" id="apply-sel-btn" style="font-size:.85rem;">→ Apply to selected months</button>
+      <button type="button" class="btn" id="apply-year-btn" style="font-size:.85rem;">Apply to whole year</button>
+      <button type="button" class="btn" id="apply-pick-btn" style="font-size:.85rem;background:var(--panel-bg);color:var(--fg);border:1.5px solid var(--panel-border);">Select months…</button>
+    </div>
+    <!-- Custom month picker -->
+    <div id="month-pick-wrap" style="display:none;margin-top:.85rem;">
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:.45rem;">Pick months to apply the monthly tax to:</div>
+      <div id="month-pick-grid" style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem;"></div>
+      <button type="button" class="btn" id="apply-pick-go" style="font-size:.85rem;">→ Apply to selected</button>
+    </div>
   </div>
 
 <script>
@@ -223,6 +231,8 @@ function calcFederalTax(income, status){
 function showError(msg){ document.getElementById('msg-area').innerHTML='<div class="error">'+msg+'</div>'; document.getElementById('result-box').style.display='none'; }
 function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
 
+let _lastTaxResult=null;
+
 document.getElementById('tax-form').addEventListener('submit',function(e){
   e.preventDefault(); clearMsg();
   const incomeRaw=document.getElementById('income').value.trim().replace(/[$,]/g,'');
@@ -235,7 +245,12 @@ document.getElementById('tax-form').addEventListener('submit',function(e){
   document.getElementById('res-status').textContent=status.charAt(0).toUpperCase()+status.slice(1);
   document.getElementById('res-tax').textContent=Number(tax.toFixed(2)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById('result-box').style.display='block';
-  try{ localStorage.setItem('fiapp_tax_result',JSON.stringify({income:income.toFixed(2),tax:tax.toFixed(2),status,ts:Date.now(),consumed:false})); }catch{}
+  document.getElementById('month-pick-wrap').style.display='none';
+  // Capture picker months — don't write localStorage yet, wait for user to pick an apply action
+  let months=null;
+  if(_mode!=='manual') months=_mode==='12'?_mksForYear(_pY):[..._pSel];
+  _lastTaxResult={income:income.toFixed(2),tax:tax.toFixed(2),status,ts:Date.now(),consumed:false,months,year:_pY};
+  _updateApplyBtns();
 });
 
 // ── Income Tracker integration ────────────────────────────────────────────────
@@ -581,6 +596,72 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   if(inc){
     _loadRates(inc).then(()=>_buildUI(inc)).catch(()=>{});
   }
+});
+
+// ── Apply-to-expense buttons ──────────────────────────────────────────────────
+function _fmtMkLabel(mk2){
+  const [y,m]=mk2.split('-');
+  return _MOS[parseInt(m)-1]+' '+y;
+}
+function _updateApplyBtns(){
+  const d=_lastTaxResult; if(!d) return;
+  const selBtn=document.getElementById('apply-sel-btn');
+  const yearBtn=document.getElementById('apply-year-btn');
+  if(d.months&&d.months.length){
+    const n=d.months.length;
+    selBtn.textContent = n===1
+      ? '→ Apply to '+_fmtMkLabel(d.months[0])
+      : '→ Apply to '+n+' months ('+d.months.map(_fmtMkLabel).join(', ')+')';
+  } else {
+    selBtn.textContent='→ Apply to current month';
+  }
+  const yr=d.year||new Date().getFullYear();
+  yearBtn.textContent='Apply to whole year '+yr;
+}
+function _saveTaxAndNavigate(months){
+  if(!_lastTaxResult) return;
+  try{
+    localStorage.setItem('fiapp_tax_result',JSON.stringify({..._lastTaxResult,months,consumed:false,ts:Date.now()}));
+  }catch{}
+  window.location='/expenses';
+}
+function _buildMonthPick(){
+  const grid=document.getElementById('month-pick-grid');
+  grid.innerHTML='';
+  const d=_lastTaxResult; if(!d) return;
+  const yr=d.year||new Date().getFullYear();
+  const sel=new Set(d.months||[]);
+  for(let m=0;m<12;m++){
+    if(!_inRng(yr,m)) continue;
+    const mk2=_mk(yr,m);
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='tax-chip'+(sel.has(mk2)?' selected':'');
+    btn.textContent=_MOS[m]+' '+yr;
+    btn.dataset.mk=mk2;
+    btn.onclick=function(){ this.classList.toggle('selected'); };
+    grid.appendChild(btn);
+  }
+}
+document.getElementById('apply-sel-btn').addEventListener('click',function(){
+  if(!_lastTaxResult) return;
+  _saveTaxAndNavigate(_lastTaxResult.months);
+});
+document.getElementById('apply-year-btn').addEventListener('click',function(){
+  if(!_lastTaxResult) return;
+  _saveTaxAndNavigate(_mksForYear(_lastTaxResult.year||new Date().getFullYear()));
+});
+document.getElementById('apply-pick-btn').addEventListener('click',function(){
+  if(!_lastTaxResult) return;
+  const wrap=document.getElementById('month-pick-wrap');
+  const show=wrap.style.display==='none';
+  wrap.style.display=show?'':'none';
+  if(show) _buildMonthPick();
+});
+document.getElementById('apply-pick-go').addEventListener('click',function(){
+  const months=[...document.querySelectorAll('#month-pick-grid .tax-chip.selected')].map(b=>b.dataset.mk);
+  if(!months.length){ return; }
+  _saveTaxAndNavigate(months);
 });
 </script>
 </body>
