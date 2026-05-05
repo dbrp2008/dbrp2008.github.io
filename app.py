@@ -41,6 +41,7 @@ def init_db():
                         subs_data JSONB,
                         updated_at TIMESTAMP DEFAULT NOW()
                     );
+                    ALTER TABLE user_data ADD COLUMN IF NOT EXISTS income_data JSONB;
                 """)
     finally:
         conn.close()
@@ -94,6 +95,10 @@ def subscriptions_page():
 @app.route('/analytics')
 def analytics():
     return render_template('analytics.html', **_ctx())
+
+@app.route('/income')
+def income():
+    return render_template('income.html', **_ctx())
 
 @app.route('/currency', methods=['GET', 'POST'])
 def currency():
@@ -352,6 +357,43 @@ def load_subs():
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT subs_data FROM user_data WHERE user_id=%s",
+                        (session['user_id'],))
+            row = cur.fetchone()
+        if row and row[0]:
+            return jsonify(row[0])
+        return jsonify(None)
+    finally:
+        conn.close()
+
+@app.route('/api/save/income', methods=['POST'])
+@login_required
+def save_income():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid data format"}), 400
+    if 'rows' not in data:
+        return jsonify({"error": "Missing required field: rows"}), 400
+    conn = get_db()
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO user_data (user_id, income_data, updated_at)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (user_id) DO UPDATE
+                    SET income_data = EXCLUDED.income_data, updated_at = NOW()
+                """, (session['user_id'], json.dumps(data)))
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
+
+@app.route('/api/load/income')
+@login_required
+def load_income():
+    conn = get_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT income_data FROM user_data WHERE user_id=%s",
                         (session['user_id'],))
             row = cur.fetchone()
         if row and row[0]:
