@@ -100,6 +100,12 @@ def analytics():
 def income():
     return render_template('income.html', **_ctx())
 
+@app.route('/account')
+def account():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    return render_template('account.html', **_ctx())
+
 @app.route('/currency', methods=['GET', 'POST'])
 def currency():
     if request.method == 'POST':
@@ -288,6 +294,30 @@ def auth_me():
     if 'user_id' in session:
         return jsonify({"username": session['username'], "id": session['user_id']})
     return jsonify({"user": None}), 200
+
+@app.route('/auth/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    data = request.get_json(silent=True) or {}
+    password = data.get('password') or ''
+    if not password:
+        return jsonify({"error": "Password is required"}), 400
+    user_id = session['user_id']
+    conn = get_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT password_hash FROM users WHERE id=%s", (user_id,))
+            row = cur.fetchone()
+        if not row or not check_password_hash(row[0], password):
+            return jsonify({"error": "Incorrect password"}), 401
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM user_data WHERE user_id=%s", (user_id,))
+                cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
+        session.clear()
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
 
 # ── Data API ──────────────────────────────────────────────────────────────────
 
