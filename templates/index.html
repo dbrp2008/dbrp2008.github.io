@@ -143,6 +143,7 @@
   <div class="home-nav">
     {% if current_user %}
       <span class="auth-badge">👤 {{ current_user }}</span>
+      <a class="btn-ghost btn-sm" href="/account" title="Account settings">⚙</a>
       <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
     {% else %}
       <a class="btn-ghost btn-sm" href="/login">Log in</a>
