@@ -755,6 +755,12 @@ function grandTotal(){
   const usd=state.rows.filter(r=>!r.parentId).reduce((s,r)=>s+rowTotalUSD(r.id),0);
   return usd; // always USD — display conversion done in updateSummaryBar
 }
+function salaryTotal(){
+  // Only top-level rows labelled "Salary" (case-insensitive) feed the tax calculator
+  return state.rows
+    .filter(r=>!r.parentId && r.label.trim().toLowerCase()==='salary')
+    .reduce((s,r)=>s+rowTotalUSD(r.id),0);
+}
 function grandTotalDisplay(){
   return grandTotal()*currentRate;
 }
@@ -804,10 +810,11 @@ function updateSummaryBar(){
     const annualConvEl=document.getElementById('conv-annual');
     if(annualConvEl) annualConvEl.textContent=totalUSD>0?cur+' '+(totalUSD*12*currentRate).toFixed(2):'—';
   }
-  // Update tax calculator link with current annual total
+  // Update tax calculator link — only Salary row feeds it
+  const salaryUSD=salaryTotal();
   const taxLink=document.getElementById('tax-calc-link');
-  if(taxLink&&totalUSD>0){
-    taxLink.href='/tax?annual='+Math.round(totalUSD*12);
+  if(taxLink&&salaryUSD>0){
+    taxLink.href='/tax?annual='+Math.round(salaryUSD*12);
     taxLink.style.display='';
   } else if(taxLink){
     taxLink.style.display='none';
