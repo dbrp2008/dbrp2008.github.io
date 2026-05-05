@@ -44,6 +44,52 @@
       flex-shrink: 0;
     }
 
+    /* Change username form */
+    .change-form { display: flex; flex-direction: column; gap: .75rem; }
+    .change-form label { font-size: .85rem; font-weight: 600; color: var(--fg); margin-bottom: 2px; display: block; }
+    .change-form input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: .5rem .7rem;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--fg);
+      font-size: .9rem;
+      font-family: inherit;
+    }
+    .change-form input:focus { outline: none; border-color: var(--accent); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      padding: .6rem 1.1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: .9rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .change-feedback {
+      display: none;
+      border-radius: 6px;
+      padding: .5rem .75rem;
+      font-size: .85rem;
+    }
+    .change-feedback.error {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-fg);
+    }
+    .change-feedback.success {
+      background: var(--success-bg, #dcfce7);
+      border: 1px solid var(--success-border, #86efac);
+      color: var(--success-fg, #166534);
+    }
+
     /* Delete section */
     .danger-card {
       border-color: var(--error-border);
@@ -128,6 +174,23 @@
     </div>
     <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
       <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+    </div>
+  </div>
+
+  <!-- Change username -->
+  <div class="account-card">
+    <h2>Change Username</h2>
+    <div class="change-feedback" id="change-feedback"></div>
+    <div class="change-form">
+      <div>
+        <label for="new-username">New username</label>
+        <input type="text" id="new-username" placeholder="At least 3 characters" minlength="3" autocomplete="username" />
+      </div>
+      <div>
+        <label for="change-pw">Current password</label>
+        <input type="password" id="change-pw" placeholder="Confirm your password" autocomplete="current-password" />
+      </div>
+      <button class="btn-primary" id="change-btn" onclick="submitChangeUsername()">Save new username</button>
     </div>
   </div>
 
@@ -230,6 +293,48 @@ async function confirmDelete(){
     showDeleteError('Network error. Please try again.');
     cancelDelete();
     btn.disabled=false; btn.textContent='Yes, delete permanently';
+  }
+}
+
+function showChangeFeedback(msg, type){
+  const el=document.getElementById('change-feedback');
+  el.textContent=msg;
+  el.className='change-feedback '+type;
+  el.style.display='block';
+}
+function hideChangeFeedback(){
+  const el=document.getElementById('change-feedback');
+  el.style.display='none'; el.textContent='';
+}
+
+async function submitChangeUsername(){
+  hideChangeFeedback();
+  const newUser=document.getElementById('new-username').value.trim();
+  const pw=document.getElementById('change-pw').value;
+  if(!newUser){ showChangeFeedback('Please enter a new username.','error'); return; }
+  if(newUser.length<3){ showChangeFeedback('Username must be at least 3 characters.','error'); return; }
+  if(!pw){ showChangeFeedback('Please enter your current password.','error'); return; }
+  const btn=document.getElementById('change-btn');
+  btn.disabled=true; btn.textContent='Saving…';
+  try{
+    const res=await fetch('/auth/change_username',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({new_username:newUser,password:pw})
+    });
+    const data=await res.json();
+    if(!res.ok||!data.ok){
+      showChangeFeedback(data.error||'Failed to change username.','error');
+    } else {
+      showChangeFeedback('✓ Username changed to "'+data.username+'". Reloading…','success');
+      document.getElementById('new-username').value='';
+      document.getElementById('change-pw').value='';
+      setTimeout(()=>window.location.reload(),1200);
+    }
+  }catch(e){
+    showChangeFeedback('Network error. Please try again.','error');
+  }finally{
+    btn.disabled=false; btn.textContent='Save new username';
   }
 }
 </script>
