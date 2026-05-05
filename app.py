@@ -319,6 +319,36 @@ def delete_account():
     finally:
         conn.close()
 
+@app.route('/auth/change_username', methods=['POST'])
+@login_required
+def change_username():
+    data = request.get_json(silent=True) or {}
+    new_username = (data.get('new_username') or '').strip()
+    password = data.get('password') or ''
+    if not new_username:
+        return jsonify({"error": "New username is required"}), 400
+    if len(new_username) < 3:
+        return jsonify({"error": "Username must be at least 3 characters"}), 400
+    if not password:
+        return jsonify({"error": "Password is required"}), 400
+    user_id = session['user_id']
+    conn = get_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT password_hash FROM users WHERE id=%s", (user_id,))
+            row = cur.fetchone()
+        if not row or not check_password_hash(row[0], password):
+            return jsonify({"error": "Incorrect password"}), 401
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE users SET username=%s WHERE id=%s", (new_username, user_id))
+        session['username'] = new_username
+        return jsonify({"ok": True, "username": new_username})
+    except psycopg2.errors.UniqueViolation:
+        return jsonify({"error": "Username already taken"}), 409
+    finally:
+        conn.close()
+
 # ── Data API ──────────────────────────────────────────────────────────────────
 
 @app.route('/api/save/expenses', methods=['POST'])
