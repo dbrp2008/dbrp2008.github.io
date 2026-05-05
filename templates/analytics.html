@@ -30,7 +30,7 @@
       padding: .9rem 1rem;
     }
     .stat-label  { font-size:.72rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:.3rem; }
-    .stat-value  { font-size:1.45rem; font-weight:800; color:var(--fg); line-height:1.1; }
+    .stat-value  { font-size:1.45rem; font-weight:800; color:var(--fg); line-height:1.1; overflow-wrap:anywhere; word-break:break-word; }
     .stat-sub    { font-size:.75rem; color:var(--muted); margin-top:.2rem; }
 
     /* ── Chart cards ────────────────────────────────────────────────────────── */
@@ -186,6 +186,8 @@ function mk(y,m){ return y+'-'+String(m+1).padStart(2,'0'); }
 function todayMK(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
 function fmtMoney(v){ return '$'+Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function fmtMoneyShort(v){ if(v>=1000) return '$'+(v/1000).toFixed(1)+'k'; return '$'+Number(v).toFixed(0); }
+// Abbreviated format for stat cards that append a suffix like /mo or /yr — keeps text fitting the card
+function fmtMoneyCard(v){ if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M'; if(v>=10000) return '$'+(v/1000).toFixed(0)+'K'; if(v>=1000) return '$'+(v/1000).toFixed(1)+'K'; return '$'+Number(v).toFixed(2); }
 function fmtPct(v){ return Number(v).toFixed(1)+'%'; }
 function mkLabel(mkStr){ const [y,mo]=mkStr.split('-'); return MONTHS_SHORT[parseInt(mo)-1]+" '"+y.slice(2); }
 
@@ -692,7 +694,7 @@ function renderStatCards(){
     const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
     statGrid.appendChild(sc('Active Subs',_subRows.length,
       _subRows.length===1?'subscription':'subscriptions'));
-    statGrid.appendChild(sc('Sub Monthly',fmtMoney(totalMo)+'/mo',fmtMoney(totalMo*12)+'/yr'));
+    statGrid.appendChild(sc('Sub Monthly',fmtMoneyCard(totalMo)+'/mo',fmtMoneyCard(totalMo*12)+'/yr'));
     if(_cStatMs.length){
       const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
       if(avgExp>0) statGrid.appendChild(sc('Subs % of Spend',
@@ -717,8 +719,8 @@ function renderSubStatCards(){
   };
   const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
   [ssc('Active',      _subRows.length, _subRows.length===1?'subscription':'subscriptions'),
-   ssc('Monthly Cost',fmtMoney(totalMo),'per month'),
-   ssc('Annual Cost', fmtMoney(totalMo*12),'per year'),
+   ssc('Monthly Cost',fmtMoneyCard(totalMo),'per month'),
+   ssc('Annual Cost', fmtMoneyCard(totalMo*12),'per year'),
   ].forEach(c=>subStatGrid.appendChild(c));
   if(_cStatMs&&_cStatMs.length){
     const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
