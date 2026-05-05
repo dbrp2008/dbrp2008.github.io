@@ -1877,7 +1877,7 @@ function showShareModal(title,text){
   }
   // Pre-load any non-USD row rates
   const usedCurs=[...new Set(Object.values(state.rowCurrencies||{}).filter(c=>c&&c!=='USD'))];
-  if(usedCurs.length) fetchAndCacheUSDRates();
+  if(usedCurs.length) await fetchAndCacheUSDRates();
   render();
 })();
 </script>
