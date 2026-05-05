@@ -169,6 +169,7 @@
 // ── Storage keys ──────────────────────────────────────────────────────────────
 const EXP_KEY  = 'fiapp_expenses_v4';
 const SUBS_KEY = 'fiapp_subs_v4';
+const INC_KEY  = 'fiapp_income_v1';
 
 // ── Security helpers ──────────────────────────────────────────────────────────
 function escapeHtml(s){
@@ -207,8 +208,51 @@ function loadSubs(){
   try{ const s=localStorage.getItem(SUBS_KEY); return s?JSON.parse(s):null; }
   catch(e){ console.warn('Analytics: subs data error',e.message); return null; }
 }
+function loadInc(){
+  try{ const s=localStorage.getItem(INC_KEY); return s?JSON.parse(s):null; }
+  catch(e){ console.warn('Analytics: income data error',e.message); return null; }
+}
 
-// ── Expense income helper ─────────────────────────────────────────────────────
+// ── Income helpers ────────────────────────────────────────────────────────────
+
+// Returns a Map: monthKey → total income from the Income Tracker
+function incTrackerMonthTotals(inc){
+  const map=new Map();
+  if(!inc||!inc.rows||!inc.cells) return map;
+  const allMks=new Set();
+  Object.keys(inc.cells).forEach(k=>{const mk2=k.split('|')[0]; if(mk2) allMks.add(mk2);});
+  allMks.forEach(mk2=>{
+    let total=0;
+    inc.rows.filter(r=>!r.parentId).forEach(row=>{
+      const kids=inc.rows.filter(c=>c.parentId===row.id);
+      if(kids.length){
+        kids.forEach(child=>{
+          (inc.cols||[]).forEach(col=>{total+=parseFloat(inc.cells[mk2+'|'+child.id+'|'+col.id]||0)||0;});
+        });
+      } else {
+        (inc.cols||[]).forEach(col=>{total+=parseFloat(inc.cells[mk2+'|'+row.id+'|'+col.id]||0)||0;});
+      }
+    });
+    if(total>0) map.set(mk2, parseFloat(total.toFixed(2)));
+  });
+  return map;
+}
+
+// Merged {monthKey: income}: Income Tracker takes precedence, falls back to Expense Tracker gross
+function mergedMonthIncomes(exp, incMap){
+  const out={};
+  // Start with expense tracker manual gross entries
+  if(exp&&exp.income){
+    Object.entries(exp.income).forEach(([mk2,v])=>{
+      const g=parseFloat(v.gross)||0; if(g>0) out[mk2]=g;
+    });
+  }
+  // Income Tracker overrides (more detailed / authoritative source)
+  incMap.forEach((val,mk2)=>{ out[mk2]=val; });
+  return out;
+}
+
+// ── Expense income helper (legacy — used only internally now) ─────────────────
 
 // {monthKey: grossIncome}
 function expMonthIncomes(exp){
@@ -458,7 +502,7 @@ let catBreakType = 'doughnut';
 let subBreakType = 'doughnut';
 
 // ── Module-level data vars (populated by renderAll, reused by reRenderCharts) ─
-let _exp, _subs, _allMonths, _monthTotals, _monthIncomes, _subRows, _subTrendMonths;
+let _exp, _subs, _inc, _allMonths, _monthTotals, _monthIncomes, _subRows, _subTrendMonths;
 // Pre-indexed cell sums: {rowId: {mk: colSum}} — built once, avoids O(rows×cols×months)
 let _rowMonthIdx = {};
 // Cached period-filter results — updated by _refreshPeriodCache() so individual
@@ -496,6 +540,7 @@ function mkToggleBtn(groupClass, val, label, isActive, handler){
 function renderAll(){
   _exp  = loadExp();
   _subs = loadSubs();
+  _inc  = loadInc();
 
   // Pre-index expense cells once — used by all category helpers
   _rowMonthIdx = buildRowMonthIndex(_exp);
@@ -503,7 +548,7 @@ function renderAll(){
   // All months from BOTH sources (combined)
   _allMonths    = allSpendingMonths(_exp, _subs);
   _monthTotals  = combinedMonthTotals(_exp, _subs, _allMonths);
-  _monthIncomes = expMonthIncomes(_exp);
+  _monthIncomes = mergedMonthIncomes(_exp, incTrackerMonthTotals(_inc));
   _subRows      = subMonthlySnapshot(_subs);
   // Sub trend uses the same unified month range
   _subTrendMonths = _allMonths;
@@ -953,12 +998,14 @@ function reRenderCharts(){
     if(me&&me.username){
       const root=document.getElementById('root');
       if(root) root.innerHTML='<p style="padding:1rem;color:var(--muted)">Loading…</p>';
-      const [expRes,subRes]=await Promise.all([
+      const [expRes,subRes,incRes]=await Promise.all([
         fetch('/api/load/expenses'),
-        fetch('/api/load/subs')
+        fetch('/api/load/subs'),
+        fetch('/api/load/income')
       ]);
       if(expRes.ok){const d=await expRes.json();if(d&&typeof d==='object') localStorage.setItem(EXP_KEY,JSON.stringify(d));}
       if(subRes.ok){const d=await subRes.json();if(d&&typeof d==='object') localStorage.setItem(SUBS_KEY,JSON.stringify(d));}
+      if(incRes.ok){const d=await incRes.json();if(d&&typeof d==='object') localStorage.setItem(INC_KEY,JSON.stringify(d));}
     }
   }catch(e){}
   renderAll();
@@ -966,7 +1013,7 @@ function reRenderCharts(){
 
 // Re-render when another tab updates either tracker
 window.addEventListener('storage', e=>{
-  if(e.key===EXP_KEY||e.key===SUBS_KEY) renderAll();
+  if(e.key===EXP_KEY||e.key===SUBS_KEY||e.key===INC_KEY) renderAll();
 });
 </script>
 </body>
