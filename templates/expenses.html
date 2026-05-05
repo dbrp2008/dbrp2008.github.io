@@ -223,6 +223,8 @@
   function logOut(){
     localStorage.removeItem('fiapp_expenses_v4');
     localStorage.removeItem('fiapp_subs_v4');
+    localStorage.removeItem('fiapp_income_v1');
+    localStorage.removeItem('fiapp_income_push_v1');
     fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
   }
   // Block negative signs and 'e' in ALL number inputs globally
@@ -258,6 +260,7 @@
       <div class="income-field">
         <label>Gross Monthly Income ($)</label>
         <input type="number" id="inp-gross" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="onGrossInput()">
+        <div id="income-sync-badge" style="margin-top:4px;"></div>
       </div>
       <div class="income-field">
         <label>Monthly Tax / Deductions ($) <a href="/tax" id="tax-link" style="font-weight:400;font-size:.75rem">— calculate →</a></label>
@@ -330,6 +333,8 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 const MONTHS_SHORT= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const SUBS_KEY='fiapp_subs_v4';
+const INCOME_KEY='fiapp_income_v1';
+const INCOME_PUSH_KEY='fiapp_income_push_v1';
 const EXPENSE_API_KEY='081a97e88979627d1194f7ee';
 const expRatesCache={};
 async function fetchExpRates(){
@@ -687,10 +692,13 @@ function monthIncomeObj(){
   return state.income[key];
 }
 function onGrossInput(){
-  // Changing gross wipes any previously-entered tax so the user starts fresh.
+  // Changing gross manually clears any income-tracker sync flag and wipes tax.
+  const obj=monthIncomeObj();
+  delete obj.fromIncome;
   const taxEl=document.getElementById('inp-tax');
   taxEl.value='';
   onIncomeInput();
+  document.getElementById('income-sync-badge').innerHTML='';
 }
 function onIncomeInput(){
   const gross=document.getElementById('inp-gross').value;
@@ -709,6 +717,7 @@ function syncIncomeInputs(){
   document.getElementById('apply-year-btn').style.display=hasData?'inline-block':'none';
   document.getElementById('apply-year-lbl').textContent=state.currentYear;
   updateIncomeSummary();
+  syncFromIncomeTracker(currentMK());
 }
 function applyIncomeToYear(){
   snapshot();
@@ -762,6 +771,59 @@ function loadTaxCarryover(){
     document.getElementById('income-grid').prepend(banner);
     document.getElementById('tax-link').style.display='none';
   }catch(e){ console.warn('FiApp: loadTaxCarryover failed —',e.message); }
+}
+
+// ── Income Tracker sync (cross-tracker) ────────────────────────────────────────
+function _incomeMonthTotal(incomeState, mk2){
+  if(!incomeState||!incomeState.rows||!incomeState.cols) return 0;
+  return incomeState.rows.filter(r=>!r.parentId).reduce((sum,r)=>{
+    const kids=incomeState.rows.filter(c=>c.parentId===r.id);
+    if(kids.length) return sum+kids.reduce((ks,c)=>ks+(incomeState.cols||[]).reduce((cs,col)=>cs+(parseFloat(incomeState.cells[mk2+'|'+c.id+'|'+col.id])||0),0),0);
+    return sum+(incomeState.cols||[]).reduce((cs,col)=>cs+(parseFloat(incomeState.cells[mk2+'|'+r.id+'|'+col.id])||0),0);
+  },0);
+}
+function syncFromIncomeTracker(mk2){
+  const badge=document.getElementById('income-sync-badge'); if(!badge) return;
+  try{
+    const incomeState=JSON.parse(localStorage.getItem(INCOME_KEY));
+    if(!incomeState||!incomeState.rows){badge.innerHTML='';return;}
+    const total=_incomeMonthTotal(incomeState,mk2);
+    if(total<=0){badge.innerHTML='';return;}
+    const obj=monthIncomeObj();
+    const currentGross=parseFloat(obj.gross)||0;
+    const alreadySynced=obj.fromIncome&&Math.abs(currentGross-total)<0.01;
+    if(!obj.gross||obj.fromIncome){
+      // Auto-fill (field empty or previously auto-filled)
+      obj.gross=total.toFixed(2);
+      obj.fromIncome=true;
+      document.getElementById('inp-gross').value=obj.gross;
+      const hasData=!!(obj.gross||obj.tax);
+      document.getElementById('apply-year-btn').style.display=hasData?'inline-block':'none';
+      save(); updateIncomeSummary();
+    }
+    const tFmt='$'+total.toFixed(2);
+    if(alreadySynced||obj.fromIncome){
+      badge.innerHTML='<span class="income-sync-badge">✓ Synced from <a class="income-sync-link" href="/income">Income Tracker</a> ('+tFmt+')</span>';
+    } else {
+      badge.innerHTML='<span class="income-sync-badge income-sync-badge--override">Income Tracker has '+tFmt+' for this month <button class="income-sync-update" onclick="acceptIncomeSync(\''+mk2+'\')">↻ Update</button></span>';
+    }
+  }catch(e){badge.innerHTML='';}
+}
+function acceptIncomeSync(mk2){
+  try{
+    const incomeState=JSON.parse(localStorage.getItem(INCOME_KEY));
+    if(!incomeState||!incomeState.rows) return;
+    const total=_incomeMonthTotal(incomeState,mk2);
+    if(total<=0) return;
+    snapshot();
+    const obj=monthIncomeObj();
+    obj.gross=total.toFixed(2);
+    obj.fromIncome=true;
+    document.getElementById('inp-gross').value=obj.gross;
+    const hasData=!!(obj.gross||obj.tax);
+    document.getElementById('apply-year-btn').style.display=hasData?'inline-block':'none';
+    save(); updateIncomeSummary(); syncFromIncomeTracker(mk2);
+  }catch(e){}
 }
 
 // ── Expand / Collapse ──────────────────────────────────────────────────────────
@@ -2082,8 +2144,13 @@ function showShareModal(title,text){
   render();
   // Fetch exchange rates for currency conversion of linked subscriptions
   fetchExpRates().then(()=>{ if(state.rows.some(r=>r.linked==='subscriptions')) render(); });
-  // Cross-tab sync: re-render if subscriptions change in another tab
-  window.addEventListener('storage',e=>{ if(e.key===SUBS_KEY) render(); });
+  // Income tracker sync on load
+  syncFromIncomeTracker(currentMK());
+  // Cross-tab sync: re-render if subscriptions or income change in another tab
+  window.addEventListener('storage',e=>{
+    if(e.key===SUBS_KEY) render();
+    if(e.key===INCOME_KEY||e.key===INCOME_PUSH_KEY) syncFromIncomeTracker(currentMK());
+  });
 })();
 </script>
 </body>
