@@ -194,6 +194,27 @@
     </div>
   </div>
 
+  <!-- Change password -->
+  <div class="account-card">
+    <h2>Change Password</h2>
+    <div class="change-feedback" id="pw-feedback"></div>
+    <div class="change-form">
+      <div>
+        <label for="cur-pw">Current password</label>
+        <input type="password" id="cur-pw" placeholder="Your current password" autocomplete="current-password" />
+      </div>
+      <div>
+        <label for="new-pw">New password</label>
+        <input type="password" id="new-pw" placeholder="At least 6 characters" minlength="6" autocomplete="new-password" />
+      </div>
+      <div>
+        <label for="confirm-pw">Confirm new password</label>
+        <input type="password" id="confirm-pw" placeholder="Repeat new password" autocomplete="new-password" />
+      </div>
+      <button class="btn-primary" id="pw-btn" onclick="submitChangePassword()">Save new password</button>
+    </div>
+  </div>
+
   <!-- Delete account -->
   <div class="account-card danger-card">
     <h2>⚠ Delete Account</h2>
