@@ -660,6 +660,62 @@ function updateMonthNav(){
   updateForecastUI();
 }
 
+let _slideIndex = 0;
+function updateSlidePanel(){
+  const total=2;
+  _slideIndex = (_slideIndex%total + total)%total;
+  for(let i=0;i<total;i++){
+    const panel=document.getElementById('slide-panel-'+i);
+    if(panel) panel.style.display = (i===_slideIndex ? '' : 'none');
+  }
+  const label=document.getElementById('slide-label');
+  if(label) label.textContent = _slideIndex===0 ? 'Spending Summary 1/2' : 'Leaderboard 2/2';
+}
+function slidePanel(delta){
+  _slideIndex = (_slideIndex + delta + 2) % 2;
+  updateSlidePanel();
+}
+
+function toggleDropdown(id,event){
+  if(event){ event.stopPropagation(); }
+  const wrapper=document.getElementById(id);
+  if(!wrapper) return;
+  const menu=wrapper.querySelector('.dropdown-menu');
+  if(!menu) return;
+  const shouldOpen=!menu.classList.contains('open');
+  closeAllDropdowns();
+  if(shouldOpen) menu.classList.add('open');
+}
+function closeDropdown(id){
+  const wrapper=document.getElementById(id);
+  if(!wrapper) return;
+  const menu=wrapper.querySelector('.dropdown-menu');
+  if(menu) menu.classList.remove('open');
+}
+function closeAllDropdowns(except){
+  document.querySelectorAll('.dropdown-menu.open').forEach(menu=>{
+    if(menu!==except) menu.classList.remove('open');
+  });
+}
+document.addEventListener('click',e=>{ if(!e.target.closest('.dropdown')) closeAllDropdowns(); });
+
+function openHelp(){
+  const overlay=document.createElement('div'); overlay.className='share-overlay';
+  const modal=document.createElement('div'); modal.className='share-modal';
+  const h=document.createElement('h3'); h.textContent='Subscription Tracker Help';
+  const body=document.createElement('div'); body.className='help-body';
+  body.innerHTML = '<p>Use the month navigation buttons or jump menu to switch months.</p>'
+    + '<p>Use the slide arrows to toggle between Spending Summary and Leaderboard.</p>'
+    + '<p>The Share button opens your export, share, and paste actions.</p>'
+    + '<p>Add a subscription with the dropdown above, then edit prices, billing cycles, and dates in the table.</p>';
+  const close=document.createElement('button'); close.type='button'; close.className='btn btn-sm'; close.textContent='Close';
+  close.addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+  modal.appendChild(h); modal.appendChild(body); modal.appendChild(close);
+  overlay.appendChild(modal); document.body.appendChild(overlay);
+  setTimeout(()=>close.focus(),20);
+}
+
 // ── Forecast mode ──────────────────────────────────────────────────────────────
 function isForecastMonth(){
   const today=new Date();
@@ -1624,6 +1680,7 @@ async function preloadRates(){
   loadHistory();
   render();
   updateMonthNav();
+  updateSlidePanel();
   recalcTotals();
   updateHistBtns();
   preloadRates();
