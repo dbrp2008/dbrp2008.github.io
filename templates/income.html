@@ -19,6 +19,15 @@
     .toolbar-row-1,.toolbar-row-2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;}
     .toolbar-row-1{margin-bottom:.4rem;}
     .toolbar-row-2{margin-bottom:.75rem;}
+    .dropdown{position:relative;display:inline-block;}
+    .dropdown-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;padding:.3rem;min-width:150px;box-shadow:var(--shadow,0 4px 12px rgba(0,0,0,.15));}
+    .dropdown-menu.open{display:flex;flex-direction:column;gap:2px;}
+    .dropdown-menu button{background:none;border:none;text-align:left;padding:.42rem .75rem;border-radius:5px;cursor:pointer;font-size:.85rem;color:var(--fg);font-family:inherit;white-space:nowrap;}
+    .dropdown-menu button:hover{background:var(--hover-bg,rgba(0,0,0,.06));}
+    .help-btn{font-size:.72rem;font-weight:700;padding:.15rem .48rem;border-radius:50%;border:1.5px solid var(--accent);background:none;color:var(--accent);cursor:pointer;margin-left:.4rem;vertical-align:middle;line-height:1;}
+    .help-btn:hover{background:var(--accent);color:#fff;}
+    .help-body ul{margin:.35rem 0 .35rem 1.2rem;padding:0;}
+    .help-body li{font-size:.88rem;color:var(--fg);line-height:1.55;margin-bottom:.25rem;}
     .month-jump{padding:.3rem .55rem;border:1px solid var(--input-border);border-radius:6px;font-size:.95rem;font-weight:700;background:var(--input-bg);color:var(--fg);cursor:pointer;min-width:160px;}
     .btn-sm{padding:.35rem .7rem;font-size:.85rem;}
     .btn-ghost{background:var(--secondary-bg);color:var(--secondary-fg);border:none;border-radius:6px;cursor:pointer;padding:.35rem .7rem;font-size:.85rem;}
@@ -247,8 +256,7 @@
     }
   });
   </script>
-  <h1>Income Tracker</h1>
-  <p style="color:#6b7280;font-size:.88rem;margin-top:0">Track your monthly income by source. Click "+Sub" on a row to add a sub-source. Ctrl+Z/Y to undo/redo. Auto-links gross income to your Expense Tracker.</p>
+  <h1>Income Tracker <button class="help-btn" onclick="openHelp()">?</button></h1>
 
   <div class="month-nav">
     <button id="prev-btn" onclick="shiftMonth(-1)">◀ Prev</button>
@@ -308,16 +316,23 @@
   <div class="toolbar-row-1">
     <button class="btn btn-sm" id="undo-btn" onclick="undo()" disabled>↩ Undo</button>
     <button class="btn btn-sm" id="redo-btn" onclick="redo()" disabled>↪ Redo</button>
-    <button class="btn btn-sm" onclick="addRow()">+ Row</button>
-    <button class="btn btn-sm" onclick="addCol()">+ Column</button>
+    <div class="dropdown" id="dd-table">
+      <button class="btn btn-sm" onclick="toggleDropdown('dd-table',event)">Table ▾</button>
+      <div class="dropdown-menu" id="dd-table-menu">
+        <button onclick="addRow();closeDropdown('dd-table')">+ Row</button>
+        <button onclick="addCol();closeDropdown('dd-table')">+ Column</button>
+      </div>
+    </div>
+    <div class="dropdown" id="dd-share">
+      <button class="btn btn-sm" onclick="toggleDropdown('dd-share',event)">Share ▾</button>
+      <div class="dropdown-menu" id="dd-share-menu">
+        <button onclick="shareSheet();closeDropdown('dd-share')">📤 Share</button>
+        <button onclick="showExportMenu(event);closeDropdown('dd-share')">📥 Export</button>
+        <button onclick="openPasteModal();closeDropdown('dd-share')">📋 Paste</button>
+      </div>
+    </div>
     <button class="btn btn-sm btn-ghost" id="expand-btn" onclick="expandAll()" style="display:none">▾ Expand All</button>
     <button class="btn btn-sm btn-ghost" id="collapse-btn" onclick="collapseAll()" style="display:none">▸ Collapse All</button>
-  </div>
-  <div class="toolbar-row-2">
-    <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
-    <button class="btn btn-sm" id="export-btn" onclick="showExportMenu(event)">📥 Export</button>
-    <button class="btn btn-sm" id="share-btn" onclick="shareSheet()">📤 Share</button>
-    <button class="btn btn-sm" id="paste-btn" onclick="openPasteModal()">📋 Paste</button>
     <span id="export-flash" class="export-flash"></span>
     <button class="btn btn-sm" id="reset-btn" onclick="resetAll()" style="background:#dc2626">Reset</button>
   </div>
@@ -1886,6 +1901,37 @@ function showShareModal(title,text){
   if(usedCurs.length) await fetchAndCacheUSDRates();
   render();
 })();
+</script>
+
+<!-- Help modal -->
+<div id="help-modal" style="display:none" class="share-overlay" onclick="if(event.target===this)closeHelp()">
+  <div class="share-modal">
+    <h3>How to use — Income Tracker</h3>
+    <div class="help-body">
+      <ul>
+        <li>Add income sources as rows; add sub-sources with <strong>+Sub</strong> on any row.</li>
+        <li>Each cell can use its own currency — select it from the dropdown next to the amount.</li>
+        <li>Per-month currencies are independent: changing one month's currency doesn't affect others.</li>
+        <li>In <strong>Forecast mode</strong>, "Use 3-month avg" converts all historical values to USD before averaging, so mixed currencies average correctly.</li>
+        <li>Totals auto-link to the <strong>Expense Tracker</strong> income panel and the <strong>Tax Calculator</strong>.</li>
+        <li><strong>Undo/Redo</strong> via Ctrl+Z / Ctrl+Y or the ↩↪ toolbar buttons.</li>
+      </ul>
+    </div>
+    <div class="share-actions"><button class="btn btn-sm" onclick="closeHelp()">✕ Close</button></div>
+  </div>
+</div>
+<script>
+function openHelp(){ document.getElementById('help-modal').style.display='flex'; }
+function closeHelp(){ document.getElementById('help-modal').style.display='none'; }
+function toggleDropdown(id, e){
+  e && e.stopPropagation();
+  const menu = document.getElementById(id+'-menu');
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.dropdown-menu.open').forEach(m=>m.classList.remove('open'));
+  if(!isOpen) menu.classList.add('open');
+}
+function closeDropdown(id){ document.getElementById(id+'-menu').classList.remove('open'); }
+document.addEventListener('click', ()=>{ document.querySelectorAll('.dropdown-menu.open').forEach(m=>m.classList.remove('open')); });
 </script>
 </body>
 </html>
