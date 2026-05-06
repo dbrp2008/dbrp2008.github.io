@@ -137,10 +137,53 @@
     .card-subs       { background: linear-gradient(135deg, #0e7490 0%, #22d3ee 100%); }
     .card-analytics  { background: linear-gradient(135deg, #be185d 0%, #f472b6 100%); }
     .card-income     { background: linear-gradient(135deg, #065f46 0%, #10b981 100%); }
+
+    /* ── Hamburger / Side drawer ── */
+    .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:auto;}
+    .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
+    #side-drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--panel-bg);border-right:1px solid var(--panel-border);z-index:901;transform:translateX(-100%);transition:transform .25s ease;padding:1rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto;}
+    #side-drawer.open{transform:translateX(0);}
+    .drawer-close{align-self:flex-end;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:.2rem .4rem;}
+    .drawer-close:hover{color:var(--fg);}
+    #side-drawer h2{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.5rem 0 .25rem;}
+    #side-drawer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.15rem;}
+    #side-drawer a{display:block;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--fg);font-size:.9rem;font-weight:600;}
+    #side-drawer a:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+
+    /* ── Mobile card deck (≤640px) ── */
+    @media (max-width: 640px) {
+      .cards { display:block; position:relative; }
+      .app-card, .app-card-last { display:none; width:100%; }
+      .app-card.deck-active { display:block; }
+      .deck-nav { display:flex; align-items:center; justify-content:space-between; margin-top:.65rem; gap:.5rem; }
+      .deck-arrow { background:none; border:1.5px solid rgba(255,255,255,.3); border-radius:8px; color:#fff; font-size:1rem; padding:.35rem .7rem; cursor:pointer; flex-shrink:0; }
+      .deck-arrow:hover { background:rgba(255,255,255,.15); }
+      .deck-dots { display:flex; gap:.4rem; justify-content:center; flex:1; }
+      .deck-dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.35); transition:background .2s; }
+      .deck-dot.active { background:#fff; }
+    }
   </style>
 </head>
 <body>
+  <!-- Side drawer -->
+  <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
+  <nav id="side-drawer">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <h2>Tools</h2>
+    <ul>
+      <li><a href="/expenses">📊 Expense Tracker</a></li>
+      <li><a href="/income">💰 Income Tracker</a></li>
+      <li><a href="/analytics">📉 Analytics</a></li>
+      <li><a href="/subscriptions">🔄 Subscription Tracker</a></li>
+      <li><a href="/interest">📈 Interest Calculator</a></li>
+      <li><a href="/tax">🧾 Tax Calculator</a></li>
+      <li><a href="/currency">💱 Currency Converter</a></li>
+    </ul>
+  </nav>
+
   <div class="home-nav">
+    <button class="hamburger-btn" onclick="openDrawer()" title="All tools">☰</button>
     {% if current_user %}
       <span class="auth-badge">👤 {{ current_user }}</span>
       <a class="btn-ghost btn-sm" href="/account" title="Account settings">⚙</a>
@@ -256,6 +299,45 @@ function logOut(){
   localStorage.removeItem('fiapp_income_push_v1');
   fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
 }
+
+// ── Side drawer ──────────────────────────────────────────────────────────────
+function openDrawer(){
+  document.getElementById('side-drawer').classList.add('open');
+  document.getElementById('drawer-overlay').style.display='block';
+}
+function closeDrawer(){
+  document.getElementById('side-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').style.display='none';
+}
+
+// ── Mobile card deck ─────────────────────────────────────────────────────────
+(function(){
+  if(window.innerWidth > 640) return;
+  const cards = [...document.querySelectorAll('.app-card')];
+  if(!cards.length) return;
+  let idx = 0, timer = null;
+
+  // Build nav controls inside the .cards wrapper
+  const wrap = document.querySelector('.cards');
+  const nav = document.createElement('div'); nav.className='deck-nav';
+  const prevBtn = document.createElement('button'); prevBtn.className='deck-arrow'; prevBtn.textContent='◀';
+  const nextBtn = document.createElement('button'); nextBtn.className='deck-arrow'; nextBtn.textContent='▶';
+  const dotsWrap = document.createElement('div'); dotsWrap.className='deck-dots';
+  cards.forEach(()=>{ const d=document.createElement('span'); d.className='deck-dot'; dotsWrap.appendChild(d); });
+  nav.appendChild(prevBtn); nav.appendChild(dotsWrap); nav.appendChild(nextBtn);
+  wrap.appendChild(nav);
+
+  function show(n){
+    idx = ((n % cards.length) + cards.length) % cards.length;
+    cards.forEach((c,i)=>c.classList.toggle('deck-active', i===idx));
+    [...dotsWrap.children].forEach((d,i)=>d.classList.toggle('active', i===idx));
+    clearInterval(timer);
+    timer = setInterval(()=>show(idx+1), 5000);
+  }
+  prevBtn.onclick = ()=>show(idx-1);
+  nextBtn.onclick = ()=>show(idx+1);
+  show(0);
+})();
 </script>
 </body>
 </html>
