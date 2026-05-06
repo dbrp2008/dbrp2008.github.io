@@ -106,6 +106,35 @@
       background: var(--panel-border);
     }
 
+    /* ── Chart slideshow ───────────────────────────────────────────────────── */
+    .chart-slideshow .chart-card { display:none; margin-bottom:0; }
+    .chart-slideshow .chart-card.slide-active { display:block; }
+    .slideshow-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .6rem;
+      margin-bottom: .6rem;
+    }
+    .slideshow-nav-btn {
+      background: none;
+      border: 1.5px solid var(--panel-border);
+      border-radius: 7px;
+      padding: .25rem .6rem;
+      cursor: pointer;
+      color: var(--fg);
+      font-size: .85rem;
+      transition: border-color .12s, color .12s;
+    }
+    .slideshow-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .slideshow-lbl {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--muted);
+      min-width: 230px;
+      text-align: center;
+    }
+
     /* ── No-data state ──────────────────────────────────────────────────────── */
     .no-data { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:.9rem; }
     .no-data a { color:var(--accent); text-decoration:none; }
@@ -596,7 +625,8 @@ function renderAll(){
   root.appendChild(statGrid);
 
   // ── Chart card factory ────────────────────────────────────────────────────
-  function addChartCard(id, title){
+  function addChartCard(id, title, target){
+    target = target || root;
     const card=document.createElement('div');
     card.className='chart-card'; card.id='card-'+id;
     const hdr=document.createElement('div'); hdr.className='chart-card-header';
@@ -608,7 +638,7 @@ function renderAll(){
     const canvas=document.createElement('canvas'); canvas.id='chart-'+id;
     wrap.appendChild(canvas);
     card.appendChild(wrap);
-    root.appendChild(card);
+    target.appendChild(card);
     return card;
   }
 
@@ -621,10 +651,13 @@ function renderAll(){
   // ── Spending section (expenses + subs combined) ───────────────────────────
   if(_allMonths.length){
     addSectionTitle('Spending');
-    addChartCard('trend',     'Monthly Spending Trend');
-    addChartCard('breakdown', 'Category Breakdown');
-    if(_allMonths.length>=2) addChartCard('cattrends', 'Category Trends Over Time');
-    if(Object.keys(_monthIncomes).length) addChartCard('savings', 'Income vs Expenses');
+    const spendSlide=document.createElement('div');
+    spendSlide.className='chart-slideshow'; spendSlide.id='spend-slideshow';
+    root.appendChild(spendSlide);
+    addChartCard('trend',     'Monthly Spending Trend',         spendSlide);
+    addChartCard('breakdown', 'Category Breakdown',             spendSlide);
+    if(_allMonths.length>=2) addChartCard('cattrends', 'Category Trends Over Time', spendSlide);
+    if(Object.keys(_monthIncomes).length) addChartCard('savings', 'Income vs Expenses', spendSlide);
   }
 
   // ── Subscription section (drill-down) ─────────────────────────────────────
@@ -635,11 +668,64 @@ function renderAll(){
     subStatGrid.style.marginBottom='.75rem';
     root.appendChild(subStatGrid);
 
-    if(_subRows.length) addChartCard('subbreak', 'Subscription Breakdown');
-    if(_subTrendMonths.length>=2) addChartCard('subtrend', 'Subscription Cost Trend');
+    const subSlide=document.createElement('div');
+    subSlide.className='chart-slideshow'; subSlide.id='sub-slideshow';
+    root.appendChild(subSlide);
+    if(_subRows.length) addChartCard('subbreak', 'Subscription Breakdown',     subSlide);
+    if(_subTrendMonths.length>=2) addChartCard('subtrend', 'Subscription Cost Trend', subSlide);
   }
 
   reRenderCharts();
+
+  // ── Wire up chart slideshows ──────────────────────────────────────────────
+  (function(){
+    function makeSlideshow(slideEl, cardIds, titles){
+      if(!slideEl) return;
+      // Filter to only cards that were actually created
+      const pairs = cardIds.map((id,i)=>({id,title:titles[i]}))
+                           .filter(p=>document.getElementById('card-'+p.id));
+      if(pairs.length < 2){ if(pairs.length===1) document.getElementById('card-'+pairs[0].id).classList.add('slide-active'); return; }
+
+      // Build nav bar
+      const nav=document.createElement('div'); nav.className='slideshow-nav';
+      const prev=document.createElement('button'); prev.className='slideshow-nav-btn'; prev.textContent='◀';
+      const lbl=document.createElement('span'); lbl.className='slideshow-lbl'; lbl.id=slideEl.id+'-lbl';
+      const next=document.createElement('button'); next.className='slideshow-nav-btn'; next.textContent='▶';
+      nav.appendChild(prev); nav.appendChild(lbl); nav.appendChild(next);
+      slideEl.insertBefore(nav, slideEl.firstChild);
+
+      let idx=0;
+      function show(n){
+        idx=((n%pairs.length)+pairs.length)%pairs.length;
+        pairs.forEach((p,i)=>{
+          const el=document.getElementById('card-'+p.id);
+          if(!el) return;
+          const active=i===idx;
+          el.classList.toggle('slide-active', active);
+          if(active){
+            // Force Chart.js to resize after display:none→block
+            const ch=Chart.getChart('chart-'+p.id);
+            if(ch) setTimeout(()=>ch.resize(),0);
+          }
+        });
+        lbl.textContent=pairs[idx].title+' ('+  (idx+1)+' / '+pairs.length+')';
+      }
+      prev.onclick=()=>show(idx-1);
+      next.onclick=()=>show(idx+1);
+      show(0);
+    }
+
+    makeSlideshow(
+      document.getElementById('spend-slideshow'),
+      ['trend','breakdown','cattrends','savings'],
+      ['Monthly Spending Trend','Category Breakdown','Category Trends Over Time','Income vs Expenses']
+    );
+    makeSlideshow(
+      document.getElementById('sub-slideshow'),
+      ['subbreak','subtrend'],
+      ['Subscription Breakdown','Subscription Cost Trend']
+    );
+  })();
 }
 
 // ── Period cache refresh — call before any chart render ───────────────────────
