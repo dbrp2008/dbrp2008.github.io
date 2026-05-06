@@ -19,6 +19,21 @@
     .toolbar-row-1, .toolbar-row-2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;}
     .toolbar-row-1{margin-bottom:.4rem;}
     .toolbar-row-2{margin-bottom:.75rem;}
+    .dropdown{position:relative;display:inline-block;}
+    .dropdown-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;padding:.3rem;min-width:150px;box-shadow:var(--shadow,0 4px 12px rgba(0,0,0,.15));}
+    .dropdown-menu.open{display:flex;flex-direction:column;gap:2px;}
+    .dropdown-menu button{background:none;border:none;text-align:left;padding:.42rem .75rem;border-radius:5px;cursor:pointer;font-size:.85rem;color:var(--fg);font-family:inherit;white-space:nowrap;}
+    .dropdown-menu button:hover{background:var(--hover-bg,rgba(0,0,0,.06));}
+    .help-btn{font-size:.72rem;font-weight:700;padding:.15rem .48rem;border-radius:50%;border:1.5px solid var(--accent);background:none;color:var(--accent);cursor:pointer;margin-left:.4rem;vertical-align:middle;line-height:1;}
+    .help-btn:hover{background:var(--accent);color:#fff;}
+    .help-body ul{margin:.35rem 0 .35rem 1.2rem;padding:0;}
+    .help-body li{font-size:.88rem;color:var(--fg);line-height:1.55;margin-bottom:.25rem;}
+    /* Slideshow for summary/leaderboard */
+    .summary-slide-wrap{}
+    .slide-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;}
+    .slide-arrow{background:none;border:1.5px solid var(--panel-border);border-radius:6px;padding:.2rem .55rem;cursor:pointer;color:var(--fg);font-size:.85rem;line-height:1;}
+    .slide-arrow:hover{border-color:var(--accent);color:var(--accent);}
+    #slide-label{flex:1;text-align:center;font-size:.85rem;font-weight:600;color:var(--muted);}
     .month-jump{padding:.3rem .55rem;border:1px solid var(--input-border);border-radius:6px;font-size:.95rem;font-weight:700;background:var(--input-bg);color:var(--fg);cursor:pointer;min-width:160px;text-align:center;}
     .toolbar{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
     .btn-sm{padding:.35rem .7rem;font-size:.85rem;}
@@ -209,8 +224,7 @@
     }
   });
   </script>
-  <h1>Subscription Tracker</h1>
-  <p style="color:#6b7280;font-size:.88rem;margin-top:0">Track subscriptions with accurate billing event counting. Each cost can be in its own currency. Ctrl+Z/Y to undo/redo (persists across page visits).</p>
+  <h1>Subscription Tracker <button class="help-btn" onclick="openHelp()">?</button></h1>
 
   <div class="month-nav">
     <button id="prev-btn" onclick="shiftMonth(-1)">◀ Prev</button>
@@ -235,10 +249,9 @@
     </select>
     <input type="text" id="custom-inp" placeholder="Service name"/>
     <button class="btn btn-sm" onclick="addSubscription()">Add</button>
-  </div>
-
-  <div class="opts-bar">
-    <label><input type="checkbox" id="chk-cancelled" checked onchange="recalcTotals()"> Include cancelled (up to cancel date)</label>
+    <label style="margin-left:.75rem;font-size:.85rem;display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;">
+      <input type="checkbox" id="chk-cancelled" checked onchange="recalcTotals()"> Include cancelled
+    </label>
   </div>
 
   <details class="disc-box">
@@ -251,50 +264,59 @@
     <p><strong>Per-cell currency</strong> — Each Cost cell can be in its own currency (USD/EUR/AED/HKD/…). All sums roll up to USD first, then convert to your chosen display currency.</p>
   </details>
 
-  <div class="totals-panel">
-    <h3>Spending Summary — <span id="sum-label"></span></h3>
-    <div class="tot-field"><label>Monthly Cost (USD)</label><div class="tot-val" id="tot-m-usd">$0.00</div></div>
-    <div class="tot-field"><label>Yearly Cost (USD)</label><div class="tot-val" id="tot-y-usd">$0.00</div></div>
-    <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 .5rem;font-style:italic;">All non-USD costs normalized to USD at current exchange rates.</p>
-    <div class="tot-field" id="conv-m-wrap" style="display:none"><label id="conv-m-lbl">Monthly</label><div class="tot-val" id="tot-m-conv">—</div></div>
-    <div class="tot-field" id="conv-y-wrap" style="display:none"><label id="conv-y-lbl">Yearly</label><div class="tot-val" id="tot-y-conv">—</div></div>
-    <div class="curr-row">
-      <label>Display currency:</label>
-      <select id="curr-sel" onchange="onCurrencyChange()">
-        <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
-        <option value="CAD">CAD</option><option value="AUD">AUD</option><option value="JPY">JPY</option>
-        <option value="CNY">CNY</option><option value="INR">INR</option><option value="MXN">MXN</option>
-        <option value="BRL">BRL</option><option value="SGD">SGD</option><option value="HKD">HKD</option>
-        <option value="CHF">CHF</option><option value="NZD">NZD</option><option value="ZAR">ZAR</option>
-        <option value="AED">AED</option><option value="KRW">KRW</option><option value="NOK">NOK</option>
-        <option value="SEK">SEK</option><option value="PKR">PKR</option><option value="NGN">NGN</option>
-        <option value="THB">THB</option><option value="MYR">MYR</option><option value="IDR">IDR</option>
-        <option value="__other__">Other…</option>
-      </select>
-      <input type="text" id="curr-other-inp" placeholder="e.g. VND" maxlength="5"
-        style="display:none;width:72px;padding:3px 7px;border:1px solid #d1d5db;border-radius:4px;font-size:.82rem;">
-      <button id="curr-other-btn" class="btn btn-sm" onclick="applyOtherCurrency()"
-        style="display:none;padding:.25rem .6rem;font-size:.8rem;">OK</button>
-      <span id="curr-note"></span>
+  <!-- Spending Summary ↔ Leaderboard slideshow -->
+  <div class="summary-slide-wrap">
+    <div class="slide-header">
+      <button class="slide-arrow" onclick="slidePanel(-1)">◀</button>
+      <span id="slide-label">Spending Summary 1/2</span>
+      <button class="slide-arrow" onclick="slidePanel(1)">▶</button>
     </div>
-  </div>
-
-  <!-- Leaderboard -->
-  <div class="leaderboard" id="leaderboard">
-    <h3>🏆 Subscription Leaderboard <span id="lb-month-lbl" style="font-weight:500;font-size:.78rem;color:#92400e;"></span></h3>
-    <div id="lb-content"></div>
+    <div class="totals-panel" id="slide-panel-0">
+      <h3>Spending Summary — <span id="sum-label"></span></h3>
+      <div class="tot-field"><label>Monthly Cost (USD)</label><div class="tot-val" id="tot-m-usd">$0.00</div></div>
+      <div class="tot-field"><label>Yearly Cost (USD)</label><div class="tot-val" id="tot-y-usd">$0.00</div></div>
+      <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 .5rem;font-style:italic;">All non-USD costs normalized to USD at current exchange rates.</p>
+      <div class="tot-field" id="conv-m-wrap" style="display:none"><label id="conv-m-lbl">Monthly</label><div class="tot-val" id="tot-m-conv">—</div></div>
+      <div class="tot-field" id="conv-y-wrap" style="display:none"><label id="conv-y-lbl">Yearly</label><div class="tot-val" id="tot-y-conv">—</div></div>
+      <div class="curr-row">
+        <label>Display currency:</label>
+        <select id="curr-sel" onchange="onCurrencyChange()">
+          <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
+          <option value="CAD">CAD</option><option value="AUD">AUD</option><option value="JPY">JPY</option>
+          <option value="CNY">CNY</option><option value="INR">INR</option><option value="MXN">MXN</option>
+          <option value="BRL">BRL</option><option value="SGD">SGD</option><option value="HKD">HKD</option>
+          <option value="CHF">CHF</option><option value="NZD">NZD</option><option value="ZAR">ZAR</option>
+          <option value="AED">AED</option><option value="KRW">KRW</option><option value="NOK">NOK</option>
+          <option value="SEK">SEK</option><option value="PKR">PKR</option><option value="NGN">NGN</option>
+          <option value="THB">THB</option><option value="MYR">MYR</option><option value="IDR">IDR</option>
+          <option value="__other__">Other…</option>
+        </select>
+        <input type="text" id="curr-other-inp" placeholder="e.g. VND" maxlength="5"
+          style="display:none;width:72px;padding:3px 7px;border:1px solid #d1d5db;border-radius:4px;font-size:.82rem;">
+        <button id="curr-other-btn" class="btn btn-sm" onclick="applyOtherCurrency()"
+          style="display:none;padding:.25rem .6rem;font-size:.8rem;">OK</button>
+        <span id="curr-note"></span>
+      </div>
+    </div>
+    <!-- Leaderboard -->
+    <div class="leaderboard" id="slide-panel-1" style="display:none">
+      <h3>🏆 Subscription Leaderboard <span id="lb-month-lbl" style="font-weight:500;font-size:.78rem;color:#92400e;"></span></h3>
+      <div id="lb-content"></div>
+    </div>
   </div>
 
   <div class="toolbar-row-1">
     <button class="btn btn-sm" id="undo-btn" onclick="undo()" disabled>↩ Undo</button>
     <button class="btn btn-sm" id="redo-btn" onclick="redo()" disabled>↪ Redo</button>
     <button class="btn btn-sm" onclick="addCol()">+ Column</button>
-  </div>
-  <div class="toolbar-row-2">
-    <button class="btn btn-sm" id="chart-btn" onclick="toggleChart()">📊 Chart</button>
-    <button class="btn btn-sm" id="export-btn" onclick="showExportMenu(event)">📥 Export</button>
-    <button class="btn btn-sm" id="share-btn" onclick="shareSheet()">📤 Share</button>
-    <button class="btn btn-sm" id="paste-btn" onclick="openPasteModal()">📋 Paste</button>
+    <div class="dropdown" id="dd-share">
+      <button class="btn btn-sm" onclick="toggleDropdown('dd-share',event)">Share ▾</button>
+      <div class="dropdown-menu" id="dd-share-menu">
+        <button onclick="shareSheet();closeDropdown('dd-share')">📤 Share</button>
+        <button onclick="showExportMenu(event);closeDropdown('dd-share')">📥 Export</button>
+        <button onclick="openPasteModal();closeDropdown('dd-share')">📋 Paste</button>
+      </div>
+    </div>
     <span id="export-flash" class="export-flash"></span>
     <button class="btn btn-sm" id="reset-btn" onclick="resetAll()" style="background:#dc2626">Reset</button>
   </div>
