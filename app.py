@@ -349,6 +349,31 @@ def change_username():
     finally:
         conn.close()
 
+@app.route('/auth/change_password', methods=['POST'])
+@login_required
+def change_password():
+    data = request.get_json(silent=True) or {}
+    current_password = data.get('current_password') or ''
+    new_password     = data.get('new_password') or ''
+    if not current_password or not new_password:
+        return jsonify({"error": "Both passwords are required"}), 400
+    if len(new_password) < 6:
+        return jsonify({"error": "New password must be at least 6 characters"}), 400
+    user_id = session['user_id']
+    conn = get_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT password_hash FROM users WHERE id=%s", (user_id,))
+            row = cur.fetchone()
+        if not row or not check_password_hash(row[0], current_password):
+            return jsonify({"error": "Incorrect current password"}), 401
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE users SET password_hash=%s WHERE id=%s",
+                            (generate_password_hash(new_password), user_id))
+        return jsonify({"ok": True})
+    finally:
+        conn.close()
 # ── Data API ──────────────────────────────────────────────────────────────────
 
 @app.route('/api/save/expenses', methods=['POST'])
