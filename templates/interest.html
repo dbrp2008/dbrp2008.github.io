@@ -27,7 +27,7 @@
 </script>
   <link rel="stylesheet" href="/styles.css">
   <style>
-    /* ── Hamburger / Side drawer ── */
+    
     .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
     .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
@@ -110,7 +110,7 @@
   </div>
 
 <script>
-  // Show / hide compounding periods row
+  
   function togglePeriods(){
     const type=document.getElementById('type').value;
     document.getElementById('periods-row').style.display=type==='compound'?'block':'none';
@@ -118,7 +118,7 @@
   document.getElementById('type').addEventListener('change',togglePeriods);
   togglePeriods();
 
-  // Show an error message
+  
   function showError(msg){
     const area=document.getElementById('msg-area');
     area.innerHTML='<div class="error">'+msg+'</div>';
@@ -126,7 +126,7 @@
   }
   function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
 
-  // Pure math
+  
   function simpleInterest(p,r,t){
     const interest=p*(r/100)*t;
     return {interest, total:p+interest};
@@ -137,7 +137,7 @@
     return {interest:amount-p, total:amount};
   }
   function continuousInterest(p,r,t){
-    // A = P · e^(rt)  (rate as a decimal)
+    
     const amount=p*Math.exp((r/100)*t);
     return {interest:amount-p, total:amount};
   }
@@ -174,7 +174,7 @@
     document.getElementById('res-total').textContent=result.total.toFixed(2);
     document.getElementById('result-box').style.display='block';
   });
-// ── Side drawer ──────────────────────────────────────────────────────────────
+
 function openDrawer(){
   document.getElementById('side-drawer').classList.add('open');
   document.getElementById('drawer-overlay').style.display='block';
@@ -187,7 +187,7 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
   if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
 });
 </script>
-  <!-- Side drawer -->
+  
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
   <nav id="side-drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
