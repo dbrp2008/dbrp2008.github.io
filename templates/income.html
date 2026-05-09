@@ -26,6 +26,7 @@
 })();
 </script>
   <link rel="stylesheet" href="/styles.css">
+  <script src="/static/rates-utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     body { max-width: 700px; }
@@ -390,7 +391,6 @@ const REDO_KEY    = 'fiapp_income_redo_v1';
 const PUSH_KEY    = 'fiapp_income_push_v1';
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTHS_SHORT= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const EXCHANGE_API_KEY = '081a97e88979627d1194f7ee';
 const CELL_CURRENCIES  = ['USD','EUR','GBP','AED','HKD','SGD','CAD','AUD','JPY','CNY','INR','CHF','MYR','THB','KRW','BRL','MXN'];
 
 // ── Rate cache ─────────────────────────────────────────────────────────────────
@@ -398,17 +398,15 @@ const ratesCache = {};
 let ratesReady   = false;
 let currentRate  = 1; // display currency rate vs USD
 async function fetchAndCacheUSDRates(){
+  if(ratesReady) return;
   try{
-    const r=await fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD');
-    const d=await r.json();
-    if(d.result==='success'){
-      const rates=d.conversion_rates;
-      if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
-        Object.keys(rates).forEach(k=>{
-          if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];
-        });
-        ratesReady=true;
-      }
+    const obj=await fiappGetRates('USD');
+    const rates=obj.rates;
+    if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
+      Object.keys(rates).forEach(k=>{
+        if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];
+      });
+      ratesReady=true;
     }
   }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
 }
@@ -464,10 +462,8 @@ function onCurrencyChange(){
     document.getElementById('curr-note').textContent='1 USD = '+ratesCache[cur].toFixed(4)+' '+cur;
     showConvFields(cur,ratesCache[cur]); return;
   }
-  fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD')
-    .then(r=>r.json()).then(d=>{
-      if(d.result!=='success'){document.getElementById('curr-note').textContent='Error';return;}
-      const rates=d.conversion_rates;
+  fiappGetRates('USD').then(obj=>{
+      const rates=obj.rates;
       if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
         Object.keys(rates).forEach(k=>{if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];});
         ratesReady=true;
@@ -483,10 +479,8 @@ function applyOtherCurrency(){
   if(!raw||!/^[A-Z]{2,5}$/.test(raw)){document.getElementById('curr-note').textContent='Invalid code (2–5 letters).';return;}
   if(raw==='USD'){state.displayCurrency='USD';save();hideConvFields();document.getElementById('curr-sel').value='USD';return;}
   document.getElementById('curr-note').textContent='Fetching…';
-  fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD')
-    .then(r=>r.json()).then(d=>{
-      if(d.result!=='success'){document.getElementById('curr-note').textContent='API error';return;}
-      const rates=d.conversion_rates;
+  fiappGetRates('USD').then(obj=>{
+      const rates=obj.rates;
       if(rates&&typeof rates==='object'){
         Object.keys(rates).forEach(k=>{if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];});
         ratesReady=true;
