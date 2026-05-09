@@ -52,7 +52,7 @@
     .month-nav button:hover{background:var(--secondary-hover);}
     .month-nav button:disabled{opacity:.35;cursor:not-allowed;}
 
-    /* Income summary bar */
+    
     .summary-bar{background:var(--total-soft);border:1px solid var(--success-border);border-radius:8px;padding:.9rem 1.1rem;margin-bottom:.75rem;}
     .summary-bar h3{margin:0 0 .6rem;font-size:.9rem;color:var(--total-fg);}
     .summary-bar.forecast-panel{background:#fffbeb;border-color:#fde68a;}
@@ -65,20 +65,20 @@
     .summary-val{font-size:1.05rem;font-weight:800;color:var(--total-fg);}
     .summary-link{font-size:.82rem;font-weight:600;color:var(--link);text-decoration:none;margin-top:2px;}
     .summary-link:hover{text-decoration:underline;}
-    /* Currency: inline "Other…" form */
+    
     .curr-other-cell{display:inline-flex;align-items:center;gap:3px;font-size:.82rem;}
     .curr-other-cell input{width:52px;padding:2px 5px;border:1px solid var(--input-border);border-radius:3px;font-size:.8rem;background:var(--input-bg);color:var(--fg);}
     .curr-other-cell button{padding:.1rem .4rem;border:none;border-radius:3px;cursor:pointer;font-size:.78rem;background:var(--accent);color:#fff;}
     .curr-other-cell button.x{background:var(--secondary-bg);color:var(--secondary-fg);}
     .curr-other-err{position:absolute;top:calc(100% + 2px);left:0;background:var(--error-bg);color:var(--error-fg);font-size:.72rem;padding:.2rem .4rem;border-radius:4px;white-space:nowrap;z-index:9999;}
-    /* Per-cell currency selector */
+    
     .cost-wrap{display:flex;align-items:center;gap:3px;}
     .c-num{flex:1;min-width:0;}
     .cell-curr-sel{flex-shrink:0;font-size:.72rem;padding:2px 3px;border:1px solid var(--input-border);border-radius:3px;background:var(--input-bg);color:var(--fg);max-width:62px;}
-    /* Center the sheet table */
+    
     .sheet-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;width:fit-content;max-width:100%;margin:0 auto;}
 
-    /* Chart */
+    
     .chart-section{display:none;margin-bottom:1rem;padding:.75rem 1rem;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;}
     .chart-mode-btns{display:flex;gap:.4rem;margin-bottom:.5rem;}
     .chart-mode-btn{padding:.28rem .65rem;font-size:.8rem;border:1px solid var(--input-border);border-radius:5px;cursor:pointer;background:var(--th-bg);color:var(--fg);}
@@ -89,7 +89,7 @@
     .top3 ol{margin:0;padding-left:1.2rem;font-size:.85rem;}
     .top3 li{margin-bottom:.2rem;color:var(--fg);}
 
-    /* Forecast mode */
+    
     .forecast-badge{padding:.15rem .45rem;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.04em;background:#fef3c7;color:#92400e;border:1px solid #fde68a;margin-left:.5rem;vertical-align:middle;}
     html.dark .forecast-badge{background:#451a03;color:#fde68a;border-color:#78350f;}
     .forecast-bar{display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.65rem 1rem;margin-bottom:.75rem;align-items:center;gap:.6rem;flex-wrap:wrap;}
@@ -104,9 +104,9 @@
     .forecast-toast{position:fixed;bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);background:#065f46;color:#fff;padding:.5rem 1.1rem;border-radius:6px;font-size:.83rem;font-weight:600;z-index:99999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
     .forecast-toast.show{opacity:1;}
 
-    /* Spreadsheet */
+    
     .sheet-wrap{overflow-x:auto;margin-top:.5rem;-webkit-overflow-scrolling:touch;}
-    /* Row drag-to-reorder */
+    
     .drag-handle{cursor:grab;color:var(--muted);font-size:1rem;padding:0 4px;opacity:.45;user-select:none;flex-shrink:0;}
     .drag-handle:active{cursor:grabbing;}
     tr.tr-dragging{opacity:.3;}
@@ -121,7 +121,7 @@
     .col-del:hover{color:#ef4444;background:rgba(239,68,68,.1);}
     .col-resize{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
     .col-resize:hover,.col-resize.dragging{background:#86efac;}
-    /* Column drag */
+    
     .col-drag-handle{cursor:grab;color:var(--muted);font-size:.75rem;margin-right:.3rem;user-select:none;opacity:.55;}
     .col-drag-handle:hover{opacity:1;}
     th.th-drop-before{border-left:3px solid #065f46!important;}
@@ -129,7 +129,7 @@
     .row-resize{position:absolute;left:0;right:0;bottom:0;height:5px;cursor:row-resize;z-index:2;}
     .row-resize:hover,.row-resize.dragging{background:#86efac;}
 
-    /* Row header */
+    
     .rh-cell{position:relative;overflow:visible;}
     .rh-inner{display:flex;align-items:center;gap:5px;padding:3px 6px;min-height:32px;}
     .color-swatch{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.2);}
@@ -139,7 +139,7 @@
     .collapse-btn{background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--muted);padding:0 2px;flex-shrink:0;line-height:1;}
     .collapse-btn:hover{color:var(--fg);}
 
-    /* Subcategory menu */
+    
     .sub-dropdown{position:relative;flex-shrink:0;}
     .sub-add-btn{background:none;border:1px solid var(--input-border);border-radius:4px;cursor:pointer;font-size:.72rem;padding:1px 5px;color:var(--muted);white-space:nowrap;}
     .sub-add-btn:hover{background:var(--hover-bg);color:var(--fg);}
@@ -158,22 +158,22 @@
     .sub-other-form .cancel{background:var(--secondary-bg);color:var(--secondary-fg);}
     .sub-other-err{color:#ef4444;font-size:.74rem;}
 
-    /* Child rows */
+    
     .child-row .rh-inner{padding-left:22px;}
     .child-row .row-label{font-weight:500;font-size:.83rem;color:var(--fg);}
 
-    /* Number inputs */
+    
     .num-input{display:block;width:100%;height:100%;min-height:32px;border:none;outline:none;padding:4px 7px;box-sizing:border-box;background:transparent;font-family:inherit;font-size:.85rem;text-align:right;color:var(--fg);}
     .num-input:focus{background:var(--input-focus);}
     .num-input::-webkit-inner-spin-button,.num-input::-webkit-outer-spin-button{opacity:0;}
     .num-input:hover::-webkit-inner-spin-button{opacity:1;}
     .parent-sum{display:block;padding:4px 7px;text-align:right;color:var(--muted);font-size:.83rem;min-height:32px;line-height:24px;font-style:italic;}
 
-    /* Total column */
+    
     .th-total{background:var(--total-bg);color:var(--total-fg);}
     .total-val{display:block;padding:4px 7px;font-weight:700;text-align:right;color:var(--total-fg);font-size:.85rem;min-height:32px;line-height:24px;background:var(--total-soft);}
 
-    /* Footer */
+    
     table.sheet tfoot td{background:var(--panel-bg);font-weight:700;border-top:2px solid var(--muted);color:var(--fg);}
     .gtotal-val{display:block;padding:4px 7px;font-weight:800;text-align:right;font-size:.85rem;min-height:32px;line-height:24px;}
     .week-total-cell{background:var(--total-soft);}
@@ -189,15 +189,15 @@
     .btn-add-row{background:none;border:1px dashed var(--muted);border-radius:4px;cursor:pointer;font-size:.82rem;padding:4px 12px;color:var(--muted);margin-top:4px;}
     .btn-add-row:hover{background:var(--hover-bg);}
 
-    /* Text-colour swatch */
+    
     .text-color-swatch{width:13px;height:13px;flex-shrink:0;border-radius:3px;border:1px solid rgba(128,128,128,.4);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;line-height:1;}
     .text-color-swatch:hover{border-color:#065f46;}
 
-    /* Suppress the CSS pseudo-element tooltips inside the table */
+    
     .rh-inner .tip-host::after,
     .rh-inner .tip-host::before { display:none !important; }
 
-    /* JS-driven floating tooltip */
+    
     #swatch-tip{
       position:fixed;z-index:99999;pointer-events:none;
       background:var(--tooltip-bg);color:var(--tooltip-fg);
@@ -207,13 +207,13 @@
     }
     #swatch-tip.show{opacity:1;}
 
-    /* Export menu */
+    
     .export-menu{position:fixed;z-index:9999;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:6px;box-shadow:var(--shadow);min-width:160px;}
     .export-menu button{display:block;width:100%;text-align:left;padding:.45rem .8rem;font-size:.85rem;border:none;background:none;cursor:pointer;color:var(--fg);}
     .export-menu button:hover{background:var(--hover-bg);}
     .export-menu button+button{border-top:1px solid var(--panel-border);}
 
-    /* Share / Paste modal */
+    
     .share-overlay{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:var(--overlay);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch;}
     .share-modal{background:var(--panel-bg);border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;max-height:85dvh;display:flex;flex-direction:column;gap:.6rem;box-shadow:var(--shadow);overflow-y:auto;}
     .share-modal h3{margin:0;font-size:1rem;color:var(--fg);}
@@ -222,11 +222,11 @@
     .share-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;align-self:center;}
     .share-hint{font-size:.74rem;color:var(--muted);font-style:italic;}
 
-    /* Export-menu post-action flash */
+    
     .export-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;background:var(--total-bg);border:1px solid var(--success-border);padding:.25rem .55rem;border-radius:5px;margin-left:.5rem;opacity:0;transition:opacity .25s;}
     .export-flash.show{opacity:1;}
 
-    /* Paste modal */
+    
     .paste-status{font-size:.83rem;padding:.4rem .55rem;border-radius:5px;background:var(--secondary-bg);color:var(--fg);}
     .paste-status.ok{background:var(--success-bg);border:1px solid var(--success-border);color:var(--success-fg);}
     .paste-status.bad{background:var(--error-bg);border:1px solid var(--error-border);color:var(--error-fg);}
@@ -236,7 +236,7 @@
     .picker-tools{display:flex;gap:.4rem;font-size:.78rem;}
     .picker-tools button{background:var(--secondary-bg);border:none;border-radius:4px;padding:.2rem .55rem;cursor:pointer;color:var(--secondary-fg);}
     .picker-tools button:hover{background:var(--secondary-hover);}
-    /* ── Hamburger / Side drawer ── */
+    
     .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
     .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
@@ -275,7 +275,7 @@
   ].forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
-  // Block negative signs and 'e' in ALL number inputs globally
+  
   document.addEventListener('keydown',e=>{
     if(e.target.type==='number'&&(e.key==='-'||e.key==='e'||e.key==='E'))e.preventDefault();
   });
@@ -293,6 +293,9 @@
     <select id="month-jump" class="month-jump" onchange="jumpToMonth(this.value)"></select>
     <button id="next-btn" onclick="shiftMonth(1)">Next ▶</button>
   </div>
+  <div style="margin-bottom:.5rem;">
+    <button class="btn-ghost btn-sm" onclick="copyStructureFromPrevMonth()">📋 Copy rows/cols from previous month</button>
+  </div>
 
   <div class="forecast-bar" id="forecast-bar">
     <p>📋 <strong>Forecast mode</strong> — this is a future month. Enter projected income, or seed from history:</p>
@@ -300,7 +303,7 @@
     <button class="btn btn-sm" onclick="useAverages()">Use 3-month avg</button>
   </div>
 
-  <!-- Income Summary Bar -->
+  
   <div class="summary-bar" id="summary-bar">
     <h3>Income Summary — <span id="summary-month"></span></h3>
     <div class="summary-grid">
@@ -321,7 +324,7 @@
         <a class="summary-link" id="tax-calc-link" href="/tax" style="color:#d97706;">🧾 Calculate Income Tax</a>
       </div>
     </div>
-    <!-- Currency row -->
+    
     <div class="curr-row" style="margin-top:.6rem;">
       <label style="font-size:.78rem;font-weight:600;color:var(--muted);margin-right:.4rem;">Display currency:</label>
       <select id="curr-sel" onchange="onCurrencyChange()" style="padding:.25rem .5rem;border:1px solid var(--input-border);border-radius:5px;font-size:.82rem;background:var(--input-bg);color:var(--fg);">
@@ -393,10 +396,10 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 const MONTHS_SHORT= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CELL_CURRENCIES  = ['USD','EUR','GBP','AED','HKD','SGD','CAD','AUD','JPY','CNY','INR','CHF','MYR','THB','KRW','BRL','MXN'];
 
-// ── Rate cache ─────────────────────────────────────────────────────────────────
+
 const ratesCache = {};
 let ratesReady   = false;
-let currentRate  = 1; // display currency rate vs USD
+let currentRate  = 1; 
 async function fetchAndCacheUSDRates(){
   if(ratesReady) return;
   try{
@@ -431,7 +434,7 @@ function getAllUsedCurrencies(){
   Object.values(state.monthRowCurrencies||{}).forEach(c=>{ if(c) set.add(c); });
   return [...set];
 }
-// Display currency controls
+
 function showConvFields(cur,rate){
   currentRate=rate;
   document.getElementById('conv-lbl').textContent='Total ('+cur+')';
@@ -487,7 +490,7 @@ function applyOtherCurrency(){
       }
       const rate=ratesCache[raw];
       if(!rate){document.getElementById('curr-note').textContent='Unknown currency: '+raw;return;}
-      // Add as custom option
+      
       const sel=document.getElementById('curr-sel');
       if(![...sel.options].find(o=>o.value===raw)){
         const opt=document.createElement('option'); opt.value=raw; opt.textContent=raw; opt.dataset.custom='1';
@@ -539,7 +542,7 @@ const CAT_COLORS = {
 };
 function uid(){ return '_'+Math.random().toString(36).slice(2,9); }
 
-// ── State ──────────────────────────────────────────────────────────────────────
+
 function freshState(){
   const now=new Date(),y=now.getFullYear(),m=now.getMonth();
   return {
@@ -556,6 +559,7 @@ function freshState(){
     cells:{}, collapsed:{}, monthRowCurrencies:{},
     displayCurrency:'USD',
     currentYear:y, currentMonth:m,
+    rowsByMonth:{}, colsByMonth:{},
   };
 }
 function loadState(){
@@ -567,6 +571,8 @@ function loadState(){
       if(!s.collapsed)      s.collapsed={};
       if(!s.monthRowCurrencies)  s.monthRowCurrencies={};
       if(!s.displayCurrency) s.displayCurrency='USD';
+      if(!s.rowsByMonth)    s.rowsByMonth={};
+      if(!s.colsByMonth)    s.colsByMonth={};
       return s;
     }
   }catch(e){ console.warn('FiApp: loadState failed, using fresh state —',e.message); }
@@ -574,7 +580,35 @@ function loadState(){
 }
 let state=loadState();
 
-// ── Server sync ────────────────────────────────────────────────────────────────
+const MAX_ROWS=20;
+const MAX_COLS=12;
+function getRows(mk2){ mk2=mk2||currentMK(); return (state.rowsByMonth&&state.rowsByMonth[mk2])?state.rowsByMonth[mk2]:state.rows; }
+function getCols(mk2){ mk2=mk2||currentMK(); return (state.colsByMonth&&state.colsByMonth[mk2])?state.colsByMonth[mk2]:state.cols; }
+function forkCurrentMonth(){
+  const mk2=currentMK();
+  if(!state.rowsByMonth) state.rowsByMonth={};
+  if(!state.colsByMonth) state.colsByMonth={};
+  if(!state.rowsByMonth[mk2]) state.rowsByMonth[mk2]=state.rows.map(r=>({...r}));
+  if(!state.colsByMonth[mk2]) state.colsByMonth[mk2]=state.cols.map(c=>({...c}));
+}
+function copyStructureFromPrevMonth(){
+  const mk2=currentMK();
+  const [y,mo]=mk2.split('-').map(Number);
+  const prev=new Date(y,mo-2);
+  const prevMk=prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0');
+  const prevRows=getRows(prevMk), prevCols=getCols(prevMk);
+  if(!prevRows.length){showToast('No rows in previous month.');return;}
+  const alreadyForked=state.rowsByMonth&&state.rowsByMonth[mk2];
+  if(alreadyForked&&!confirm('This month already has its own structure. Overwrite with previous month\'s rows/columns?')) return;
+  if(!state.rowsByMonth) state.rowsByMonth={};
+  if(!state.colsByMonth) state.colsByMonth={};
+  state.rowsByMonth[mk2]=prevRows.map(r=>({...r}));
+  state.colsByMonth[mk2]=prevCols.map(c=>({...c}));
+  save(); render();
+  showToast('Copied structure from previous month');
+}
+
+
 let _syncTimer=null;
 function setSyncStatus(msg,cls){
   const el=document.getElementById('sync-status');if(!el)return;
@@ -616,7 +650,7 @@ function save(){
       showSaveQuotaWarning();
     } else { throw e; }
   }
-  // Push signal so Expense Tracker auto-syncs gross income
+  
   try{ localStorage.setItem(PUSH_KEY, JSON.stringify({mk:currentMK(),total:grandTotal(),ts:Date.now()})); }catch{}
   syncToServer();
 }
@@ -635,7 +669,7 @@ function showToast(msg, isError=true, duration=4000){
   document.body.appendChild(el); setTimeout(()=>el.remove(),duration);
 }
 
-// ── Undo / Redo ────────────────────────────────────────────────────────────────
+
 let undoStack=[], redoStack=[];
 function loadHistory(){
   try{
@@ -658,7 +692,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();}
 });
 
-// ── Month navigation ───────────────────────────────────────────────────────────
+
 const today=new Date();
 function mk(y,m){ return String(y)+'-'+String(m+1).padStart(2,'0'); }
 function currentMK(){ return mk(state.currentYear,state.currentMonth); }
@@ -707,7 +741,7 @@ function updateMonthNav(){
   updateForecastUI();
 }
 
-// ── Forecast mode ──────────────────────────────────────────────────────────────
+
 function isForecastMonth(){
   const now=new Date();
   return state.currentYear>now.getFullYear()||(state.currentYear===now.getFullYear()&&state.currentMonth>now.getMonth());
@@ -745,9 +779,9 @@ function useAverages(){
     srcMonths.push(mk(py,pm));
   }
   let filled=0, hasHistory=false;
-  state.rows.forEach(r=>{
-    state.cols.forEach(col=>{
-      // Convert each historical month's value to USD before averaging
+  getRows().forEach(r=>{
+    getCols().forEach(col=>{
+
       const usdVals=srcMonths.map(m=>{
         const raw=safeNum(state.cells[m+'|'+r.id+'|'+col.id]);
         return raw>0 ? amountToUSD(raw,m,r.id) : 0;
@@ -770,36 +804,36 @@ function showForecastToast(msg){
   window._fcToastT=setTimeout(()=>t.classList.remove('show'),3500);
 }
 
-// ── Cell helpers ───────────────────────────────────────────────────────────────
+
 function ck(rId,cId){ return currentMK()+'|'+rId+'|'+cId; }
 function getRawCell(rId,cId){ return state.cells[ck(rId,cId)]||''; }
 function getCell(rId,cId){ return safeNum(state.cells[ck(rId,cId)]); }
 function setCell(rId,cId,v){ state.cells[ck(rId,cId)]=v; save(); }
 
-// ── Row hierarchy ──────────────────────────────────────────────────────────────
-function children(rId){ return state.rows.filter(r=>r.parentId===rId); }
-function hasChildren(rId){ return state.rows.some(r=>r.parentId===rId); }
+
+function children(rId, mk2){ return getRows(mk2).filter(r=>r.parentId===rId); }
+function hasChildren(rId, mk2){ return getRows(mk2).some(r=>r.parentId===rId); }
 function isCollapsed(rId){ return state.collapsed[rId]===true; }
 
-// ── Calculations ───────────────────────────────────────────────────────────────
+
 function rowTotalUSD(rId){
-  // Returns total in USD (converts non-USD cell values)
+
   const kids=children(rId);
   if(kids.length) return kids.reduce((s,c)=>s+rowTotalUSD(c.id),0);
-  return state.cols.reduce((s,col)=>s+amountToUSD(getCell(rId,col.id), currentMK(), rId),0);
+  return getCols().reduce((s,col)=>s+amountToUSD(getCell(rId,col.id), currentMK(), rId),0);
 }
 function rowTotal(rId){
-  // Returns total in display currency
+  
   const usd=rowTotalUSD(rId);
   return usd*currentRate;
 }
 function grandTotal(){
-  const usd=state.rows.filter(r=>!r.parentId).reduce((s,r)=>s+rowTotalUSD(r.id),0);
-  return usd; // always USD — display conversion done in updateSummaryBar
+  const usd=getRows().filter(r=>!r.parentId).reduce((s,r)=>s+rowTotalUSD(r.id),0);
+  return usd;
 }
 function salaryTotal(){
-  // Only top-level rows labelled "Salary" (case-insensitive) feed the tax calculator
-  return state.rows
+
+  return getRows()
     .filter(r=>!r.parentId && r.label.trim().toLowerCase()==='salary')
     .reduce((s,r)=>s+rowTotalUSD(r.id),0);
 }
@@ -807,7 +841,7 @@ function grandTotalDisplay(){
   return grandTotal()*currentRate;
 }
 function colTotal(cId){
-  return state.rows.filter(r=>!r.parentId).reduce((s,r)=>{
+  return getRows().filter(r=>!r.parentId).reduce((s,r)=>{
     if(hasChildren(r.id)) return s+children(r.id).reduce((cs,c)=>cs+amountToUSD(getCell(c.id,cId), currentMK(), c.id),0);
     return s+amountToUSD(getCell(r.id,cId), currentMK(), r.id);
   },0);
@@ -816,11 +850,11 @@ function fmt(n){ return '$'+Math.max(0,n).toFixed(2); }
 
 function updateRowTotal(rId){
   const el=document.getElementById('rt-'+rId); if(el) el.textContent=fmt(rowTotal(rId));
-  const row=state.rows.find(r=>r.id===rId);
+  const row=getRows().find(r=>r.id===rId);
   if(row&&row.parentId){ updateRowTotal(row.parentId); updateParentSumCells(row.parentId); }
 }
 function updateParentSumCells(pId){
-  state.cols.forEach(col=>{
+  getCols().forEach(col=>{
     const el=document.getElementById('ps-'+pId+'-'+col.id);
     if(el){
       const s=children(pId).reduce((t,c)=>t+getCell(c.id,col.id),0);
@@ -833,14 +867,14 @@ function updateColFooter(cId){
 }
 function updateGrandTotal(){
   const el=document.getElementById('gt'); if(el) el.textContent=fmt(grandTotal());
-  state.cols.forEach(col=>updateColFooter(col.id));
+  getCols().forEach(col=>updateColFooter(col.id));
   updateSummaryBar();
 }
 function updateAll(rId){ updateRowTotal(rId); updateGrandTotal(); if(chartVisible) renderChart(); }
 
-// ── Summary bar ────────────────────────────────────────────────────────────────
+
 function updateSummaryBar(){
-  const totalUSD=grandTotal(); // always USD
+  const totalUSD=grandTotal(); 
   const el=document.getElementById('disp-total');
   const annualEl=document.getElementById('disp-annual');
   const convEl=document.getElementById('disp-conv');
@@ -852,7 +886,7 @@ function updateSummaryBar(){
     const annualConvEl=document.getElementById('conv-annual');
     if(annualConvEl) annualConvEl.textContent=totalUSD>0?cur+' '+(totalUSD*12*currentRate).toFixed(2):'—';
   }
-  // Update tax calculator link — only Salary row feeds it
+  
   const salaryUSD=salaryTotal();
   const taxLink=document.getElementById('tax-calc-link');
   if(taxLink&&salaryUSD>0){
@@ -863,12 +897,12 @@ function updateSummaryBar(){
   }
 }
 
-// ── Expand / Collapse ──────────────────────────────────────────────────────────
-function toggleCollapse(rowId){ snapshot(); state.collapsed[rowId]=!isCollapsed(rowId); save(); render(); }
-function expandAll(){ snapshot(); state.rows.filter(r=>!r.parentId&&hasChildren(r.id)).forEach(r=>state.collapsed[r.id]=false); save(); render(); }
-function collapseAll(){ snapshot(); state.rows.filter(r=>!r.parentId&&hasChildren(r.id)).forEach(r=>state.collapsed[r.id]=true); save(); render(); }
 
-// ── Sub-category menu ─────────────────────────────────────────────────────────
+function toggleCollapse(rowId){ snapshot(); state.collapsed[rowId]=!isCollapsed(rowId); save(); render(); }
+function expandAll(){ snapshot(); getRows().filter(r=>!r.parentId&&hasChildren(r.id)).forEach(r=>state.collapsed[r.id]=false); save(); render(); }
+function collapseAll(){ snapshot(); getRows().filter(r=>!r.parentId&&hasChildren(r.id)).forEach(r=>state.collapsed[r.id]=true); save(); render(); }
+
+
 let openMenu=null;
 function closeMenu(){ if(openMenu){openMenu.remove();openMenu=null;} }
 document.addEventListener('click',e=>{ if(!e.target.closest('.sub-dropdown')&&!e.target.closest('.sub-menu')) closeMenu(); });
@@ -942,59 +976,82 @@ function showSubMenu(btn, row){
   }
 }
 
-// ── Structural mutations ───────────────────────────────────────────────────────
+
 function addRow(){
+  forkCurrentMonth();
+  const mk2=currentMK();
+  if(getRows(mk2).filter(r=>!r.parentId).length>=MAX_ROWS){showToast('Maximum '+MAX_ROWS+' rows per month.');return;}
   snapshot();
-  const usedLabels=state.rows.filter(r=>!r.parentId).map(r=>r.label);
+  const usedLabels=getRows(mk2).filter(r=>!r.parentId).map(r=>r.label);
   const nextCat=CAT_KEYS.find(k=>!usedLabels.includes(k))||'Salary';
-  state.rows.push({id:uid(),label:nextCat,color:CAT_COLORS[nextCat]||'#e5e7eb',textColor:'#1f2937',height:36,parentId:null});
+  state.rowsByMonth[mk2].push({id:uid(),label:nextCat,color:CAT_COLORS[nextCat]||'#e5e7eb',textColor:'#1f2937',height:36,parentId:null});
   save(); render();
 }
 function addSubRow(parentRow, subLabel){
+  forkCurrentMonth();
+  const mk2=currentMK();
+  if(getRows(mk2).length>=MAX_ROWS){showToast('Maximum '+MAX_ROWS+' rows per month.');return;}
   snapshot();
-  const parentIdx=state.rows.findIndex(r=>r.id===parentRow.id);
-  const kids=state.rows.reduce((acc,r,i)=>r.parentId===parentRow.id?[...acc,i]:acc,[]);
+  const rows=state.rowsByMonth[mk2];
+  const parentIdx=rows.findIndex(r=>r.id===parentRow.id);
+  const kids=rows.reduce((acc,r,i)=>r.parentId===parentRow.id?[...acc,i]:acc,[]);
   const insertIdx=kids.length?Math.max(...kids)+1:parentIdx+1;
-  state.rows.splice(insertIdx,0,{id:uid(),label:subLabel,color:parentRow.color,textColor:parentRow.textColor||'#1f2937',height:32,parentId:parentRow.id});
+  rows.splice(insertIdx,0,{id:uid(),label:subLabel,color:parentRow.color,textColor:parentRow.textColor||'#1f2937',height:32,parentId:parentRow.id});
   state.collapsed[parentRow.id]=false;
   save(); render();
 }
-function addCol(){ snapshot(); state.cols.push({id:uid(),label:'New Column',width:120}); save(); render(); }
-function deleteRow(id){
+function addCol(){
+  forkCurrentMonth();
+  const mk2=currentMK();
+  if(getCols(mk2).length>=MAX_COLS){showToast('Maximum '+MAX_COLS+' columns per month.');return;}
   snapshot();
-  const kids=state.rows.filter(r=>r.parentId===id).map(r=>r.id);
+  state.colsByMonth[mk2].push({id:uid(),label:'New Column',width:120});
+  save(); render();
+}
+function deleteRow(id){
+  forkCurrentMonth();
+  snapshot();
+  const mk2=currentMK();
+  const kids=getRows(mk2).filter(r=>r.parentId===id).map(r=>r.id);
   const toDelete=[id,...kids];
-  state.rows=state.rows.filter(r=>!toDelete.includes(r.id));
+  state.rowsByMonth[mk2]=getRows(mk2).filter(r=>!toDelete.includes(r.id));
   Object.keys(state.cells).forEach(k=>{ if(toDelete.some(d=>k.includes('|'+d+'|'))) delete state.cells[k]; });
   save(); render();
 }
 function deleteCol(id){
-  snapshot(); state.cols=state.cols.filter(c=>c.id!==id);
+  forkCurrentMonth();
+  snapshot();
+  const mk2=currentMK();
+  state.colsByMonth[mk2]=getCols(mk2).filter(c=>c.id!==id);
   Object.keys(state.cells).filter(k=>k.endsWith('|'+id)).forEach(k=>delete state.cells[k]);
   save(); render();
 }
-// Move a parent row (and all its children) before/after another parent row
+
 function moveParentRow(fromId, toId, before){
   if(fromId===toId) return;
+  forkCurrentMonth();
   snapshot();
-  const fromGroup=[fromId,...state.rows.filter(r=>r.parentId===fromId).map(r=>r.id)];
-  const fromRows=fromGroup.map(id=>state.rows.find(r=>r.id===id)).filter(Boolean);
-  state.rows=state.rows.filter(r=>!fromGroup.includes(r.id));
-  const toParentIdx=state.rows.findIndex(r=>r.id===toId);
-  if(toParentIdx===-1){state.rows.push(...fromRows);save();render();return;}
+  const mk2=currentMK();
+  const rows=state.rowsByMonth[mk2];
+  const fromGroup=[fromId,...rows.filter(r=>r.parentId===fromId).map(r=>r.id)];
+  const fromRows=fromGroup.map(id=>rows.find(r=>r.id===id)).filter(Boolean);
+  state.rowsByMonth[mk2]=rows.filter(r=>!fromGroup.includes(r.id));
+  const arr=state.rowsByMonth[mk2];
+  const toParentIdx=arr.findIndex(r=>r.id===toId);
+  if(toParentIdx===-1){arr.push(...fromRows);save();render();return;}
   if(before){
-    state.rows.splice(toParentIdx,0,...fromRows);
+    arr.splice(toParentIdx,0,...fromRows);
   } else {
-    const toKids=state.rows.reduce((acc,r,i)=>r.parentId===toId?[...acc,i]:acc,[]);
+    const toKids=arr.reduce((acc,r,i)=>r.parentId===toId?[...acc,i]:acc,[]);
     const insertAfter=toKids.length?Math.max(...toKids):toParentIdx;
-    state.rows.splice(insertAfter+1,0,...fromRows);
+    arr.splice(insertAfter+1,0,...fromRows);
   }
   save(); render();
 }
 let _dragRowId=null;
 let _dragColId=null;
 
-// ── Security helpers ───────────────────────────────────────────────────────────
+
 function escapeHtml(s){
   return String(s==null?'':s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -1005,7 +1062,7 @@ function safeNum(v,max=1e12){
   return (isFinite(n)&&n>=-max&&n<=max)?n:0;
 }
 
-// ── Chart ──────────────────────────────────────────────────────────────────────
+
 let chartInstance=null, chartVisible=false, chartMode='monthly', chartType='bar';
 function toggleChart(){
   chartVisible=!chartVisible;
@@ -1026,9 +1083,9 @@ function setChartType(type){
   renderChart();
 }
 function rowTotalForMonthKey(rId, monthKey){
-  const kids=state.rows.filter(r=>r.parentId===rId);
+  const kids=getRows(monthKey).filter(r=>r.parentId===rId);
   if(kids.length) return kids.reduce((s,c)=>s+rowTotalForMonthKey(c.id,monthKey),0);
-  return state.cols.reduce((s,col)=>{
+  return getCols(monthKey).reduce((s,col)=>{
     const k=monthKey+'|'+rId+'|'+col.id;
     return s+amountToUSD(parseFloat(state.cells[k])||0, monthKey, rId);
   },0);
@@ -1038,7 +1095,7 @@ function rowTotalForYear(rId,year){
 }
 function renderChart(){
   if(!chartVisible) return;
-  const topRows=state.rows.filter(r=>!r.parentId);
+  const topRows=getRows().filter(r=>!r.parentId);
   let data, topLabel;
   if(chartMode==='yearly'){
     data=topRows.map(r=>({label:r.label,value:rowTotalForYear(r.id,state.currentYear),color:r.color})).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
@@ -1090,7 +1147,7 @@ function renderTop3(data,label){
   el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.label)}</strong> — $${parseFloat(t.value.toFixed(2))}</li>`).join('')+'</ol>';
 }
 
-// ── Reset ──────────────────────────────────────────────────────────────────────
+
 let resetTimer=null;
 function resetAll(){
   const btn=document.getElementById('reset-btn');
@@ -1104,7 +1161,7 @@ function resetAll(){
   }
 }
 
-// ── Resize ─────────────────────────────────────────────────────────────────────
+
 function attachColResize(handle,col){
   handle.addEventListener('mousedown',e=>{
     e.preventDefault();handle.classList.add('dragging');
@@ -1133,17 +1190,17 @@ function attachRowResize(handle,row,tr){
   });
 }
 
-// ── Render ─────────────────────────────────────────────────────────────────────
+
 function render(){
   const table=document.getElementById('sheet'); table.innerHTML='';
   const cg=document.createElement('colgroup');
   const hc=document.createElement('col');hc.id='cg-hdr';hc.style.width=(state.headerColWidth||185)+'px';cg.appendChild(hc);
-  state.cols.forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(col.width||120)+'px';cg.appendChild(c);});
+  getCols().forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(col.width||120)+'px';cg.appendChild(c);});
   const tc=document.createElement('col');tc.style.width=(state.totalColWidth||110)+'px';cg.appendChild(tc);
   const dc=document.createElement('col');dc.style.width='32px';cg.appendChild(dc);
   table.appendChild(cg);
 
-  // thead
+  
   const thead=document.createElement('thead'),htr=document.createElement('tr');
   const corner=document.createElement('th');
   const ci=document.createElement('div');ci.className='th-inner';
@@ -1151,7 +1208,7 @@ function render(){
   corner.appendChild(ci);
   const chr=document.createElement('div');chr.className='col-resize';attachHdrResize(chr);corner.appendChild(chr);
   htr.appendChild(corner);
-  state.cols.forEach(col=>{
+  getCols().forEach(col=>{
     const th=document.createElement('th');
     th.dataset.colId=col.id;
     const inner=document.createElement('div');inner.className='th-inner';
@@ -1182,15 +1239,18 @@ function render(){
       if(!_dragColId||_dragColId===col.id) return;
       e.preventDefault();
       document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
-      const fromIdx=state.cols.findIndex(c=>c.id===_dragColId);
-      const toCol=state.cols.findIndex(c=>c.id===col.id);
-      if(fromIdx===-1||toCol===-1) return;
+      forkCurrentMonth();
+      const mk2=currentMK();
+      const cols=state.colsByMonth[mk2];
+      const fromIdx=cols.findIndex(c=>c.id===_dragColId);
+      const toIdx=cols.findIndex(c=>c.id===col.id);
+      if(fromIdx===-1||toIdx===-1) return;
       const rect=th.getBoundingClientRect();
       const before=e.clientX<rect.left+rect.width/2;
       snapshot();
-      const [moved]=state.cols.splice(fromIdx,1);
-      const insertAt=state.cols.findIndex(c=>c.id===col.id);
-      state.cols.splice(before?insertAt:insertAt+1,0,moved);
+      const [moved]=cols.splice(fromIdx,1);
+      const insertAt=cols.findIndex(c=>c.id===col.id);
+      cols.splice(before?insertAt:insertAt+1,0,moved);
       save(); render();
     });
     htr.appendChild(th);
@@ -1203,9 +1263,9 @@ function render(){
   const acb=document.createElement('button');acb.className='btn-add-col';acb.textContent='+';acb.title='Add column';acb.addEventListener('click',addCol);act.appendChild(acb);htr.appendChild(act);
   thead.appendChild(htr);table.appendChild(thead);
 
-  // tbody
+  
   const tbody=document.createElement('tbody');
-  // Tbody-level drag handlers so top/bottom row drops are always reachable
+  
   tbody.addEventListener('dragover',e=>{
     if(!_dragRowId){return;}
     e.preventDefault();
@@ -1259,14 +1319,14 @@ function render(){
       const cb=document.createElement('button');cb.className='collapse-btn';cb.title=collapsed?'Expand':'Collapse';cb.textContent=collapsed?'▸':'▾';
       cb.addEventListener('click',()=>toggleCollapse(row.id));rhIn.appendChild(cb);
     }
-    // Background-colour swatch
+    
     const colorWrap=document.createElement('div');colorWrap.className='color-swatch-wrap tip-host';colorWrap.dataset.tip='Row background colour';
     const swatch=document.createElement('div');swatch.className='color-swatch';swatch.style.backgroundColor=row.color;
     const cInp=document.createElement('input');cInp.type='color';cInp.className='color-inp-overlay';cInp.value=row.color;
     cInp.addEventListener('input',()=>{row.color=cInp.value;rhTd.style.backgroundColor=cInp.value;swatch.style.backgroundColor=cInp.value;textSwatch.style.backgroundColor=cInp.value;});
     cInp.addEventListener('change',save);
     colorWrap.appendChild(swatch);colorWrap.appendChild(cInp);
-    // Text-colour swatch
+    
     const tcWrap=document.createElement('div');tcWrap.className='color-swatch-wrap tip-host';tcWrap.dataset.tip='Row text colour';
     const textSwatch=document.createElement('div');textSwatch.className='text-color-swatch';textSwatch.textContent='A';textSwatch.style.color=row.textColor||'#1f2937';textSwatch.style.backgroundColor=row.color||'#ffffff';
     const tcInp=document.createElement('input');tcInp.type='color';tcInp.className='color-inp-overlay';tcInp.value=row.textColor||'#1f2937';
@@ -1288,7 +1348,7 @@ function render(){
     const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);rhTd.appendChild(rr);
     tr.appendChild(rhTd);
 
-    state.cols.forEach(col=>{
+    getCols().forEach(col=>{
       const td=document.createElement('td');
       if(hasKids){
         const span=document.createElement('span');span.className='parent-sum';span.id='ps-'+row.id+'-'+col.id;
@@ -1306,7 +1366,7 @@ function render(){
           ensureRate(rowCurrency(currentMK(), row.id)).then(()=>updateAll(row.id));
         });
         wrap.appendChild(inp);
-        // Per-row currency selector
+        
         const cur=rowCurrency(currentMK(), row.id);
         const sel=document.createElement('select'); sel.className='cell-curr-sel'; sel.title='Currency for this row';
         const codes=getAllUsedCurrencies();
@@ -1337,17 +1397,17 @@ function render(){
       children(row.id).forEach(renderRow);
     }
   }
-  state.rows.filter(r=>!r.parentId).forEach(renderRow);
+  getRows().filter(r=>!r.parentId).forEach(renderRow);
 
-  const atr=document.createElement('tr');const atd=document.createElement('td');atd.colSpan=state.cols.length+3;atd.style.cssText='border:none;padding:3px 0;';
+  const atr=document.createElement('tr');const atd=document.createElement('td');atd.colSpan=getCols().length+3;atd.style.cssText='border:none;padding:3px 0;';
   const arb=document.createElement('button');arb.className='btn-add-row';arb.textContent='+ Add Row';arb.addEventListener('click',addRow);
   atd.appendChild(arb);atr.appendChild(atd);tbody.appendChild(atr);
   table.appendChild(tbody);
 
-  // tfoot
+  
   const tfoot=document.createElement('tfoot'),ftr=document.createElement('tr');
   const fl=document.createElement('td');fl.style.cssText='font-weight:700;padding:4px 8px;font-size:.85rem;';fl.textContent='TOTAL';ftr.appendChild(fl);
-  state.cols.forEach(col=>{
+  getCols().forEach(col=>{
     const ftd=document.createElement('td'); ftd.className='week-total-cell';
     const fs=document.createElement('span');fs.className='gtotal-val';fs.id='ct-'+col.id;
     fs.textContent=fmt(colTotal(col.id));
@@ -1364,23 +1424,23 @@ function render(){
   updateForecastUI();
   const tbl=document.getElementById('sheet');
   if(tbl) tbl.classList.toggle('forecast',isForecastMonth());
-  const hasSubcats=state.rows.some(r=>r.parentId);
+  const hasSubcats=getRows().some(r=>r.parentId);
   const eb=document.getElementById('expand-btn'), cb2=document.getElementById('collapse-btn');
   if(eb) eb.style.display=hasSubcats?'':'none';
   if(cb2) cb2.style.display=hasSubcats?'':'none';
 }
 
-// ── Body-width adjuster ────────────────────────────────────────────────────────
+
 function adjustBodyWidth(){
   const naturalWidth=(state.headerColWidth||185)
-    +state.cols.reduce((s,c)=>s+(c.width||120),0)
+    +getCols().reduce((s,c)=>s+(c.width||120),0)
     +(state.totalColWidth||110)+32;
   const cap=Math.min(window.innerWidth*0.95,1500);
   document.body.style.maxWidth=naturalWidth>900?Math.min(naturalWidth+60,cap)+'px':'';
 }
 window.addEventListener('resize',adjustBodyWidth);
 
-// ── Export / Share helpers ─────────────────────────────────────────────────────
+
 function expPad(s,n){ s=String(s); return s.length>=n?s:s+' '.repeat(n-s.length); }
 function expCsvEsc(v){
   const s=String(v==null?'':v);
@@ -1388,27 +1448,27 @@ function expCsvEsc(v){
 }
 
 function buildRowsArray(){
-  const colLabels=state.cols.map(c=>c.label);
+  const colLabels=getCols().map(c=>c.label);
   const header=['Source','Sub-source',...colLabels,'Total'];
   const out=[header];
-  state.rows.filter(r=>!r.parentId).forEach(parent=>{
+  getRows().filter(r=>!r.parentId).forEach(parent=>{
     const kids=children(parent.id);
     if(kids.length){
-      const vals=state.cols.map(col=>{
+      const vals=getCols().map(col=>{
         const s=kids.reduce((t,c)=>t+getCell(c.id,col.id),0);
         return s?s.toFixed(2):'';
       });
       out.push([parent.label,'',...vals,rowTotal(parent.id).toFixed(2)]);
       kids.forEach(kid=>{
-        const kVals=state.cols.map(col=>{ const v=getCell(kid.id,col.id); return v?v.toFixed(2):''; });
+        const kVals=getCols().map(col=>{ const v=getCell(kid.id,col.id); return v?v.toFixed(2):''; });
         out.push(['',kid.label,...kVals,rowTotal(kid.id).toFixed(2)]);
       });
     } else {
-      const vals=state.cols.map(col=>{ const v=getCell(parent.id,col.id); return v?v.toFixed(2):''; });
+      const vals=getCols().map(col=>{ const v=getCell(parent.id,col.id); return v?v.toFixed(2):''; });
       out.push([parent.label,'',...vals,rowTotal(parent.id).toFixed(2)]);
     }
   });
-  const totals=state.cols.map(col=>colTotal(col.id).toFixed(2));
+  const totals=getCols().map(col=>colTotal(col.id).toFixed(2));
   out.push(['TOTAL','',...totals,grandTotal().toFixed(2)]);
   return out;
 }
@@ -1418,17 +1478,17 @@ function buildCsv(){
 }
 function buildJson(){
   const mk2=currentMK();
-  const topRows=state.rows.filter(r=>!r.parentId);
+  const topRows=getRows().filter(r=>!r.parentId);
   const rowsOut=topRows.map(parent=>{
     const kids=children(parent.id);
     const colVals={};
-    state.cols.forEach(col=>{ colVals[col.label]=getCell(parent.id,col.id)||undefined; });
+    getCols().forEach(col=>{ colVals[col.label]=getCell(parent.id,col.id)||undefined; });
     return {
       label:parent.label,color:parent.color,textColor:parent.textColor,
       total:rowTotal(parent.id),amounts:colVals,
       subsources:kids.map(kid=>{
         const kv={};
-        state.cols.forEach(col=>{ kv[col.label]=getCell(kid.id,col.id)||undefined; });
+        getCols().forEach(col=>{ kv[col.label]=getCell(kid.id,col.id)||undefined; });
         return {label:kid.label,total:rowTotal(kid.id),amounts:kv};
       })
     };
@@ -1436,9 +1496,9 @@ function buildJson(){
   return JSON.stringify({
     month:mk2,
     monthName:MONTHS_FULL[state.currentMonth]+' '+state.currentYear,
-    columns:state.cols.map(c=>c.label),
+    columns:getCols().map(c=>c.label),
     rows:rowsOut,
-    totals:{grand:grandTotal(),perColumn:Object.fromEntries(state.cols.map(col=>[col.label,colTotal(col.id)]))}
+    totals:{grand:grandTotal(),perColumn:Object.fromEntries(getCols().map(col=>[col.label,colTotal(col.id)]))}
   },null,2);
 }
 function buildTxt(){
@@ -1457,7 +1517,7 @@ function buildTsv(){
 }
 
 function gmailHref(subject, body){
-  return 'https://mail.google.com/mail/?view=cm&fs=1&tf=1'
+  return 'https:
        + '&su='+encodeURIComponent(subject)
        + '&body='+encodeURIComponent(body);
 }
@@ -1483,8 +1543,8 @@ function showExportFlash(msg){
   window._exportFlashT=setTimeout(()=>f.classList.remove('show'),2500);
 }
 
-// ── Copy / Paste blob format ───────────────────────────────────────────────────
-// FIAPP-<KIND>-V1:<base64(JSON)>   KIND ∈ {INC-MONTH, INC-FULL}
+
+
 function encodeBlob(obj){
   return 'FIAPP-'+obj.kind+'-V1:'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
 }
@@ -1524,10 +1584,13 @@ function buildIncMonthBlob(){
   Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) cells[k]=state.cells[k]; });
   const rowCurrencies={};
   Object.keys(state.monthRowCurrencies||{}).forEach(k=>{ if(k.startsWith(mk2+'|')) rowCurrencies[k]=state.monthRowCurrencies[k]; });
+  const rowsByMonth={}; if(state.rowsByMonth&&state.rowsByMonth[mk2]) rowsByMonth[mk2]=JSON.parse(JSON.stringify(state.rowsByMonth[mk2]));
+  const colsByMonth={}; if(state.colsByMonth&&state.colsByMonth[mk2]) colsByMonth[mk2]=JSON.parse(JSON.stringify(state.colsByMonth[mk2]));
   return {
     kind:'INC-MONTH', v:1, monthKey:mk2,
-    rows:JSON.parse(JSON.stringify(state.rows)),
-    cols:JSON.parse(JSON.stringify(state.cols)),
+    rows:JSON.parse(JSON.stringify(getRows())),
+    cols:JSON.parse(JSON.stringify(getCols())),
+    rowsByMonth, colsByMonth,
     cells,
     rowCurrencies,
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
@@ -1543,6 +1606,8 @@ function buildIncFullBlob(){
     kind:'INC-FULL', v:1,
     rows:JSON.parse(JSON.stringify(state.rows)),
     cols:JSON.parse(JSON.stringify(state.cols)),
+    rowsByMonth:JSON.parse(JSON.stringify(state.rowsByMonth||{})),
+    colsByMonth:JSON.parse(JSON.stringify(state.colsByMonth||{})),
     cellsByMonth,
     collapsed:JSON.parse(JSON.stringify(state.collapsed||{})),
     rowCurrencies:JSON.parse(JSON.stringify(state.monthRowCurrencies||{})),
@@ -1616,10 +1681,20 @@ function importIncMonth(blob){
     const rId=blobRowIdMap[parts[1]], cId=blobColIdMap[parts[2]];
     if(rId&&cId) state.cells[mk2+'|'+rId+'|'+cId]=v;
   });
+  if(blob.rowsByMonth&&blob.rowsByMonth[blob.monthKey]){
+    if(!state.rowsByMonth) state.rowsByMonth={};
+    state.rowsByMonth[mk2]=JSON.parse(JSON.stringify(blob.rowsByMonth[blob.monthKey]));
+  }
+  if(blob.colsByMonth&&blob.colsByMonth[blob.monthKey]){
+    if(!state.colsByMonth) state.colsByMonth={};
+    state.colsByMonth[mk2]=JSON.parse(JSON.stringify(blob.colsByMonth[blob.monthKey]));
+  }
 }
 
 function importIncFull(blob, selectedMonths){
   const {blobRowIdMap, blobColIdMap}=_mergeRowsCols(blob.rows||[], blob.cols||[]);
+  if(blob.rowsByMonth){ if(!state.rowsByMonth) state.rowsByMonth={}; Object.assign(state.rowsByMonth, JSON.parse(JSON.stringify(blob.rowsByMonth))); }
+  if(blob.colsByMonth){ if(!state.colsByMonth) state.colsByMonth={}; Object.assign(state.colsByMonth, JSON.parse(JSON.stringify(blob.colsByMonth))); }
   selectedMonths.forEach(mk2=>{
     Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) delete state.cells[k]; });
     const blobMonthCells=(blob.cellsByMonth||{})[mk2]||{};
@@ -1631,7 +1706,7 @@ function importIncFull(blob, selectedMonths){
   });
 }
 
-// ── Paste UI ───────────────────────────────────────────────────────────────────
+
 function openPasteModal(){
   const overlay=document.createElement('div');overlay.className='share-overlay';
   const modal=document.createElement('div');modal.className='share-modal';
@@ -1848,7 +1923,7 @@ function showShareModal(title,text){
   overlay.appendChild(modal);document.body.appendChild(overlay);
 }
 
-// ── Floating swatch tooltip ────────────────────────────────────────────────────
+
 (()=>{
   const tip=document.createElement('div');tip.id='swatch-tip';document.body.appendChild(tip);
   document.addEventListener('mouseover',e=>{
@@ -1880,7 +1955,7 @@ function showShareModal(title,text){
   },{passive:true});
 })();
 
-// ── Init ───────────────────────────────────────────────────────────────────────
+
 (async()=>{
   try{
     const me=await fetch('/auth/me').then(r=>r.json());
@@ -1902,7 +1977,7 @@ function showShareModal(title,text){
   loadHistory();
   updateHistBtns();
   updateMonthNav();
-  // Restore saved display currency
+  
   const dc=state.displayCurrency||'USD';
   const dcSel=document.getElementById('curr-sel');
   if(dc!=='USD'){
@@ -1911,7 +1986,7 @@ function showShareModal(title,text){
       dcSel.insertBefore(opt, dcSel.querySelector('option[value="__other__"]'));
     }
     dcSel.value=dc;
-    // Fetch rate and show conversion fields
+    
     ensureRate(dc).then(()=>{
       if(ratesCache[dc]){
         document.getElementById('curr-note').textContent='1 USD = '+ratesCache[dc].toFixed(4)+' '+dc;
@@ -1919,14 +1994,14 @@ function showShareModal(title,text){
       }
     });
   }
-  // Pre-load any non-USD row rates
+  
   const usedCurs=[...new Set(Object.values(state.monthRowCurrencies||{}).filter(c=>c&&c!=='USD'))];
   if(usedCurs.length) await fetchAndCacheUSDRates();
   render();
 })();
 </script>
 
-<!-- Help modal -->
+
 <div id="help-modal" style="display:none" class="share-overlay" onclick="if(event.target===this)closeHelp()">
   <div class="share-modal">
     <h3>How to use — Income Tracker</h3>
@@ -1955,7 +2030,7 @@ function toggleDropdown(id, e){
 }
 function closeDropdown(id){ document.getElementById(id+'-menu').classList.remove('open'); }
 document.addEventListener('click', ()=>{ document.querySelectorAll('.dropdown-menu.open').forEach(m=>m.classList.remove('open')); });
-// ── Side drawer ──────────────────────────────────────────────────────────────
+
 function openDrawer(){
   document.getElementById('side-drawer').classList.add('open');
   document.getElementById('drawer-overlay').style.display='block';
@@ -1968,7 +2043,7 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
   if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
 });
 </script>
-  <!-- Side drawer -->
+  
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
   <nav id="side-drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
