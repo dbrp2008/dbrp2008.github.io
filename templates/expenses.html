@@ -11,6 +11,20 @@
       if(dark) document.documentElement.classList.add('dark');
     })();
   </script>
+<script>
+(function(){
+  var _srv={{ current_user | default(none) | tojson }};
+  var _stored=localStorage.getItem('fiapp_auth_user');
+  if(_stored && _stored!==_srv){
+    ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+     'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+     'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+     'fiapp_tax_result','fiapp_prefill_income'].forEach(function(k){localStorage.removeItem(k);});
+    localStorage.removeItem('fiapp_auth_user');
+  }
+  if(_srv) localStorage.setItem('fiapp_auth_user',_srv);
+})();
+</script>
   <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -220,10 +234,24 @@
     .picker-tools{display:flex;gap:.4rem;font-size:.78rem;}
     .picker-tools button{background:var(--secondary-bg);border:none;border-radius:4px;padding:.2rem .55rem;cursor:pointer;color:var(--secondary-fg);}
     .picker-tools button:hover{background:var(--secondary-hover);}
+    /* ── Hamburger / Side drawer ── */
+    .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
+    .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
+    #side-drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--panel-bg);border-right:1px solid var(--panel-border);z-index:901;transform:translateX(-100%);transition:transform .25s ease;padding:1rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto;}
+    #side-drawer.open{transform:translateX(0);}
+    .drawer-close{align-self:flex-end;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:.2rem .4rem;}
+    .drawer-close:hover{color:var(--fg);}
+    #side-drawer h2{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.5rem 0 .25rem;}
+    #side-drawer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.15rem;}
+    #side-drawer a{display:block;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--fg);font-size:.9rem;font-weight:600;}
+    #side-drawer a:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #side-drawer a.drawer-link-active{font-weight:800;color:var(--accent);background:var(--hover-bg);pointer-events:none;}
   </style>
 </head>
 <body>
   <div class="nav">
+    <button class="hamburger-btn" onclick="openDrawer()" title="All tools">☰</button>
     <a href="/">← Home</a>
     <span id="auth-badge-container"></span>
     <span id="sync-status"></span>
@@ -238,12 +266,13 @@
   }
   if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
   function logOut(){
-    localStorage.removeItem('fiapp_expenses_v4');
-    localStorage.removeItem('fiapp_subs_v4');
-    localStorage.removeItem('fiapp_income_v1');
-    localStorage.removeItem('fiapp_income_push_v1');
-    fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
-  }
+  ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+   'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+   'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+   'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'
+  ].forEach(function(k){localStorage.removeItem(k);});
+  fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
+}
   // Block negative signs and 'e' in ALL number inputs globally
   document.addEventListener('keydown',e=>{
     if(e.target.type==='number'&&(e.key==='-'||e.key==='e'||e.key==='E'))e.preventDefault();
@@ -2259,6 +2288,34 @@ function toggleDropdown(id, e){
 }
 function closeDropdown(id){ document.getElementById(id+'-menu').classList.remove('open'); }
 document.addEventListener('click', ()=>{ document.querySelectorAll('.dropdown-menu.open').forEach(m=>m.classList.remove('open')); });
+// ── Side drawer ──────────────────────────────────────────────────────────────
+function openDrawer(){
+  document.getElementById('side-drawer').classList.add('open');
+  document.getElementById('drawer-overlay').style.display='block';
+}
+function closeDrawer(){
+  document.getElementById('side-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').style.display='none';
+}
+document.querySelectorAll('.drawer-link').forEach(function(a){
+  if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
+});
 </script>
+  <!-- Side drawer -->
+  <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
+  <nav id="side-drawer">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <h2>Tools</h2>
+    <ul>
+      <li><a href="/" class="drawer-link" data-path="/">🏠 Home</a></li>
+      <li><a href="/expenses" class="drawer-link" data-path="/expenses">📊 Expense Tracker</a></li>
+      <li><a href="/income" class="drawer-link" data-path="/income">💰 Income Tracker</a></li>
+      <li><a href="/analytics" class="drawer-link" data-path="/analytics">📉 Analytics</a></li>
+      <li><a href="/subscriptions" class="drawer-link" data-path="/subscriptions">🔄 Subscription Tracker</a></li>
+      <li><a href="/interest" class="drawer-link" data-path="/interest">📈 Interest Calculator</a></li>
+      <li><a href="/tax" class="drawer-link" data-path="/tax">🧾 Tax Calculator</a></li>
+      <li><a href="/currency" class="drawer-link" data-path="/currency">💱 Currency Converter</a></li>
+    </ul>
+  </nav>
 </body>
 </html>
