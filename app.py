@@ -1,6 +1,7 @@
 import os
 import json
 import time
+from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 from flask import (Flask, render_template, request, flash,
@@ -18,7 +19,8 @@ except ImportError:
 # ── Exchange rate cache (process-local, 1-hour TTL) ───────────────────────────
 _rates_cache: dict = {}   # { "USD": {"EUR": 0.92, ...}, ... }
 _rates_ts:    dict = {}   # { "USD": 1714000000.0, ... }
-RATES_TTL = 3600
+RATES_TTL    = 3600              # in-memory TTL: 1 hour
+RATES_TTL_DB = 7 * 24 * 3600    # PostgreSQL TTL: 7 days
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = os.environ.get("SECRET_KEY")
@@ -65,6 +67,11 @@ def init_db():
                         updated_at TIMESTAMP DEFAULT NOW()
                     );
                     ALTER TABLE user_data ADD COLUMN IF NOT EXISTS income_data JSONB;
+                    CREATE TABLE IF NOT EXISTS exchange_rates (
+                        base TEXT PRIMARY KEY,
+                        rates JSONB NOT NULL,
+                        fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    );
                 """)
     finally:
         conn.close()
@@ -539,16 +546,19 @@ def load_income():
 
 @app.route('/api/exchange')
 def api_exchange():
-    from_currency = request.args.get('from', 'USD').upper()
+    # Accept ?base= (preferred) or ?from= (legacy)
+    base = (request.args.get('base') or request.args.get('from', 'USD')).upper()
     to_currency = request.args.get('to', '').upper()
+    force = request.args.get('force', '0') == '1'
     try:
-        rates = fetch(from_currency)
+        rates, fetched_at = fetch(base, force=force)
+        fetched_str = fetched_at.strftime('%Y-%m-%dT%H:%M:%SZ')
         if to_currency:
             rate = rates.get(to_currency)
             if rate is None:
                 return jsonify({"error": f"Unknown currency: {to_currency}"}), 400
-            return jsonify({"rate": rate, "from": from_currency, "to": to_currency})
-        return jsonify({"rates": rates, "from": from_currency})
+            return jsonify({"rate": rate, "from": base, "to": to_currency, "fetched_at": fetched_str})
+        return jsonify({"rates": rates, "base": base, "from": base, "fetched_at": fetched_str})
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 502
 
@@ -566,20 +576,65 @@ def fetch_tax(income, status):
     response.raise_for_status()
     return round(response.json(), 2)
 
-def fetch(currency_i: str) -> dict:
+def fetch(currency_i: str, force: bool = False) -> tuple:
+    """Return (rates_dict, fetched_at_utc). Three-tier: memory → DB → API."""
     now = time.time()
-    if currency_i in _rates_cache and now - _rates_ts.get(currency_i, 0) < RATES_TTL:
-        return _rates_cache[currency_i]
-    url = f"https://v6.exchangerate-api.com/v6/{EXCHANGE_API_KEY}/latest/{currency_i}"
+    key = currency_i.upper()
+
+    # Tier 1: in-memory (1-hour TTL), skip if force
+    if not force and key in _rates_cache and now - _rates_ts.get(key, 0) < RATES_TTL:
+        return _rates_cache[key], datetime.fromtimestamp(_rates_ts[key], tz=timezone.utc)
+
+    # Tier 2: PostgreSQL (7-day TTL), skip if force
+    if not force:
+        try:
+            conn = psycopg2.connect(os.environ["DATABASE_URL"])
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT rates, fetched_at FROM exchange_rates WHERE base=%s AND fetched_at > NOW() - INTERVAL '7 days'",
+                (key,)
+            )
+            row = cur.fetchone()
+            cur.close(); conn.close()
+            if row:
+                rates, fetched_at = row
+                _rates_cache[key] = rates
+                _rates_ts[key] = fetched_at.timestamp()
+                return rates, fetched_at
+        except Exception:
+            pass  # fall through to API
+
+    # Tier 3: ExchangeRate API
+    url = f"https://v6.exchangerate-api.com/v6/{EXCHANGE_API_KEY}/latest/{key}"
     response = requests.get(url, timeout=8)
     response.raise_for_status()
-    rates = response.json()["conversion_rates"]
-    _rates_cache[currency_i] = rates
-    _rates_ts[currency_i] = now
-    return rates
+    data = response.json()
+    rates = data["conversion_rates"]
+    fetched_at = datetime.now(tz=timezone.utc)
+
+    # Update memory cache
+    _rates_cache[key] = rates
+    _rates_ts[key] = fetched_at.timestamp()
+
+    # Update PostgreSQL
+    try:
+        conn = psycopg2.connect(os.environ["DATABASE_URL"])
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO exchange_rates (base, rates, fetched_at)
+               VALUES (%s, %s, %s)
+               ON CONFLICT (base) DO UPDATE SET rates=EXCLUDED.rates, fetched_at=EXCLUDED.fetched_at""",
+            (key, psycopg2.extras.Json(rates), fetched_at)
+        )
+        conn.commit(); cur.close(); conn.close()
+    except Exception:
+        pass  # non-fatal
+
+    return rates, fetched_at
 
 def convert(currency_i, currency_a, currency_o):
-    return currency_a * fetch(currency_i)[currency_o]
+    rates, _ = fetch(currency_i)
+    return currency_a * rates[currency_o]
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
