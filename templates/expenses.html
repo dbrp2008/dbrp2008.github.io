@@ -577,7 +577,7 @@ function saveHistory(){
 function snapshot(){ undoStack.push(JSON.stringify(state)); redoStack.length=0; if(undoStack.length>60) undoStack.shift(); saveHistory(); updateHistBtns(); }
 function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(state)); state=JSON.parse(undoStack.pop()); save(); saveHistory(); render(); syncIncomeInputs(); updateHistBtns(); }
 function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(state)); state=JSON.parse(redoStack.pop()); save(); saveHistory(); render(); syncIncomeInputs(); updateHistBtns(); }
-function updateHistBtns(){ document.getElementById('undo-btn').disabled=!undoStack.length; document.getElementById('redo-btn').disabled=!redoStack.length; }
+function updateHistBtns(){ const u=document.getElementById('undo-btn'),r=document.getElementById('redo-btn'); if(u)u.disabled=!undoStack.length; if(r)r.disabled=!redoStack.length; }
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();}
@@ -2304,22 +2304,22 @@ function showShareModal(title,text){
     }
   }catch(e){ window.__currentUser=null; }
   if(!window.__currentUser) setSyncStatus('Offline','');
-  await loadFromServer();   
-  state=loadState();        
-  loadHistory();
-  loadTaxCarryover();
-  updateHistBtns();
-  updateMonthNav();
-  syncIncomeInputs();
-  render();
-  
-  fetchExpRates().then(()=>{ if(getRows().some(r=>r.linked==='subscriptions')) render(); });
-  
-  syncFromIncomeTracker(currentMK());
-  
+  try{ await loadFromServer(); }catch(e){ console.warn('FiApp: loadFromServer failed',e); }
+  try{ state=loadState(); }catch(e){ console.warn('FiApp: loadState failed',e); state=freshState(); }
+  try{ loadHistory(); }catch(e){}
+  try{ loadTaxCarryover(); }catch(e){}
+  try{ updateHistBtns(); }catch(e){}
+  try{ updateMonthNav(); }catch(e){ console.error('FiApp: updateMonthNav failed',e); }
+  try{ syncIncomeInputs(); }catch(e){}
+  try{ render(); }catch(e){ console.error('FiApp: render failed',e); }
+
+  fetchExpRates().then(()=>{ if(getRows().some(r=>r.linked==='subscriptions')) render(); }).catch(()=>{});
+
+  try{ syncFromIncomeTracker(currentMK()); }catch(e){}
+
   window.addEventListener('storage',e=>{
     if(e.key===SUBS_KEY) render();
-    if(e.key===INCOME_KEY||e.key===INCOME_PUSH_KEY) syncFromIncomeTracker(currentMK());
+    if(e.key===INCOME_KEY||e.key===INCOME_PUSH_KEY) { try{ syncFromIncomeTracker(currentMK()); }catch(e){} }
   });
 })();
 </script>
