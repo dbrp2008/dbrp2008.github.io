@@ -58,7 +58,7 @@
       flex-shrink: 0;
     }
 
-    /* Change username form */
+    
     .change-form { display: flex; flex-direction: column; gap: .75rem; }
     .change-form label { font-size: .85rem; font-weight: 600; color: var(--fg); margin-bottom: 2px; display: block; }
     .change-form input {
@@ -104,7 +104,7 @@
       color: var(--success-fg, #166534);
     }
 
-    /* Delete section */
+    
     .danger-card {
       border-color: var(--error-border);
       background: var(--error-bg);
@@ -160,7 +160,7 @@
       margin: 0 0 .5rem;
     }
     .confirm-btns { display: flex; gap: .5rem; }
-    /* ── Hamburger / Side drawer ── */
+    
     .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
     .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
@@ -202,7 +202,7 @@
 
   <h1>Account</h1>
 
-  <!-- Account info -->
+  
   <div class="account-card">
     <h2>Account Info</h2>
     <div class="info-row">
@@ -213,7 +213,7 @@
     </div>
   </div>
 
-  <!-- Change username -->
+  
   <div class="account-card">
     <h2>Change Username</h2>
     <div class="change-feedback" id="change-feedback"></div>
@@ -230,7 +230,7 @@
     </div>
   </div>
 
-  <!-- Change password -->
+  
   <div class="account-card">
     <h2>Change Password</h2>
     <div class="change-feedback" id="pw-feedback"></div>
@@ -251,7 +251,7 @@
     </div>
   </div>
 
-  <!-- Delete account -->
+  
   <div class="account-card danger-card">
     <h2>⚠ Delete Account</h2>
     <p class="danger-warning">
@@ -268,11 +268,11 @@
       </div>
 
       <div id="delete-steps">
-        <!-- Step 1: arm -->
+        
         <div id="delete-arm-step">
           <button class="btn-danger" id="del-arm-btn" onclick="armDelete()">Delete my account</button>
         </div>
-        <!-- Step 2: final confirm -->
+        
         <div id="delete-confirm-step">
           <p>Are you absolutely sure? This will permanently delete everything.</p>
           <div class="confirm-btns">
@@ -310,7 +310,7 @@ function armDelete(){
   hideDeleteError();
   const pw=document.getElementById('del-pw').value;
   if(!pw){ showDeleteError('Please enter your password first.'); return; }
-  // Show confirmation step
+  
   document.getElementById('delete-arm-step').style.display='none';
   document.getElementById('delete-confirm-step').style.display='block';
 }
@@ -340,7 +340,7 @@ async function confirmDelete(){
       btn.disabled=false; btn.textContent='Yes, delete permanently';
       return;
     }
-    // Account deleted — clear all localStorage and redirect
+    
     _clearAllStorage();
     window.location='/login?deleted=1';
   }catch(e){
@@ -435,7 +435,7 @@ async function submitChangePassword(){
   }
 }
 
-// ── Side drawer ──────────────────────────────────────────────────────────────
+
 function openDrawer(){
   document.getElementById('side-drawer').classList.add('open');
   document.getElementById('drawer-overlay').style.display='block';
@@ -448,7 +448,7 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
   if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
 });
 </script>
-  <!-- Side drawer -->
+  
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
   <nav id="side-drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
