@@ -458,6 +458,8 @@ function loadState(){
       if(!s.income)    s.income={};
       if(!s.collapsed) s.collapsed={};
       if(!s.lastTaxTs) s.lastTaxTs=0;
+      if(!Array.isArray(s.rows)) s.rows=freshState().rows;
+      if(!Array.isArray(s.cols)) s.cols=freshState().cols;
       if(!s.rowsByMonth) s.rowsByMonth={};
       if(!s.colsByMonth) s.colsByMonth={};
       delete s.cellCurrencies; delete s.displayCurrency;
@@ -474,14 +476,14 @@ let state=loadState();
 
 const MAX_ROWS=20;
 const MAX_COLS=12;
-function getRows(mk2){ mk2=mk2||currentMK(); return (state.rowsByMonth&&state.rowsByMonth[mk2])?state.rowsByMonth[mk2]:state.rows; }
-function getCols(mk2){ mk2=mk2||currentMK(); return (state.colsByMonth&&state.colsByMonth[mk2])?state.colsByMonth[mk2]:state.cols; }
+function getRows(mk2){ mk2=mk2||currentMK(); return (state.rowsByMonth&&state.rowsByMonth[mk2])?state.rowsByMonth[mk2]:(state.rows||[]); }
+function getCols(mk2){ mk2=mk2||currentMK(); return (state.colsByMonth&&state.colsByMonth[mk2])?state.colsByMonth[mk2]:(state.cols||[]); }
 function forkCurrentMonth(){
   const mk2=currentMK();
   if(!state.rowsByMonth) state.rowsByMonth={};
   if(!state.colsByMonth) state.colsByMonth={};
-  if(!state.rowsByMonth[mk2]) state.rowsByMonth[mk2]=state.rows.map(r=>({...r}));
-  if(!state.colsByMonth[mk2]) state.colsByMonth[mk2]=state.cols.map(c=>({...c}));
+  if(!state.rowsByMonth[mk2]) state.rowsByMonth[mk2]=(state.rows||[]).map(r=>({...r}));
+  if(!state.colsByMonth[mk2]) state.colsByMonth[mk2]=(state.cols||[]).map(c=>({...c}));
 }
 function copyStructureFromPrevMonth(){
   const mk2=currentMK();
@@ -528,7 +530,7 @@ async function loadFromServer(){
     const res=await fetch('/api/load/expenses');
     if(!res.ok) return;
     const data=await res.json();
-    if(data&&typeof data==='object'){
+    if(data&&typeof data==='object'&&(Array.isArray(data.rows)||data.cells||data.rowsByMonth)){
       localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
     }
   }catch(e){}
