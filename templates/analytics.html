@@ -121,7 +121,7 @@
     }
 
     /* ── Stat customize panel ──────────────────────────────────────────────── */
-    #stat-panel {
+    #stat-panel-spend, #stat-panel-sub {
       background: var(--panel-bg);
       border: 1px solid var(--panel-border);
       border-radius: 8px;
@@ -131,8 +131,8 @@
       grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
       gap: .3rem .75rem;
     }
-    #stat-panel label { font-size: .83rem; display: flex; align-items: center; gap: .4rem; cursor: pointer; color: var(--fg); }
-    #stat-panel input[type=checkbox] { cursor: pointer; accent-color: var(--accent); }
+    #stat-panel-spend label, #stat-panel-sub label { font-size: .83rem; display: flex; align-items: center; gap: .4rem; cursor: pointer; color: var(--fg); }
+    #stat-panel-spend input[type=checkbox], #stat-panel-sub input[type=checkbox] { cursor: pointer; accent-color: var(--accent); }
 
     /* ── Chart slideshow ───────────────────────────────────────────────────── */
     .chart-slideshow .chart-card { display:none; margin-bottom:0; }
@@ -665,16 +665,6 @@ function renderAll(){
   }
 
   // ── Stat customize bar + panel ───────────────────────────────────────────
-  const customBar=document.createElement('div');
-  customBar.style.cssText='display:flex;justify-content:flex-end;margin-bottom:.35rem;';
-  const customBtn=document.createElement('button');
-  customBtn.className='btn-ghost btn-sm'; customBtn.textContent='⚙ Customize';
-  customBtn.onclick=toggleStatPanel;
-  customBar.appendChild(customBtn);
-  root.appendChild(customBar);
-  const statPanel=document.createElement('div');
-  statPanel.id='stat-panel'; statPanel.style.display='none';
-  root.appendChild(statPanel);
 
   // ── Top stat grid ─────────────────────────────────────────────────────────
   const statGrid=document.createElement('div');
@@ -800,16 +790,17 @@ function _refreshPeriodCache(){
 const HIDDEN_STATS_KEY='fiapp_analytics_hidden_stats';
 function hiddenStats(){ return JSON.parse(localStorage.getItem(HIDDEN_STATS_KEY)||'[]'); }
 function setHiddenStats(arr){ localStorage.setItem(HIDDEN_STATS_KEY,JSON.stringify(arr)); }
-function toggleStatPanel(){
-  const p=document.getElementById('stat-panel'); if(!p) return;
+function toggleStatPanel(panelId){
+  const p=document.getElementById(panelId); if(!p) return;
   const open=p.style.display==='none';
   p.style.display=open?'':'none';
-  if(open) buildStatPanel();
+  if(open) buildStatPanel(panelId);
 }
-function buildStatPanel(){
-  const p=document.getElementById('stat-panel'); if(!p) return;
+function buildStatPanel(panelId){
+  const p=document.getElementById(panelId); if(!p) return;
+  const gridId=panelId==='stat-panel-spend'?'stat-grid':'sub-stat-grid';
   const hidden=hiddenStats();
-  const cards=[...document.querySelectorAll('#stat-grid .stat-card, #sub-stat-grid .stat-card')];
+  const cards=[...document.querySelectorAll('#'+gridId+' .stat-card')];
   if(!cards.length){ p.innerHTML='<span style="font-size:.83rem;color:var(--muted)">No stat boxes yet.</span>'; return; }
   p.innerHTML='';
   cards.forEach(card=>{
@@ -885,7 +876,24 @@ function renderStatCards(){
     if(costliest) statGrid.appendChild(sc('costliest-sub','Costliest Sub',costliest.name,fmtMoney(costliest.monthly)+'/mo'));
   }
   // Rebuild panel if it's currently open
-  if((document.getElementById('stat-panel')||{}).style&&document.getElementById('stat-panel').style.display!=='none') buildStatPanel();
+  (function(){
+    var grid=document.getElementById('stat-grid');
+    if(!grid||document.getElementById('stat-panel-spend')){
+      var p=document.getElementById('stat-panel-spend');
+      if(p&&p.style.display!=='none') buildStatPanel('stat-panel-spend');
+      return;
+    }
+    var bar=document.createElement('div');
+    bar.style.cssText='display:flex;justify-content:flex-end;margin-bottom:.35rem;';
+    var btn=document.createElement('button');
+    btn.className='btn-ghost btn-sm'; btn.textContent='⚙ Customize';
+    btn.onclick=function(){toggleStatPanel('stat-panel-spend');};
+    bar.appendChild(btn);
+    var panel=document.createElement('div');
+    panel.id='stat-panel-spend'; panel.style.display='none';
+    grid.parentNode.insertBefore(bar,grid);
+    grid.parentNode.insertBefore(panel,grid);
+  })();
 }
 
 // ── Sub mini-stat cards ───────────────────────────────────────────────────────
@@ -911,6 +919,24 @@ function renderSubStatCards(){
     const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
     if(avgExp>0) subStatGrid.appendChild(ssc('s-pct-exp','% of Expenses',fmtPct(totalMo/avgExp*100),'of avg monthly spend'));
   }
+  (function(){
+    var grid=document.getElementById('sub-stat-grid');
+    if(!grid||document.getElementById('stat-panel-sub')){
+      var p=document.getElementById('stat-panel-sub');
+      if(p&&p.style.display!=='none') buildStatPanel('stat-panel-sub');
+      return;
+    }
+    var bar=document.createElement('div');
+    bar.style.cssText='display:flex;justify-content:flex-end;margin-bottom:.35rem;';
+    var btn=document.createElement('button');
+    btn.className='btn-ghost btn-sm'; btn.textContent='⚙ Customize';
+    btn.onclick=function(){toggleStatPanel('stat-panel-sub');};
+    bar.appendChild(btn);
+    var panel=document.createElement('div');
+    panel.id='stat-panel-sub'; panel.style.display='none';
+    grid.parentNode.insertBefore(bar,grid);
+    grid.parentNode.insertBefore(panel,grid);
+  })();
 }
 
 // ── B: Monthly Spending Trend ─────────────────────────────────────────────────
