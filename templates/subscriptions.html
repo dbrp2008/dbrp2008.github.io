@@ -26,6 +26,7 @@
 })();
 </script>
   <link rel="stylesheet" href="/styles.css">
+  <script src="/static/rates-utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     /* ── Wider body for the subscription tracker ── */
@@ -367,7 +368,6 @@
 const STORAGE_KEY = 'fiapp_subs_v4';
 const UNDO_KEY    = 'fiapp_subs_undo_v4';
 const REDO_KEY    = 'fiapp_subs_redo_v4';
-const EXCHANGE_API_KEY = '081a97e88979627d1194f7ee';
 const MONTHS_SHORT= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const BILLING_OPTS= ['Monthly','Quarterly','Semi-Annual','Annual','Weekly','Bi-Weekly'];
@@ -389,22 +389,20 @@ const MEDAL_CLS = ['medal-gold','medal-silver','medal-bronze'];
 function uid(){ return '_'+Math.random().toString(36).slice(2,9); }
 const msDay = 864e5;
 
-// ── Rate cache (direct ExchangeRate-API v6) ────────────────────────────────────
+// ── Rate cache ────────────────────────────────────────────────────────────────
 const ratesCache = {}; // 'AED' -> rate s.t. 1 USD = rate AED
 let ratesReady = false; // true once at least one successful fetch has completed
 // Fetch all rates from USD base in one call and cache them all
 async function fetchAndCacheUSDRates(){
+  if(ratesReady) return;
   try{
-    const r=await fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD');
-    const d=await r.json();
-    if(d.result==='success'){
-      const rates=d.conversion_rates;
-      if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
-        Object.keys(rates).forEach(k=>{
-          if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];
-        });
-        ratesReady=true;
-      }
+    const obj=await fiappGetRates('USD');
+    const rates=obj.rates;
+    if(rates&&typeof rates==='object'&&!Array.isArray(rates)){
+      Object.keys(rates).forEach(k=>{
+        if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') ratesCache[k]=rates[k];
+      });
+      ratesReady=true;
     }
   }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
 }
@@ -824,10 +822,9 @@ function onCurrencyChange(){
     showConvFields(cur,ratesCache[cur]);
     return;
   }
-  fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD')
-    .then(r=>r.json()).then(d=>{
-      if(d.result!=='success'){document.getElementById('curr-note').textContent='Error: '+(d['error-type']||'API error');return;}
-      Object.assign(ratesCache,d.conversion_rates);
+  fiappGetRates('USD').then(obj=>{
+      Object.assign(ratesCache,obj.rates);
+      ratesReady=true;
       const rate=ratesCache[cur];
       if(!rate){document.getElementById('curr-note').textContent='Unknown currency: '+cur;return;}
       document.getElementById('curr-note').textContent='1 USD = '+rate.toFixed(4)+' '+cur;
@@ -840,10 +837,9 @@ function applyOtherCurrency(){
   if(!raw){note.textContent='Enter a currency code.';return;}
   if(!/^[A-Z]{2,5}$/.test(raw)){note.textContent='Use 2–5 letters (e.g. THB, VND).';return;}
   note.textContent='Validating '+raw+'…';
-  fetch('https://v6.exchangerate-api.com/v6/'+EXCHANGE_API_KEY+'/latest/USD')
-    .then(r=>r.json()).then(d=>{
-      if(d.result!=='success'){note.textContent='API error: '+(d['error-type']||'unknown');return;}
-      Object.assign(ratesCache,d.conversion_rates);
+  fiappGetRates('USD').then(obj=>{
+      Object.assign(ratesCache,obj.rates);
+      ratesReady=true;
       const rate=ratesCache[raw];
       if(!rate){note.textContent='Unknown currency: '+raw+'. Check the code.';return;}
       note.textContent='1 USD = '+rate.toFixed(4)+' '+raw;
