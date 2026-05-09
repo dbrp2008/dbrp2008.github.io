@@ -169,7 +169,7 @@
     /* ── Mobile card deck (≤640px) ── */
     @media (max-width: 640px) {
       .cards { display:block; position:relative; }
-      .app-card, .app-card-last { display:none; width:100%; }
+      .app-card, .app-card-last { display:none; width:100%; box-sizing:border-box; }
       .app-card.deck-active { display:block; }
       .deck-nav { display:flex; align-items:center; justify-content:space-between; margin-top:.65rem; gap:.5rem; }
       .deck-arrow { background:none; border:1.5px solid var(--panel-border); border-radius:8px; color:var(--fg); font-size:1rem; padding:.35rem .7rem; cursor:pointer; flex-shrink:0; }
