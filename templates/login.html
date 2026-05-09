@@ -150,10 +150,20 @@
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
   </div>
 
+  <div id="deleted-banner" style="display:none;background:var(--success-bg);border:1px solid var(--success-border);color:var(--success-fg);padding:.65rem .9rem;border-radius:8px;font-size:.88rem;font-weight:600;margin-bottom:1rem;text-align:center;">
+    ✓ Account deleted. All your data has been permanently removed.
+  </div>
+
   <div class="login-logo">
     <h1>FiApp</h1>
     <p>Sign in to sync your data across devices</p>
   </div>
+  <script>
+  if(new URLSearchParams(window.location.search).get('deleted')==='1'){
+    document.getElementById('deleted-banner').style.display='block';
+    history.replaceState(null,'','/login');
+  }
+  </script>
 
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Log In</button>
@@ -238,7 +248,11 @@ async function submitLogin(){
       body:JSON.stringify({username,password})
     });
     const data=await res.json();
-    if(res.ok){ window.location='/'; }
+    if(res.ok){
+      localStorage.setItem('fiapp_auth_user', data.username || username);
+      if(data.csrf_token) sessionStorage.setItem('fiapp_csrf', data.csrf_token);
+      window.location='/';
+    }
     else{ showError('login-error', data.error||'Login failed.'); }
   }catch(e){
     showError('login-error','Network error. Please try again.');
@@ -264,7 +278,11 @@ async function submitRegister(){
       body:JSON.stringify({username,password})
     });
     const data=await res.json();
-    if(res.ok){ window.location='/'; }
+    if(res.ok){
+      localStorage.setItem('fiapp_auth_user', data.username || username);
+      if(data.csrf_token) sessionStorage.setItem('fiapp_csrf', data.csrf_token);
+      window.location='/';
+    }
     else{ showError('register-error', data.error||'Registration failed.'); }
   }catch(e){
     showError('register-error','Network error. Please try again.');
