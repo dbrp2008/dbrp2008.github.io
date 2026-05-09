@@ -688,7 +688,7 @@ function saveHistory(){
 function snapshot(){ undoStack.push(JSON.stringify(state)); redoStack.length=0; if(undoStack.length>60) undoStack.shift(); saveHistory(); updateHistBtns(); }
 function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(state)); state=JSON.parse(undoStack.pop()); save(); saveHistory(); render(); updateHistBtns(); }
 function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(state)); state=JSON.parse(redoStack.pop()); save(); saveHistory(); render(); updateHistBtns(); }
-function updateHistBtns(){ document.getElementById('undo-btn').disabled=!undoStack.length; document.getElementById('redo-btn').disabled=!redoStack.length; }
+function updateHistBtns(){ const u=document.getElementById('undo-btn'),r=document.getElementById('redo-btn'); if(u)u.disabled=!undoStack.length; if(r)r.disabled=!redoStack.length; }
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();}
@@ -1974,32 +1974,35 @@ function showShareModal(title,text){
     }
   }catch(e){ window.__currentUser=null; }
   if(!window.__currentUser) setSyncStatus('Offline','');
-  await loadFromServer();
-  state=loadState();
-  loadHistory();
-  updateHistBtns();
-  updateMonthNav();
-  
-  const dc=state.displayCurrency||'USD';
-  const dcSel=document.getElementById('curr-sel');
-  if(dc!=='USD'){
-    if(![...dcSel.options].find(o=>o.value===dc)){
-      const opt=document.createElement('option'); opt.value=dc; opt.textContent=dc; opt.dataset.custom='1';
-      dcSel.insertBefore(opt, dcSel.querySelector('option[value="__other__"]'));
-    }
-    dcSel.value=dc;
-    
-    ensureRate(dc).then(()=>{
-      if(ratesCache[dc]){
-        document.getElementById('curr-note').textContent='1 USD = '+ratesCache[dc].toFixed(4)+' '+dc;
-        showConvFields(dc,ratesCache[dc]);
+  try{ await loadFromServer(); }catch(e){ console.warn('FiApp: loadFromServer failed',e); }
+  try{ state=loadState(); }catch(e){ console.warn('FiApp: loadState failed',e); state=freshState(); }
+  try{ loadHistory(); }catch(e){}
+  try{ updateHistBtns(); }catch(e){}
+  try{ updateMonthNav(); }catch(e){ console.error('FiApp: updateMonthNav failed',e); }
+
+  try{
+    const dc=state.displayCurrency||'USD';
+    const dcSel=document.getElementById('curr-sel');
+    if(dc!=='USD'&&dcSel){
+      if(![...dcSel.options].find(o=>o.value===dc)){
+        const opt=document.createElement('option'); opt.value=dc; opt.textContent=dc; opt.dataset.custom='1';
+        dcSel.insertBefore(opt, dcSel.querySelector('option[value="__other__"]'));
       }
-    });
-  }
-  
-  const usedCurs=[...new Set(Object.values(state.monthRowCurrencies||{}).filter(c=>c&&c!=='USD'))];
-  if(usedCurs.length) await fetchAndCacheUSDRates();
-  render();
+      dcSel.value=dc;
+      ensureRate(dc).then(()=>{
+        if(ratesCache[dc]){
+          const cn=document.getElementById('curr-note'); if(cn) cn.textContent='1 USD = '+ratesCache[dc].toFixed(4)+' '+dc;
+          showConvFields(dc,ratesCache[dc]);
+        }
+      }).catch(()=>{});
+    }
+  }catch(e){ console.warn('FiApp: currency init failed',e); }
+
+  try{
+    const usedCurs=[...new Set(Object.values(state.monthRowCurrencies||{}).filter(c=>c&&c!=='USD'))];
+    if(usedCurs.length) await fetchAndCacheUSDRates();
+  }catch(e){}
+  try{ render(); }catch(e){ console.error('FiApp: render failed',e); }
 })();
 </script>
 
