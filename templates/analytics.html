@@ -30,7 +30,7 @@
   <style>
     body { max-width: 960px; }
 
-    /* ── Stat cards ─────────────────────────────────────────────────────────── */
+    
     .stat-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
@@ -47,7 +47,7 @@
     .stat-value  { font-size:1.45rem; font-weight:800; color:var(--fg); line-height:1.1; overflow-wrap:anywhere; word-break:break-word; }
     .stat-sub    { font-size:.75rem; color:var(--muted); margin-top:.2rem; }
 
-    /* ── Chart cards ────────────────────────────────────────────────────────── */
+    
     .chart-card {
       background: var(--panel-bg);
       border: 1px solid var(--panel-border);
@@ -68,7 +68,7 @@
     .chart-canvas-wrap { position:relative; }
     .chart-canvas-wrap canvas { max-height:320px; }
 
-    /* ── Toggle buttons ─────────────────────────────────────────────────────── */
+    
     .btn-toggle {
       padding: .28rem .65rem;
       border: 1px solid var(--input-border);
@@ -83,7 +83,7 @@
     .btn-toggle:hover { border-color:var(--accent); color:var(--accent); }
     .btn-toggle-active { background:var(--accent); color:#fff !important; border-color:var(--accent); }
 
-    /* ── Period row ─────────────────────────────────────────────────────────── */
+    
     .period-row {
       display: flex;
       align-items: center;
@@ -101,7 +101,7 @@
       cursor: pointer;
     }
 
-    /* ── Section title separator ────────────────────────────────────────────── */
+    
     .section-title {
       font-size: .7rem;
       font-weight: 700;
@@ -120,7 +120,7 @@
       background: var(--panel-border);
     }
 
-    /* ── Stat customize panel ──────────────────────────────────────────────── */
+    
     #stat-panel-spend, #stat-panel-sub {
       background: var(--panel-bg);
       border: 1px solid var(--panel-border);
@@ -134,7 +134,7 @@
     #stat-panel-spend label, #stat-panel-sub label { font-size: .83rem; display: flex; align-items: center; gap: .4rem; cursor: pointer; color: var(--fg); }
     #stat-panel-spend input[type=checkbox], #stat-panel-sub input[type=checkbox] { cursor: pointer; accent-color: var(--accent); }
 
-    /* ── Chart slideshow ───────────────────────────────────────────────────── */
+    
     .chart-slideshow .chart-card { display:none; margin-bottom:0; }
     .chart-slideshow .chart-card.slide-active { display:block; }
     .slideshow-nav {
@@ -163,12 +163,12 @@
       text-align: center;
     }
 
-    /* ── No-data state ──────────────────────────────────────────────────────── */
+    
     .no-data { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:.9rem; }
     .no-data a { color:var(--accent); text-decoration:none; }
     .no-data a:hover { text-decoration:underline; }
 
-    /* ── Insight list ───────────────────────────────────────────────────────── */
+    
     .insight-list { list-style:none; padding:0; margin:.65rem 0 0; }
     .insight-list li {
       display: flex;
@@ -183,14 +183,14 @@
     .insight-name { color:var(--fg); font-weight:600; }
     .insight-val  { color:var(--muted); white-space:nowrap; }
 
-    /* ── Chart note (sub-total line) ────────────────────────────────────────── */
+    
     .chart-note {
       text-align: right;
       font-size: .82rem;
       color: var(--muted);
       margin: .5rem 0 0;
     }
-    /* ── Hamburger / Side drawer ── */
+    
     .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
     .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
@@ -241,27 +241,27 @@
   <div id="root"></div>
 
 <script>
-// ── Storage keys ──────────────────────────────────────────────────────────────
+
 const EXP_KEY  = 'fiapp_expenses_v4';
 const SUBS_KEY = 'fiapp_subs_v4';
 const INC_KEY  = 'fiapp_income_v1';
 
-// ── Security helpers ──────────────────────────────────────────────────────────
+
 function escapeHtml(s){
   return String(s==null?'':s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// ── Utility helpers ───────────────────────────────────────────────────────────
+
 function mk(y,m){ return y+'-'+String(m+1).padStart(2,'0'); }
 function todayMK(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
 function fmtMoney(v){ return '$'+Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function fmtMoneyShort(v){ if(v>=1000) return '$'+(v/1000).toFixed(1)+'k'; return '$'+Number(v).toFixed(0); }
-// Abbreviated format for stat cards that append a suffix like /mo or /yr — keeps text fitting the card
+
 function fmtMoneyCard(v){ if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M'; if(v>=10000) return '$'+(v/1000).toFixed(0)+'K'; if(v>=1000) return '$'+(v/1000).toFixed(1)+'K'; return '$'+Number(v).toFixed(2); }
 function fmtPct(v){ return Number(v).toFixed(1)+'%'; }
 function mkLabel(mkStr){ const [y,mo]=mkStr.split('-'); return MONTHS_SHORT[parseInt(mo)-1]+" '"+y.slice(2); }
@@ -276,7 +276,7 @@ function themeColors(){
   };
 }
 
-// ── Load raw data ─────────────────────────────────────────────────────────────
+
 function loadExp(){
   try{ const s=localStorage.getItem(EXP_KEY); return s?JSON.parse(s):null; }
   catch(e){ console.warn('Analytics: expense data error',e.message); return null; }
@@ -290,18 +290,22 @@ function loadInc(){
   catch(e){ console.warn('Analytics: income data error',e.message); return null; }
 }
 
-// ── Income helpers ────────────────────────────────────────────────────────────
 
-// Returns a Map: monthKey → total income from the Income Tracker
+
+
+function expRows(exp,mk2){ return (exp&&exp.rowsByMonth&&exp.rowsByMonth[mk2])?exp.rowsByMonth[mk2]:(exp&&exp.rows)||[]; }
+function incRows(inc,mk2){ return (inc&&inc.rowsByMonth&&inc.rowsByMonth[mk2])?inc.rowsByMonth[mk2]:(inc&&inc.rows)||[]; }
+
 function incTrackerMonthTotals(inc){
   const map=new Map();
-  if(!inc||!inc.rows||!inc.cells) return map;
+  if(!inc||!inc.cells) return map;
   const allMks=new Set();
   Object.keys(inc.cells).forEach(k=>{const mk2=k.split('|')[0]; if(mk2) allMks.add(mk2);});
   allMks.forEach(mk2=>{
     let total=0;
-    inc.rows.filter(r=>!r.parentId).forEach(row=>{
-      const kids=inc.rows.filter(c=>c.parentId===row.id);
+    const rows=incRows(inc,mk2);
+    rows.filter(r=>!r.parentId).forEach(row=>{
+      const kids=rows.filter(c=>c.parentId===row.id);
       if(kids.length){
         kids.forEach(child=>{
           (inc.cols||[]).forEach(col=>{total+=parseFloat(inc.cells[mk2+'|'+child.id+'|'+col.id]||0)||0;});
@@ -315,23 +319,23 @@ function incTrackerMonthTotals(inc){
   return map;
 }
 
-// Merged {monthKey: income}: Income Tracker takes precedence, falls back to Expense Tracker gross
+
 function mergedMonthIncomes(exp, incMap){
   const out={};
-  // Start with expense tracker manual gross entries
+  
   if(exp&&exp.income){
     Object.entries(exp.income).forEach(([mk2,v])=>{
       const g=parseFloat(v.gross)||0; if(g>0) out[mk2]=g;
     });
   }
-  // Income Tracker overrides (more detailed / authoritative source)
+  
   incMap.forEach((val,mk2)=>{ out[mk2]=val; });
   return out;
 }
 
-// ── Expense income helper (legacy — used only internally now) ─────────────────
 
-// {monthKey: grossIncome}
+
+
 function expMonthIncomes(exp){
   if(!exp||!exp.income) return {};
   const out={};
@@ -341,20 +345,20 @@ function expMonthIncomes(exp){
   return out;
 }
 
-// ── Combined helpers (expenses + subscriptions merged) ────────────────────────
 
-// Returns all monthKeys that have any spending (expenses or subs), sorted
+
+
 function allSpendingMonths(exp, subs){
   const mks=new Set();
 
-  // Expense months
+  
   if(exp&&exp.cells){
     Object.keys(exp.cells).forEach(k=>{
       const p=k.split('|'); if(p.length>=3&&parseFloat(exp.cells[k])>0) mks.add(p[0]);
     });
   }
 
-  // Sub months: from each sub's start date up to today
+  
   if(subs&&subs.rows&&subs.cols){
     const startCol=subs.cols.find(c=>c.ctype==='date');
     if(startCol){
@@ -374,20 +378,20 @@ function allSpendingMonths(exp, subs){
   return [...mks].sort();
 }
 
-// {monthKey: totalSpend} combining expense cells + sub costs per month
+
 function combinedMonthTotals(exp, subs, allMonths){
   const totals={};
   allMonths.forEach(mk2=>{
     let sum=0;
-    // Expense cells
-    if(exp&&exp.cells&&exp.cols&&exp.rows){
-      exp.rows.forEach(row=>{
+    
+    if(exp&&exp.cells&&exp.cols){
+      expRows(exp,mk2).forEach(row=>{
         (exp.cols||[]).forEach(col=>{
           sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0;
         });
       });
     }
-    // Sub costs for this month
+    
     if(subs&&subs.rows&&subs.cols){
       const [y,m]=mk2.split('-').map(Number);
       sum+=(subs.rows||[]).reduce((s,r)=>s+calcSubCostForMonth(r,subs,y,m-1),0);
@@ -397,19 +401,25 @@ function combinedMonthTotals(exp, subs, allMonths){
   return totals;
 }
 
-// {category: {value, color}} for expense categories + 'Subscriptions' entry
-// Uses _rowMonthIdx for O(1) cell lookups instead of iterating all cols per month
+
+
 function combinedCategoryTotals(exp, subs, monthKeys){
   const totals={};
   const set=new Set(monthKeys);
 
-  // Expense categories (top-level rows only — exclude the linked row, it's covered by subs below)
-  if(exp&&exp.rows){
-    exp.rows.filter(r=>!r.parentId&&!r.linked).forEach(row=>{
+  
+  if(exp){
+    const globalRows=(exp.rows)||[];
+    const allExpRows=new Map();
+    globalRows.forEach(r=>allExpRows.set(r.id,r));
+    if(exp.rowsByMonth){ Object.values(exp.rowsByMonth).forEach(arr=>arr.forEach(r=>{ if(!allExpRows.has(r.id)) allExpRows.set(r.id,r); })); }
+    [...allExpRows.values()].filter(r=>!r.parentId&&!r.linked).forEach(row=>{
       let sum=0;
       set.forEach(mk2=>{
+        const rows=expRows(exp,mk2);
+        if(!rows.find(r=>r.id===row.id)) return;
         sum+=(_rowMonthIdx[row.id]&&_rowMonthIdx[row.id][mk2])||0;
-        (exp.rows||[]).filter(c=>c.parentId===row.id).forEach(child=>{
+        rows.filter(c=>c.parentId===row.id).forEach(child=>{
           sum+=(_rowMonthIdx[child.id]&&_rowMonthIdx[child.id][mk2])||0;
         });
       });
@@ -417,7 +427,7 @@ function combinedCategoryTotals(exp, subs, monthKeys){
     });
   }
 
-  // Subscription costs — merged into 'Subscriptions' category (additive in case user has same-named row)
+  
   if(subs&&subs.rows&&subs.cols){
     let subTotal=0;
     set.forEach(mk2=>{
@@ -436,17 +446,23 @@ function combinedCategoryTotals(exp, subs, monthKeys){
   return totals;
 }
 
-// Map: categoryLabel → {color, values:[spend per month]} — expenses + subs line
-// Uses _rowMonthIdx for O(1) cell lookups instead of iterating all cols per month
+
+
 function combinedCategoryMonthlyData(exp, subs, months){
   const map=new Map();
 
-  // Expense categories (exclude linked row)
-  if(exp&&exp.rows){
-    exp.rows.filter(r=>!r.parentId&&!r.linked).forEach(row=>{
+  
+  if(exp){
+    const globalRows=(exp.rows)||[];
+    const allExpRows=new Map();
+    globalRows.forEach(r=>allExpRows.set(r.id,r));
+    if(exp.rowsByMonth){ Object.values(exp.rowsByMonth).forEach(arr=>arr.forEach(r=>{ if(!allExpRows.has(r.id)) allExpRows.set(r.id,r); })); }
+    [...allExpRows.values()].filter(r=>!r.parentId&&!r.linked).forEach(row=>{
       const vals=months.map(mk2=>{
+        const rows=expRows(exp,mk2);
+        if(!rows.find(r=>r.id===row.id)) return 0;
         let sum=(_rowMonthIdx[row.id]&&_rowMonthIdx[row.id][mk2])||0;
-        (exp.rows||[]).filter(c=>c.parentId===row.id).forEach(child=>{
+        rows.filter(c=>c.parentId===row.id).forEach(child=>{
           sum+=(_rowMonthIdx[child.id]&&_rowMonthIdx[child.id][mk2])||0;
         });
         return parseFloat(sum.toFixed(2));
@@ -455,7 +471,7 @@ function combinedCategoryMonthlyData(exp, subs, months){
     });
   }
 
-  // Subscriptions as a line — merge into existing 'Subscriptions' entry if present
+  
   if(subs&&subs.rows&&subs.cols){
     const subVals=subCostPerMonth(subs,months);
     if(subVals.some(v=>v>0)){
@@ -474,9 +490,9 @@ function combinedCategoryMonthlyData(exp, subs, months){
   return map;
 }
 
-// ── Subscription analytics helpers ───────────────────────────────────────────
 
-// Amortized monthly cost for one sub row in a specific year/month (0 if not active)
+
+
 function calcSubCostForMonth(row, subs, year, month){
   const cols=subs.cols||[];
   const get =id=>(subs.cells||{})[row.id+'|'+id]||'';
@@ -506,7 +522,7 @@ function calcSubCostForMonth(row, subs, year, month){
   return cost;
 }
 
-// Array of total sub costs aligned with months[]
+
 function subCostPerMonth(subs, months){
   if(!subs||!subs.rows) return months.map(()=>0);
   return months.map(mk2=>{
@@ -516,7 +532,7 @@ function subCostPerMonth(subs, months){
   });
 }
 
-// Current-state snapshot of active subs (for stat cards + breakdown chart)
+
 function subMonthlySnapshot(subs){
   if(!subs||!subs.rows||!subs.cols) return [];
   const billingCol=subs.cols.find(c=>c.ctype==='billing');
@@ -539,8 +555,8 @@ function subMonthlySnapshot(subs){
   }).filter(Boolean);
 }
 
-// ── Pre-index expense cells for fast O(1) per-row-per-month lookups ──────────
-// Builds {rowId: {mk: sumOfAllCols}} from exp.cells in a single pass.
+
+
 function buildRowMonthIndex(exp){
   const idx={};
   if(!exp||!exp.cells) return idx;
@@ -554,7 +570,7 @@ function buildRowMonthIndex(exp){
   return idx;
 }
 
-// ── Period filter ─────────────────────────────────────────────────────────────
+
 function periodOptions(allMonths){
   const opts=[{label:'All time',value:'all'}];
   if(allMonths.length>=3)  opts.push({label:'Last 3 months', value:'3'});
@@ -564,30 +580,30 @@ function periodOptions(allMonths){
 }
 function filterMonths(allMonths, period){
   if(period==='all') return allMonths;
-  // Slice from actual months only — forecast months don't count toward "last N months"
+  
   const actual=allMonths.filter(m=>m<=_cToday);
   return actual.slice(-parseInt(period));
 }
 
-// ── Chart registry ────────────────────────────────────────────────────────────
+
 const charts={};
 function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
 
-// ── Toggle state (module-level so setters don't need rerenderAll) ─────────────
+
 let trendType    = 'bar';
 let catBreakType = 'doughnut';
 let subBreakType = 'doughnut';
 
-// ── Module-level data vars (populated by renderAll, reused by reRenderCharts) ─
+
 let _exp, _subs, _inc, _allMonths, _monthTotals, _monthIncomes, _subRows, _subTrendMonths;
-// Pre-indexed cell sums: {rowId: {mk: colSum}} — built once, avoids O(rows×cols×months)
+
 let _rowMonthIdx = {};
-// Cached period-filter results — updated by _refreshPeriodCache() so individual
-// chart functions don't each re-derive them independently
+
+
 let _cm=[], _cTc={fg:'#1f2937',muted:'#6b7280',grid:'rgba(0,0,0,.07)',panel:'#f9fafb'},
     _cToday='', _cHasForecast=false, _cStatMs=[], _cActualMs=[];
 
-// ── Toggle setters — only redraw the one affected chart, not everything ───────
+
 function setTrendType(t){
   trendType=t;
   document.querySelectorAll('.tt-trend').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===t));
@@ -604,7 +620,7 @@ function setSubBreakType(t){
   renderSubBreakChart();
 }
 
-// ── Build a toggle button ─────────────────────────────────────────────────────
+
 function mkToggleBtn(groupClass, val, label, isActive, handler){
   const b=document.createElement('button');
   b.className='btn-toggle '+groupClass+(isActive?' btn-toggle-active':'');
@@ -613,21 +629,21 @@ function mkToggleBtn(groupClass, val, label, isActive, handler){
   return b;
 }
 
-// ── Render entry point ────────────────────────────────────────────────────────
+
 function renderAll(){
   _exp  = loadExp();
   _subs = loadSubs();
   _inc  = loadInc();
 
-  // Pre-index expense cells once — used by all category helpers
+  
   _rowMonthIdx = buildRowMonthIndex(_exp);
 
-  // All months from BOTH sources (combined)
+  
   _allMonths    = allSpendingMonths(_exp, _subs);
   _monthTotals  = combinedMonthTotals(_exp, _subs, _allMonths);
   _monthIncomes = mergedMonthIncomes(_exp, incTrackerMonthTotals(_inc));
   _subRows      = subMonthlySnapshot(_subs);
-  // Sub trend uses the same unified month range
+  
   _subTrendMonths = _allMonths;
 
   const root=document.getElementById('root');
@@ -645,7 +661,7 @@ function renderAll(){
 
   root.innerHTML='';
 
-  // ── Period filter ─────────────────────────────────────────────────────────
+  
   if(_allMonths.length){
     const periodRow=document.createElement('div');
     periodRow.className='period-row';
@@ -664,14 +680,14 @@ function renderAll(){
     root.appendChild(periodRow);
   }
 
-  // ── Stat customize bar + panel ───────────────────────────────────────────
+  
 
-  // ── Top stat grid ─────────────────────────────────────────────────────────
+  
   const statGrid=document.createElement('div');
   statGrid.id='stat-grid'; statGrid.className='stat-grid';
   root.appendChild(statGrid);
 
-  // ── Chart card factory ────────────────────────────────────────────────────
+  
   function addChartCard(id, title, target){
     target = target || root;
     const card=document.createElement('div');
@@ -695,7 +711,7 @@ function renderAll(){
     root.appendChild(d);
   }
 
-  // ── Spending section (expenses + subs combined) ───────────────────────────
+  
   if(_allMonths.length){
     addSectionTitle('Spending');
     const spendSlide=document.createElement('div');
@@ -707,7 +723,7 @@ function renderAll(){
     if(Object.keys(_monthIncomes).length) addChartCard('savings', 'Income vs Expenses', spendSlide);
   }
 
-  // ── Subscription section (drill-down) ─────────────────────────────────────
+  
   if(hasSubData){
     addSectionTitle('Subscriptions');
     const subStatGrid=document.createElement('div');
@@ -724,16 +740,16 @@ function renderAll(){
 
   reRenderCharts();
 
-  // ── Wire up chart slideshows ──────────────────────────────────────────────
+  
   (function(){
     function makeSlideshow(slideEl, cardIds, titles){
       if(!slideEl) return;
-      // Filter to only cards that were actually created
+      
       const pairs = cardIds.map((id,i)=>({id,title:titles[i]}))
                            .filter(p=>document.getElementById('card-'+p.id));
       if(pairs.length < 2){ if(pairs.length===1) document.getElementById('card-'+pairs[0].id).classList.add('slide-active'); return; }
 
-      // Build nav bar
+      
       const nav=document.createElement('div'); nav.className='slideshow-nav';
       const prev=document.createElement('button'); prev.className='slideshow-nav-btn'; prev.textContent='◀';
       const lbl=document.createElement('span'); lbl.className='slideshow-lbl'; lbl.id=slideEl.id+'-lbl';
@@ -750,7 +766,7 @@ function renderAll(){
           const active=i===idx;
           el.classList.toggle('slide-active', active);
           if(active){
-            // Force Chart.js to resize after display:none→block
+            
             const ch=Chart.getChart('chart-'+p.id);
             if(ch) setTimeout(()=>ch.resize(),0);
           }
@@ -775,7 +791,7 @@ function renderAll(){
   })();
 }
 
-// ── Period cache refresh — call before any chart render ───────────────────────
+
 function _refreshPeriodCache(){
   const period=(document.getElementById('period-global')||{}).value||'all';
   _cm         = filterMonths(_allMonths, period);
@@ -786,7 +802,7 @@ function _refreshPeriodCache(){
   _cHasForecast = _cm.some(m=>m>_cToday);
 }
 
-// ── Stat customization helpers ────────────────────────────────────────────────
+
 const HIDDEN_STATS_KEY='fiapp_analytics_hidden_stats';
 function hiddenStats(){ return JSON.parse(localStorage.getItem(HIDDEN_STATS_KEY)||'[]'); }
 function setHiddenStats(arr){ localStorage.setItem(HIDDEN_STATS_KEY,JSON.stringify(arr)); }
@@ -822,7 +838,7 @@ function buildStatPanel(panelId){
   });
 }
 
-// ── A: Stat cards ─────────────────────────────────────────────────────────────
+
 function renderStatCards(){
   const statGrid=document.getElementById('stat-grid'); if(!statGrid) return;
   statGrid.innerHTML='';
@@ -875,7 +891,7 @@ function renderStatCards(){
     const costliest=_subRows.reduce((a,b)=>a.monthly>b.monthly?a:b,_subRows[0]);
     if(costliest) statGrid.appendChild(sc('costliest-sub','Costliest Sub',costliest.name,fmtMoney(costliest.monthly)+'/mo'));
   }
-  // Rebuild panel if it's currently open
+  
   (function(){
     var grid=document.getElementById('stat-grid');
     if(!grid||document.getElementById('stat-panel-spend')){
@@ -896,7 +912,7 @@ function renderStatCards(){
   })();
 }
 
-// ── Sub mini-stat cards ───────────────────────────────────────────────────────
+
 function renderSubStatCards(){
   const subStatGrid=document.getElementById('sub-stat-grid');
   if(!subStatGrid||!_subRows.length) return;
@@ -939,7 +955,7 @@ function renderSubStatCards(){
   })();
 }
 
-// ── B: Monthly Spending Trend ─────────────────────────────────────────────────
+
 function renderTrendChart(){
   const trendCanvas=document.getElementById('chart-trend');
   if(!trendCanvas||!_cm.length) return;
@@ -954,10 +970,10 @@ function renderTrendChart(){
   const labels     =_cm.map(mkLabel);
   const lastActualTrendIdx=_cm.reduce((last,m,i)=>m<=_cToday?i:last,-1);
   const actualVals =_cm.map(m=>m<=_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
-  // Line: include bridge point at last actual month so lines connect; Bar: no bridge (avoids double bar)
+  
   const forecastVals=_cm.map((m,i)=>m>_cToday?parseFloat((_monthTotals[m]||0).toFixed(2)):(trendType==='line'&&i===lastActualTrendIdx)?parseFloat((_monthTotals[m]||0).toFixed(2)):null);
 
-  // 3-month rolling average (shown only when ≥3 actual data points exist)
+  
   const nonNull=actualVals.filter(v=>v!==null);
   const maData=nonNull.length>=3 ? actualVals.map((v,i,arr)=>{
     if(v===null) return null;
@@ -969,7 +985,7 @@ function renderTrendChart(){
     const ds={label,data,borderColor:color,borderWidth:2};
     if(trendType==='bar'){
       ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
-      ds.stack='combined'; // share one slot per month so bars are centered, not grouped
+      ds.stack='combined'; 
     } else {
       ds.backgroundColor='transparent'; ds.fill=false;
       ds.tension=0.3; ds.pointRadius=4; ds.pointBackgroundColor=color;
@@ -997,7 +1013,7 @@ function renderTrendChart(){
   });
 }
 
-// ── C: Category Breakdown ─────────────────────────────────────────────────────
+
 function renderBreakdownChart(){
   const breakCanvas=document.getElementById('chart-breakdown');
   if(!breakCanvas||!_cm.length) return;
@@ -1009,7 +1025,7 @@ function renderBreakdownChart(){
     ctrl.querySelectorAll('.tt-cat').forEach(b=>b.classList.toggle('btn-toggle-active',b.dataset.v===catBreakType));
   }
   destroyChart('breakdown');
-  // Split months into actual vs forecast so chart reflects real spending only
+  
   const actualMs=_cm.filter(m=>m<=_cToday);
   const forecastMs=_cm.filter(m=>m>_cToday);
   const catTotals=combinedCategoryTotals(_exp,_subs,actualMs);
@@ -1045,7 +1061,7 @@ function renderBreakdownChart(){
       return `<li><span class="insight-name">${escapeHtml(name)}</span>`+
         `<span class="insight-val">${fmtMoney(d.value)} <span style="color:var(--muted)">(${pct}%)</span>${fcTag}</span></li>`;
     }).join('');
-    // Add forecast-only categories that have no actual spend
+    
     Object.entries(catFcTotals).filter(([n])=>!catTotals[n]).forEach(([name,d])=>{
       list.innerHTML+=`<li><span class="insight-name">${escapeHtml(name)}</span>`+
         `<span class="insight-val"><span style="color:var(--muted)">—</span> <span style="color:var(--muted);font-size:.8em">+${fmtMoney(d.value)} forecast</span></span></li>`;
@@ -1053,7 +1069,7 @@ function renderBreakdownChart(){
   }
 }
 
-// ── D: Category Trends Over Time ──────────────────────────────────────────────
+
 function renderCatTrendsChart(){
   const catTrendsCanvas=document.getElementById('chart-cattrends');
   if(!catTrendsCanvas||_cm.length<2) return;
@@ -1081,7 +1097,7 @@ function renderCatTrendsChart(){
   }
 }
 
-// ── E: Income vs Expenses ─────────────────────────────────────────────────────
+
 function renderSavingsChart(){
   const savingsCanvas=document.getElementById('chart-savings');
   if(!savingsCanvas) return;
@@ -1107,7 +1123,7 @@ function renderSavingsChart(){
   }
 }
 
-// ── F: Subscription Breakdown ─────────────────────────────────────────────────
+
 function renderSubBreakChart(){
   const subBreakCanvas=document.getElementById('chart-subbreak');
   if(!subBreakCanvas||!_subRows.length) return;
@@ -1153,7 +1169,7 @@ function renderSubBreakChart(){
     fmtMoney(total)+'/mo · '+fmtMoney(total*12)+'/yr';
 }
 
-// ── G: Subscription Cost Trend ────────────────────────────────────────────────
+
 function renderSubTrendChart(){
   const subTrendCanvas=document.getElementById('chart-subtrend');
   if(!subTrendCanvas||!_subs||_subTrendMonths.length<2) return;
@@ -1189,8 +1205,8 @@ function renderSubTrendChart(){
   });
 }
 
-// ── Re-render ALL charts (period change / theme change / data change) ──────────
-// Toggle button clicks call the individual functions above — not this one.
+
+
 function reRenderCharts(){
   _refreshPeriodCache();
   renderStatCards();
@@ -1203,9 +1219,9 @@ function reRenderCharts(){
   renderSubTrendChart();
 }
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
+
 (async()=>{
-  // If logged in, pull latest data from server before rendering (multi-device sync)
+  
   try{
     const me=await fetch('/auth/me').then(r=>r.json());
     if(me&&me.username){
@@ -1224,11 +1240,11 @@ function reRenderCharts(){
   renderAll();
 })();
 
-// Re-render when another tab updates either tracker
+
 window.addEventListener('storage', e=>{
   if(e.key===EXP_KEY||e.key===SUBS_KEY||e.key===INC_KEY) renderAll();
 });
-// ── Side drawer ──────────────────────────────────────────────────────────────
+
 function openDrawer(){
   document.getElementById('side-drawer').classList.add('open');
   document.getElementById('drawer-overlay').style.display='block';
@@ -1241,7 +1257,7 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
   if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
 });
 </script>
-  <!-- Side drawer -->
+  
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
   <nav id="side-drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
