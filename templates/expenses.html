@@ -33,13 +33,13 @@
     .toolbar-row-1,.toolbar-row-2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;}
     .toolbar-row-1{margin-bottom:.4rem;}
     .toolbar-row-2{margin-bottom:.75rem;}
-    /* Dropdown */
+    
     .dropdown{position:relative;display:inline-block;}
     .dropdown-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;padding:.3rem;min-width:150px;box-shadow:var(--shadow,0 4px 12px rgba(0,0,0,.15));}
     .dropdown-menu.open{display:flex;flex-direction:column;gap:2px;}
     .dropdown-menu button{background:none;border:none;text-align:left;padding:.42rem .75rem;border-radius:5px;cursor:pointer;font-size:.85rem;color:var(--fg);font-family:inherit;white-space:nowrap;}
     .dropdown-menu button:hover{background:var(--hover-bg,rgba(0,0,0,.06));}
-    /* Help button */
+    
     .help-btn{font-size:.72rem;font-weight:700;padding:.15rem .48rem;border-radius:50%;border:1.5px solid var(--accent);background:none;color:var(--accent);cursor:pointer;margin-left:.4rem;vertical-align:middle;line-height:1;}
     .help-btn:hover{background:var(--accent);color:#fff;}
     .help-body p{margin:.35rem 0;font-size:.88rem;color:var(--fg);line-height:1.55;}
@@ -54,7 +54,7 @@
     .month-nav button:hover{background:var(--secondary-hover);}
     .month-nav button:disabled{opacity:.35;cursor:not-allowed;}
 
-    /* Income panel */
+    
     .income-panel{background:var(--total-soft);border:1px solid var(--success-border);border-radius:8px;padding:.9rem 1.1rem;margin-bottom:.75rem;}
     .income-panel h3{margin:0 0 .6rem;font-size:.9rem;color:var(--total-fg);}
     .income-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:.5rem .75rem;}
@@ -65,7 +65,7 @@
     .pos{color:var(--total-fg);} .neg{color:#ef4444;}
     .apply-row{grid-column:1/-1;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.2rem;}
 
-    /* Chart */
+    
     .chart-section{display:none;margin-bottom:1rem;padding:.75rem 1rem;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;}
     .chart-mode-btns{display:flex;gap:.4rem;margin-bottom:.5rem;}
     .chart-mode-btn{padding:.28rem .65rem;font-size:.8rem;border:1px solid var(--input-border);border-radius:5px;cursor:pointer;background:var(--th-bg);color:var(--fg);}
@@ -76,7 +76,7 @@
     .top3 ol{margin:0;padding-left:1.2rem;font-size:.85rem;}
     .top3 li{margin-bottom:.2rem;color:var(--fg);}
 
-    /* Forecast mode */
+    
     .forecast-badge{padding:.15rem .45rem;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.04em;background:#fef3c7;color:#92400e;border:1px solid #fde68a;margin-left:.5rem;vertical-align:middle;}
     html.dark .forecast-badge{background:#451a03;color:#fde68a;border-color:#78350f;}
     .forecast-bar{display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.65rem 1rem;margin-bottom:.75rem;align-items:center;gap:.6rem;flex-wrap:wrap;}
@@ -95,15 +95,15 @@
     .forecast-toast{position:fixed;bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);background:#92400e;color:#fff;padding:.5rem 1.1rem;border-radius:6px;font-size:.83rem;font-weight:600;z-index:99999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
     .forecast-toast.show{opacity:1;}
 
-    /* Spreadsheet */
+    
     .sheet-wrap{overflow-x:auto;margin-top:.5rem;-webkit-overflow-scrolling:touch;}
-    /* Row drag-to-reorder */
+    
     .drag-handle{cursor:grab;color:var(--muted);font-size:1rem;padding:0 4px;opacity:.45;user-select:none;flex-shrink:0;}
     .drag-handle:active{cursor:grabbing;}
     tr.tr-dragging{opacity:.3;}
     tr.tr-drop-before>td{border-top:2px solid var(--accent)!important;}
     tr.tr-drop-after>td{border-bottom:2px solid var(--accent)!important;}
-    /* Subscription Tracker link button */
+    
     .subs-link-btn{display:inline-flex;align-items:center;margin-left:5px;padding:1px 7px;border-radius:4px;background:var(--accent);color:#fff!important;font-size:.72rem;font-weight:700;text-decoration:none;opacity:.82;transition:opacity .15s;cursor:pointer;border:none;}
     .subs-link-btn:hover{opacity:1;text-decoration:none;}
     table.sheet{border-collapse:collapse;table-layout:fixed;min-width:max-content;}
@@ -117,24 +117,24 @@
     .col-resize:hover,.col-resize.dragging{background:#93c5fd;}
     .row-resize{position:absolute;left:0;right:0;bottom:0;height:5px;cursor:row-resize;z-index:2;}
     .row-resize:hover,.row-resize.dragging{background:#93c5fd;}
-    /* Column drag-and-drop */
+    
     .col-drag-handle{cursor:grab;color:var(--muted);font-size:.75rem;margin-right:.3rem;user-select:none;opacity:.55;}
     .col-drag-handle:hover{opacity:1;}
     th.th-drop-before{border-left:3px solid var(--accent)!important;}
     th.th-drop-after {border-right:3px solid var(--accent)!important;}
 
-    /* Row header */
+    
     .rh-cell{position:relative;overflow:visible;}
     .rh-inner{display:flex;align-items:center;gap:5px;padding:3px 6px;min-height:32px;}
     .color-swatch{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.2);}
-    /* Wrapper positions the real <input type=color> over the visible swatch so iOS touch hits it directly */
+    
     .color-swatch-wrap{position:relative;display:inline-flex;flex-shrink:0;cursor:pointer;}
     .color-inp-overlay{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;margin:0;}
     .row-label{flex:1;outline:none;font-weight:600;font-size:.85rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .collapse-btn{background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--muted);padding:0 2px;flex-shrink:0;line-height:1;}
     .collapse-btn:hover{color:var(--fg);}
 
-    /* Subcategory menu (portal, fixed-position) */
+    
     .sub-dropdown{position:relative;flex-shrink:0;}
     .sub-add-btn{background:none;border:1px solid var(--input-border);border-radius:4px;cursor:pointer;font-size:.72rem;padding:1px 5px;color:var(--muted);white-space:nowrap;}
     .sub-add-btn:hover{background:var(--hover-bg);color:var(--fg);}
@@ -152,22 +152,22 @@
     .sub-other-form .cancel{background:var(--secondary-bg);color:var(--secondary-fg);}
     .sub-other-err{color:#ef4444;font-size:.74rem;}
 
-    /* Child rows */
+    
     .child-row .rh-inner{padding-left:22px;}
     .child-row .row-label{font-weight:500;font-size:.83rem;color:var(--fg);}
 
-    /* Number inputs */
+    
     .num-input{display:block;width:100%;height:100%;min-height:32px;border:none;outline:none;padding:4px 7px;box-sizing:border-box;background:transparent;font-family:inherit;font-size:.85rem;text-align:right;color:var(--fg);}
     .num-input:focus{background:var(--input-focus);}
     .num-input::-webkit-inner-spin-button,.num-input::-webkit-outer-spin-button{opacity:0;}
     .num-input:hover::-webkit-inner-spin-button{opacity:1;}
     .parent-sum{display:block;padding:4px 7px;text-align:right;color:var(--muted);font-size:.83rem;min-height:32px;line-height:24px;font-style:italic;}
 
-    /* Total column */
+    
     .th-total{background:var(--total-bg);color:var(--total-fg);}
     .total-val{display:block;padding:4px 7px;font-weight:700;text-align:right;color:var(--total-fg);font-size:.85rem;min-height:32px;line-height:24px;background:var(--total-soft);}
 
-    /* Footer */
+    
     table.sheet tfoot td{background:var(--panel-bg);font-weight:700;border-top:2px solid var(--muted);color:var(--fg);}
     .gtotal-val{display:block;padding:4px 7px;font-weight:800;text-align:right;font-size:.85rem;min-height:32px;line-height:24px;}
     .week-total-cell{background:var(--total-soft);}
@@ -183,16 +183,15 @@
     .btn-add-row{background:none;border:1px dashed var(--muted);border-radius:4px;cursor:pointer;font-size:.82rem;padding:4px 12px;color:var(--muted);margin-top:4px;}
     .btn-add-row:hover{background:var(--hover-bg);}
 
-    /* Text-colour swatch */
+    
     .text-color-swatch{width:13px;height:13px;flex-shrink:0;border-radius:3px;border:1px solid rgba(128,128,128,.4);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;line-height:1;}
     .text-color-swatch:hover{border-color:var(--accent);}
 
-    /* Suppress the CSS pseudo-element tooltips inside the table —
-       the JS floating tooltip handles these instead */
+    
     .rh-inner .tip-host::after,
     .rh-inner .tip-host::before { display:none !important; }
 
-    /* JS-driven floating tooltip (bypasses table overflow/stacking) */
+    
     #swatch-tip{
       position:fixed;z-index:99999;pointer-events:none;
       background:var(--tooltip-bg);color:var(--tooltip-fg);
@@ -202,13 +201,13 @@
     }
     #swatch-tip.show{opacity:1;}
 
-    /* Export menu */
+    
     .export-menu{position:fixed;z-index:9999;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:6px;box-shadow:var(--shadow);min-width:160px;}
     .export-menu button{display:block;width:100%;text-align:left;padding:.45rem .8rem;font-size:.85rem;border:none;background:none;cursor:pointer;color:var(--fg);}
     .export-menu button:hover{background:var(--hover-bg);}
     .export-menu button+button{border-top:1px solid var(--panel-border);}
 
-    /* Share / Paste modal */
+    
     .share-overlay{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:var(--overlay);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch;}
     .share-modal{background:var(--panel-bg);border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;max-height:85dvh;display:flex;flex-direction:column;gap:.6rem;box-shadow:var(--shadow);overflow-y:auto;}
     .share-modal h3{margin:0;font-size:1rem;color:var(--fg);}
@@ -217,15 +216,15 @@
     .share-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;align-self:center;}
     .share-hint{font-size:.74rem;color:var(--muted);font-style:italic;}
 
-    /* Apply-to-year inline flash */
+    
     .apply-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;background:var(--total-bg);border:1px solid var(--success-border);padding:.25rem .55rem;border-radius:5px;opacity:0;transition:opacity .25s;}
     .apply-flash.show{opacity:1;}
 
-    /* Export-menu post-action flash */
+    
     .export-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;background:var(--total-bg);border:1px solid var(--success-border);padding:.25rem .55rem;border-radius:5px;margin-left:.5rem;opacity:0;transition:opacity .25s;}
     .export-flash.show{opacity:1;}
 
-    /* Paste modal */
+    
     .paste-status{font-size:.83rem;padding:.4rem .55rem;border-radius:5px;background:var(--secondary-bg);color:var(--fg);}
     .paste-status.ok{background:var(--success-bg);border:1px solid var(--success-border);color:var(--success-fg);}
     .paste-status.bad{background:var(--error-bg);border:1px solid var(--error-border);color:var(--error-fg);}
@@ -235,7 +234,7 @@
     .picker-tools{display:flex;gap:.4rem;font-size:.78rem;}
     .picker-tools button{background:var(--secondary-bg);border:none;border-radius:4px;padding:.2rem .55rem;cursor:pointer;color:var(--secondary-fg);}
     .picker-tools button:hover{background:var(--secondary-hover);}
-    /* ── Hamburger / Side drawer ── */
+    
     .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
     .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
@@ -274,7 +273,7 @@
   ].forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
-  // Block negative signs and 'e' in ALL number inputs globally
+  
   document.addEventListener('keydown',e=>{
     if(e.target.type==='number'&&(e.key==='-'||e.key==='e'||e.key==='E'))e.preventDefault();
   });
@@ -292,6 +291,9 @@
     <select id="month-jump" class="month-jump" onchange="jumpToMonth(this.value)"></select>
     <button id="next-btn" onclick="shiftMonth(1)">Next ▶</button>
   </div>
+  <div style="margin-bottom:.5rem;">
+    <button class="btn-ghost btn-sm" onclick="copyStructureFromPrevMonth()">📋 Copy rows/cols from previous month</button>
+  </div>
 
   <div class="forecast-bar" id="forecast-bar">
     <p>📋 <strong>Forecast mode</strong> — this is a future month. Enter planned spend, or seed from history:</p>
@@ -299,7 +301,7 @@
     <button class="btn btn-sm" onclick="useAverages()">Use 3-month avg</button>
   </div>
 
-  <!-- Income panel -->
+  
   <div class="income-panel">
     <h3>Monthly Budget — <span id="budget-month"></span></h3>
     <div class="income-grid" id="income-grid">
@@ -338,7 +340,7 @@
   <div class="toolbar-row-1">
     <button class="btn btn-sm" id="undo-btn" onclick="undo()" disabled>↩ Undo</button>
     <button class="btn btn-sm" id="redo-btn" onclick="redo()" disabled>↪ Redo</button>
-    <!-- Table Operations dropdown -->
+    
     <div class="dropdown" id="dd-table">
       <button class="btn btn-sm" onclick="toggleDropdown('dd-table',event)">Table ▾</button>
       <div class="dropdown-menu" id="dd-table-menu">
@@ -346,7 +348,7 @@
         <button onclick="addCol();closeDropdown('dd-table')">+ Column</button>
       </div>
     </div>
-    <!-- Share dropdown -->
+    
     <div class="dropdown" id="dd-share">
       <button class="btn btn-sm" onclick="toggleDropdown('dd-share',event)">Share ▾</button>
       <div class="dropdown-menu" id="dd-share-menu">
@@ -425,7 +427,7 @@ const CAT_COLORS = {
 };
 function uid(){ return '_'+Math.random().toString(36).slice(2,9); }
 
-// ── State ──────────────────────────────────────────────────────────────────────
+
 function freshState(){
   const now=new Date(),y=now.getFullYear(),m=now.getMonth();
   return {
@@ -445,6 +447,7 @@ function freshState(){
     cells:{}, income:{}, collapsed:{},
     currentYear:y, currentMonth:m,
     lastTaxTs:0,
+    rowsByMonth:{}, colsByMonth:{},
   };
 }
 function loadState(){
@@ -455,8 +458,10 @@ function loadState(){
       if(!s.income)    s.income={};
       if(!s.collapsed) s.collapsed={};
       if(!s.lastTaxTs) s.lastTaxTs=0;
+      if(!s.rowsByMonth) s.rowsByMonth={};
+      if(!s.colsByMonth) s.colsByMonth={};
       delete s.cellCurrencies; delete s.displayCurrency;
-      // Migration: add linked Subscriptions row if missing
+
       if(!s.rows.some(row=>row.linked==='subscriptions')){
         s.rows.push({id:uid(),label:'Subscriptions',color:'#bfdbfe',textColor:'#1f2937',height:36,parentId:null,linked:'subscriptions'});
       }
@@ -466,7 +471,35 @@ function loadState(){
   return freshState();
 }
 let state=loadState();
-// ── Server sync (fire-and-forget; localStorage is source of truth) ─────────────
+
+const MAX_ROWS=20;
+const MAX_COLS=12;
+function getRows(mk2){ mk2=mk2||currentMK(); return (state.rowsByMonth&&state.rowsByMonth[mk2])?state.rowsByMonth[mk2]:state.rows; }
+function getCols(mk2){ mk2=mk2||currentMK(); return (state.colsByMonth&&state.colsByMonth[mk2])?state.colsByMonth[mk2]:state.cols; }
+function forkCurrentMonth(){
+  const mk2=currentMK();
+  if(!state.rowsByMonth) state.rowsByMonth={};
+  if(!state.colsByMonth) state.colsByMonth={};
+  if(!state.rowsByMonth[mk2]) state.rowsByMonth[mk2]=state.rows.map(r=>({...r}));
+  if(!state.colsByMonth[mk2]) state.colsByMonth[mk2]=state.cols.map(c=>({...c}));
+}
+function copyStructureFromPrevMonth(){
+  const mk2=currentMK();
+  const [y,mo]=mk2.split('-').map(Number);
+  const prev=new Date(y,mo-2);
+  const prevMk=prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0');
+  const prevRows=getRows(prevMk), prevCols=getCols(prevMk);
+  if(!prevRows.length){showToast('No rows in previous month.');return;}
+  const alreadyForked=state.rowsByMonth&&state.rowsByMonth[mk2];
+  if(alreadyForked&&!confirm('This month already has its own structure. Overwrite with previous month\'s rows/columns?')) return;
+  if(!state.rowsByMonth) state.rowsByMonth={};
+  if(!state.colsByMonth) state.colsByMonth={};
+  state.rowsByMonth[mk2]=prevRows.map(r=>({...r}));
+  state.colsByMonth[mk2]=prevCols.map(c=>({...c}));
+  save(); render();
+  showToast('Copied structure from previous month');
+}
+
 let _syncTimer=null;
 function setSyncStatus(msg,cls){
   const el=document.getElementById('sync-status');if(!el)return;
@@ -525,7 +558,7 @@ function showToast(msg, isError=true, duration=4000){
   document.body.appendChild(el); setTimeout(()=>el.remove(),duration);
 }
 
-// ── Undo / Redo (sessionStorage persistence) ───────────────────────────────────
+
 let undoStack=[], redoStack=[];
 function loadHistory(){
   try{
@@ -548,7 +581,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();}
 });
 
-// ── Month navigation ───────────────────────────────────────────────────────────
+
 const today=new Date();
 function mk(y,m){ return String(y)+'-'+String(m+1).padStart(2,'0'); }
 function currentMK(){ return mk(state.currentYear,state.currentMonth); }
@@ -593,26 +626,26 @@ function updateMonthNav(){
   updateForecastUI();
 }
 
-// ── Forecast mode ──────────────────────────────────────────────────────────────
+
 function isForecastMonth(){
   const now=new Date();
   return state.currentYear>now.getFullYear()||(state.currentYear===now.getFullYear()&&state.currentMonth>now.getMonth());
 }
 function updateForecastUI(){
   const fc=isForecastMonth();
-  // Forecast bar
+  
   const bar=document.getElementById('forecast-bar');
   if(bar) bar.style.display=fc?'flex':'none';
-  // Income panel tint
+  
   const ip=document.querySelector('.income-panel');
   if(ip) ip.classList.toggle('forecast-panel',fc);
-  // Badge next to month label
+  
   const bm=document.getElementById('budget-month');
   if(bm){
     bm.querySelectorAll('.forecast-badge').forEach(b=>b.remove());
     if(fc){ const b=document.createElement('span');b.className='forecast-badge';b.textContent='📋 Forecast';bm.appendChild(b); }
   }
-  // Table italic + total amber (table class set in render; gtotal set in footer render)
+  
 }
 function copyLastMonth(){
   if(!isForecastMonth()) return;
@@ -637,7 +670,7 @@ function useAverages(){
   if(!isForecastMonth()) return;
   snapshot();
   const curMk=currentMK();
-  // Use the viewed forecast month as the reference point, not wall-clock today
+  
   const srcMonths=[];
   for(let i=1;i<=3;i++){
     let pm=state.currentMonth-i, py=state.currentYear;
@@ -645,8 +678,8 @@ function useAverages(){
     srcMonths.push(mk(py,pm));
   }
   let filled=0, hasHistory=false;
-  state.rows.forEach(r=>{
-    state.cols.forEach(col=>{
+  getRows().forEach(r=>{
+    getCols().forEach(col=>{
       const vals=srcMonths.map(m=>safeNum(state.cells[m+'|'+r.id+'|'+col.id])).filter(v=>v>0);
       if(!vals.length) return;
       hasHistory=true;
@@ -666,20 +699,20 @@ function showForecastToast(msg){
   window._fcToastT=setTimeout(()=>t.classList.remove('show'),3500);
 }
 
-// ── Cell helpers ───────────────────────────────────────────────────────────────
+
 function ck(rId,cId){ return currentMK()+'|'+rId+'|'+cId; }
 function getRawCell(rId,cId){ return state.cells[ck(rId,cId)]||''; }
 function getCell(rId,cId){ return safeNum(state.cells[ck(rId,cId)]); }
 function setCell(rId,cId,v){ state.cells[ck(rId,cId)]=v; save(); }
 
-// ── Row hierarchy ──────────────────────────────────────────────────────────────
-function children(rId){ return state.rows.filter(r=>r.parentId===rId); }
-function hasChildren(rId){ return state.rows.some(r=>r.parentId===rId); }
+
+function children(rId, mk2){ return getRows(mk2).filter(r=>r.parentId===rId); }
+function hasChildren(rId, mk2){ return getRows(mk2).some(r=>r.parentId===rId); }
 function isCollapsed(rId){ return state.collapsed[rId]===true; }
 
-// ── Calculations (USD only) ────────────────────────────────────────────────────
+
 function rowTotal(rId){
-  const row=state.rows.find(r=>r.id===rId);
+  const row=getRows().find(r=>r.id===rId);
   if(row&&row.linked==='subscriptions') return virtualSubChildren().reduce((s,c)=>s+c.cost,0);
   if(row&&row.snapshotLinkedRow){
     const snap=(row.subsSnapshotByMonth||{})[currentMK()];
@@ -688,12 +721,12 @@ function rowTotal(rId){
   }
   const kids=children(rId);
   if(kids.length) return kids.reduce((s,c)=>s+rowTotal(c.id),0);
-  return state.cols.reduce((s,col)=>s+getCell(rId,col.id),0);
+  return getCols().reduce((s,col)=>s+getCell(rId,col.id),0);
 }
-function grandTotal(){ return state.rows.filter(r=>!r.parentId).reduce((s,r)=>s+rowTotal(r.id),0); }
+function grandTotal(){ return getRows().filter(r=>!r.parentId).reduce((s,r)=>s+rowTotal(r.id),0); }
 function colTotal(cId){
-  const colIdx=state.cols.findIndex(c=>c.id===cId);
-  return state.rows.filter(r=>!r.parentId).reduce((s,r)=>{
+  const colIdx=getCols().findIndex(c=>c.id===cId);
+  return getRows().filter(r=>!r.parentId).reduce((s,r)=>{
     if(r.linked==='subscriptions'||r.snapshotLinkedRow){
       const vcs=r.linked==='subscriptions'?virtualSubChildren():((r.subsSnapshotByMonth||{})[currentMK()]||virtualSubChildren());
       return s+vcs.reduce((t,vc)=>t+(vc.weekCosts?vc.weekCosts[colIdx]||0:(colIdx===0?vc.cost:0)),0);
@@ -706,11 +739,11 @@ function fmt(n){ return '$'+Math.max(0,n).toFixed(2); }
 
 function updateRowTotal(rId){
   const el=document.getElementById('rt-'+rId); if(el) el.textContent=fmt(rowTotal(rId));
-  const row=state.rows.find(r=>r.id===rId);
+  const row=getRows().find(r=>r.id===rId);
   if(row&&row.parentId){ updateRowTotal(row.parentId); updateParentSumCells(row.parentId); }
 }
 function updateParentSumCells(pId){
-  state.cols.forEach(col=>{
+  getCols().forEach(col=>{
     const el=document.getElementById('ps-'+pId+'-'+col.id);
     if(el){
       const s=children(pId).reduce((t,c)=>t+getCell(c.id,col.id),0);
@@ -723,12 +756,12 @@ function updateColFooter(cId){
 }
 function updateGrandTotal(){
   const el=document.getElementById('gt'); if(el) el.textContent=fmt(grandTotal());
-  state.cols.forEach(col=>updateColFooter(col.id));
+  getCols().forEach(col=>updateColFooter(col.id));
   updateIncomeSummary();
 }
 function updateAll(rId){ updateRowTotal(rId); updateGrandTotal(); if(chartVisible) renderChart(); }
 
-// ── Income panel ───────────────────────────────────────────────────────────────
+
 function monthIncomeObj(){
   const key=currentMK();
   if(!state.income[key]){
@@ -743,7 +776,7 @@ function monthIncomeObj(){
   return state.income[key];
 }
 function onGrossInput(){
-  // Changing gross manually clears any income-tracker sync flag and wipes tax.
+  
   const obj=monthIncomeObj();
   delete obj.fromIncome;
   const taxEl=document.getElementById('inp-tax');
@@ -801,7 +834,7 @@ function updateIncomeSummary(){
   remEl.className='income-computed '+(rem<0?'neg':'pos');
 }
 
-// Tax carryover: applies a freshly-calculated tax result exactly once per recalculation.
+
 function _fmtMkLabel(mk2){
   const [y,m]=mk2.split('-');
   return MONTHS_SHORT[parseInt(m)-1]+' '+y;
@@ -815,7 +848,7 @@ function loadTaxCarryover(){
     const monthlyTax=(parseFloat(t.tax)/12).toFixed(2);
     const monthlyIncome=(parseFloat(t.income)/12).toFixed(2);
 
-    // Apply to the specific months stored in the result, or current month as fallback
+    
     const targetMonths=t.months&&t.months.length ? t.months : [currentMK()];
     targetMonths.forEach(mk2=>{
       if(!state.income[mk2]) state.income[mk2]={};
@@ -838,7 +871,7 @@ function loadTaxCarryover(){
   }catch(e){ console.warn('FiApp: loadTaxCarryover failed —',e.message); }
 }
 
-// ── Income Tracker sync (cross-tracker) ────────────────────────────────────────
+
 function _incomeMonthTotal(incomeState, mk2){
   if(!incomeState||!incomeState.rows||!incomeState.cols) return 0;
   return incomeState.rows.filter(r=>!r.parentId).reduce((sum,r)=>{
@@ -858,7 +891,7 @@ function syncFromIncomeTracker(mk2){
     const currentGross=parseFloat(obj.gross)||0;
     const alreadySynced=obj.fromIncome&&Math.abs(currentGross-total)<0.01;
     if(!obj.gross||obj.fromIncome){
-      // Auto-fill (field empty or previously auto-filled)
+      
       obj.gross=total.toFixed(2);
       obj.fromIncome=true;
       document.getElementById('inp-gross').value=obj.gross;
@@ -891,12 +924,12 @@ function acceptIncomeSync(mk2){
   }catch(e){}
 }
 
-// ── Expand / Collapse ──────────────────────────────────────────────────────────
-function toggleCollapse(rowId){ snapshot(); state.collapsed[rowId]=!isCollapsed(rowId); save(); render(); }
-function expandAll(){ snapshot(); state.rows.filter(r=>!r.parentId&&hasChildren(r.id)).forEach(r=>state.collapsed[r.id]=false); save(); render(); }
-function collapseAll(){ snapshot(); state.rows.filter(r=>!r.parentId&&hasChildren(r.id)).forEach(r=>state.collapsed[r.id]=true); save(); render(); }
 
-// ── Sub-category menu (portal, position:fixed) ────────────────────────────────
+function toggleCollapse(rowId){ snapshot(); state.collapsed[rowId]=!isCollapsed(rowId); save(); render(); }
+function expandAll(){ snapshot(); getRows().filter(r=>!r.parentId&&hasChildren(r.id)).forEach(r=>state.collapsed[r.id]=false); save(); render(); }
+function collapseAll(){ snapshot(); getRows().filter(r=>!r.parentId&&hasChildren(r.id)).forEach(r=>state.collapsed[r.id]=true); save(); render(); }
+
+
 let openMenu=null;
 function closeMenu(){ if(openMenu){openMenu.remove();openMenu=null;} }
 document.addEventListener('click',e=>{ if(!e.target.closest('.sub-dropdown')&&!e.target.closest('.sub-menu')) closeMenu(); });
@@ -970,63 +1003,82 @@ function showSubMenu(btn, row){
   }
 }
 
-// ── Structural mutations ───────────────────────────────────────────────────────
+
 function addRow(){
+  forkCurrentMonth();
+  const mk2=currentMK();
+  if(getRows(mk2).filter(r=>!r.parentId).length>=MAX_ROWS){showToast('Maximum '+MAX_ROWS+' rows per month.');return;}
   snapshot();
-  const usedLabels=state.rows.filter(r=>!r.parentId).map(r=>r.label);
+  const usedLabels=getRows(mk2).filter(r=>!r.parentId).map(r=>r.label);
   const nextCat=CAT_KEYS.find(k=>!usedLabels.includes(k))||'Groceries';
-  state.rows.push({id:uid(),label:nextCat,color:CAT_COLORS[nextCat]||'#e5e7eb',textColor:'#1f2937',height:36,parentId:null});
+  state.rowsByMonth[mk2].push({id:uid(),label:nextCat,color:CAT_COLORS[nextCat]||'#e5e7eb',textColor:'#1f2937',height:36,parentId:null});
   save(); render();
 }
 function addSubRow(parentRow, subLabel){
+  forkCurrentMonth();
+  const mk2=currentMK();
+  if(getRows(mk2).length>=MAX_ROWS){showToast('Maximum '+MAX_ROWS+' rows per month.');return;}
   snapshot();
-  const parentIdx=state.rows.findIndex(r=>r.id===parentRow.id);
-  const kids=state.rows.reduce((acc,r,i)=>r.parentId===parentRow.id?[...acc,i]:acc,[]);
+  const rows=state.rowsByMonth[mk2];
+  const parentIdx=rows.findIndex(r=>r.id===parentRow.id);
+  const kids=rows.reduce((acc,r,i)=>r.parentId===parentRow.id?[...acc,i]:acc,[]);
   const insertIdx=kids.length?Math.max(...kids)+1:parentIdx+1;
-  state.rows.splice(insertIdx,0,{id:uid(),label:subLabel,color:parentRow.color,textColor:parentRow.textColor||'#1f2937',height:32,parentId:parentRow.id});
+  rows.splice(insertIdx,0,{id:uid(),label:subLabel,color:parentRow.color,textColor:parentRow.textColor||'#1f2937',height:32,parentId:parentRow.id});
   state.collapsed[parentRow.id]=false;
   save(); render();
 }
-function addCol(){ snapshot(); state.cols.push({id:uid(),label:'New Column',width:100}); save(); render(); }
-function deleteRow(id){
+function addCol(){
+  forkCurrentMonth();
+  const mk2=currentMK();
+  if(getCols(mk2).length>=MAX_COLS){showToast('Maximum '+MAX_COLS+' columns per month.');return;}
   snapshot();
-  const kids=state.rows.filter(r=>r.parentId===id).map(r=>r.id);
+  state.colsByMonth[mk2].push({id:uid(),label:'New Column',width:100});
+  save(); render();
+}
+function deleteRow(id){
+  forkCurrentMonth();
+  snapshot();
+  const mk2=currentMK();
+  const kids=getRows(mk2).filter(r=>r.parentId===id).map(r=>r.id);
   const toDelete=[id,...kids];
-  state.rows=state.rows.filter(r=>!toDelete.includes(r.id));
+  state.rowsByMonth[mk2]=getRows(mk2).filter(r=>!toDelete.includes(r.id));
   Object.keys(state.cells).forEach(k=>{ if(toDelete.some(d=>k.includes('|'+d+'|'))) delete state.cells[k]; });
   save(); render();
 }
 function deleteCol(id){
-  snapshot(); state.cols=state.cols.filter(c=>c.id!==id);
+  forkCurrentMonth();
+  snapshot();
+  const mk2=currentMK();
+  state.colsByMonth[mk2]=getCols(mk2).filter(c=>c.id!==id);
   Object.keys(state.cells).filter(k=>k.endsWith('|'+id)).forEach(k=>delete state.cells[k]);
   save(); render();
 }
-// Move a parent row (and all its children) before/after another parent row
+
 function moveParentRow(fromId, toId, before){
   if(fromId===toId) return;
+  forkCurrentMonth();
   snapshot();
-  // Collect the "from" group: parent + its children in order
-  const fromGroup=[fromId,...state.rows.filter(r=>r.parentId===fromId).map(r=>r.id)];
-  // Remove from current positions
-  const fromRows=fromGroup.map(id=>state.rows.find(r=>r.id===id)).filter(Boolean);
-  state.rows=state.rows.filter(r=>!fromGroup.includes(r.id));
-  // Find insertion point relative to the "to" parent
-  const toParentIdx=state.rows.findIndex(r=>r.id===toId);
-  if(toParentIdx===-1){state.rows.push(...fromRows);save();render();return;}
+  const mk2=currentMK();
+  const rows=state.rowsByMonth[mk2];
+  const fromGroup=[fromId,...rows.filter(r=>r.parentId===fromId).map(r=>r.id)];
+  const fromRows=fromGroup.map(id=>rows.find(r=>r.id===id)).filter(Boolean);
+  state.rowsByMonth[mk2]=rows.filter(r=>!fromGroup.includes(r.id));
+  const arr=state.rowsByMonth[mk2];
+  const toParentIdx=arr.findIndex(r=>r.id===toId);
+  if(toParentIdx===-1){arr.push(...fromRows);save();render();return;}
   if(before){
-    state.rows.splice(toParentIdx,0,...fromRows);
+    arr.splice(toParentIdx,0,...fromRows);
   } else {
-    // Insert after the "to" group (parent + its children)
-    const toKids=state.rows.reduce((acc,r,i)=>r.parentId===toId?[...acc,i]:acc,[]);
+    const toKids=arr.reduce((acc,r,i)=>r.parentId===toId?[...acc,i]:acc,[]);
     const insertAfter=toKids.length?Math.max(...toKids):toParentIdx;
-    state.rows.splice(insertAfter+1,0,...fromRows);
+    arr.splice(insertAfter+1,0,...fromRows);
   }
   save(); render();
 }
 let _dragRowId=null;
 let _dragColId=null;
 
-// ── Security helpers ───────────────────────────────────────────────────────────
+
 function escapeHtml(s){
   return String(s==null?'':s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -1037,7 +1089,7 @@ function safeNum(v,max=1e12){
   return (isFinite(n)&&n>=-max&&n<=max)?n:0;
 }
 
-// ── Chart ──────────────────────────────────────────────────────────────────────
+
 let chartInstance=null, chartVisible=false, chartMode='monthly', chartType='bar';
 function toggleChart(){
   chartVisible=!chartVisible;
@@ -1058,8 +1110,8 @@ function setChartType(type){
   renderChart();
 }
 function rowTotalForMonthKey(rId, monthKey){
-  const row=state.rows.find(r=>r.id===rId);
-  // Virtual linked subscriptions row — read from subs data or snapshot
+  const row=getRows(monthKey).find(r=>r.id===rId);
+
   if(row&&(row.linked==='subscriptions'||row.snapshotLinkedRow)){
     const [ys,ms]=monthKey.split('-').map(Number);
     const mo=ms-1;
@@ -1070,9 +1122,9 @@ function rowTotalForMonthKey(rId, monthKey){
     const subs=loadSubsState(); if(!subs) return 0;
     return (subs.rows||[]).reduce((s,r)=>s+calcSubMonthCostInExp(r,subs,ys,mo),0);
   }
-  const kids=state.rows.filter(r=>r.parentId===rId);
+  const kids=getRows(monthKey).filter(r=>r.parentId===rId);
   if(kids.length) return kids.reduce((s,c)=>s+rowTotalForMonthKey(c.id,monthKey),0);
-  return state.cols.reduce((s,col)=>{
+  return getCols(monthKey).reduce((s,col)=>{
     const k=monthKey+'|'+rId+'|'+col.id;
     return s+(parseFloat(state.cells[k])||0);
   },0);
@@ -1082,7 +1134,7 @@ function rowTotalForYear(rId,year){
 }
 function renderChart(){
   if(!chartVisible) return;
-  const topRows=state.rows.filter(r=>!r.parentId);
+  const topRows=getRows().filter(r=>!r.parentId);
   let data, topLabel;
   if(chartMode==='yearly'){
     data=topRows.map(r=>({label:r.label,value:rowTotalForYear(r.id,state.currentYear),color:r.color})).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
@@ -1134,7 +1186,7 @@ function renderTop3(data,label){
   el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.label)}</strong> — $${parseFloat(t.value.toFixed(2))}</li>`).join('')+'</ol>';
 }
 
-// ── Reset ──────────────────────────────────────────────────────────────────────
+
 let resetTimer=null;
 function resetAll(){
   const btn=document.getElementById('reset-btn');
@@ -1150,7 +1202,7 @@ function resetAll(){
   }
 }
 
-// ── Resize ─────────────────────────────────────────────────────────────────────
+
 function attachColResize(handle,col){
   handle.addEventListener('mousedown',e=>{
     e.preventDefault();handle.classList.add('dragging');
@@ -1179,7 +1231,7 @@ function attachRowResize(handle,row,tr){
   });
 }
 
-// ── Linked Subscriptions (Fix 7) ──────────────────────────────────────────────
+
 function loadSubsState(){ try{ return JSON.parse(localStorage.getItem(SUBS_KEY))||null; }catch{ return null; } }
 
 function calcSubMonthCostInExp(r, subs, yr, mo){
@@ -1204,7 +1256,7 @@ function calcSubMonthCostInExp(r, subs, yr, mo){
   const mStart=new Date(yr,mo,1), mEnd=new Date(yr,mo+1,0,23,59,59);
   if(start>mEnd) return 0;
   if(cancel&&cancel<mStart) return 0;
-  // trial end
+  
   let trialEnd=null;
   if(trialV!=='none'){
     const td2=new Date(start);
@@ -1214,7 +1266,7 @@ function calcSubMonthCostInExp(r, subs, yr, mo){
     else if(trialV==='2months'){td2.setMonth(td2.getMonth()+2);td2.setDate(td2.getDate()-1);trialEnd=td2;}
     else if(trialV==='3months'){td2.setMonth(td2.getMonth()+3);td2.setDate(td2.getDate()-1);trialEnd=td2;}
   }
-  // Count billing events
+  
   let events=0;
   if(billing==='Monthly'){
     const chargeDay=start.getDate();
@@ -1242,14 +1294,14 @@ function calcSubMonthCostInExp(r, subs, yr, mo){
       d=new Date(d.getFullYear()+Math.floor(nm/12),nm%12,d.getDate());
     }
   }
-  // Currency → USD
+  
   const cur=(subs.rowCurrencies||{})[r.id]||'USD';
   const usdCost=cur==='USD'?rawCost:(expRatesCache[cur]?rawCost/expRatesCache[cur]:rawCost);
   return events*usdCost;
 }
 
-// Returns [w1,w2,w3,w4] costs for a subscription in a given month.
-// Day→week: 1-7=0, 8-14=1, 15-21=2, 22+=3 (rounds 29-31 to week 4).
+
+
 function getSubWeekCosts(r, subs, yr, mo){
   const cost=calcSubMonthCostInExp(r,subs,yr,mo);
   if(!cost) return [0,0,0,0];
@@ -1270,7 +1322,7 @@ function getSubWeekCosts(r, subs, yr, mo){
     const perEvent=cost/days.length;
     days.forEach(day=>{ weeks[dayToW(day)]+=perEvent; });
   } else {
-    // Monthly/Quarterly/etc: billing day = start day
+    
     const day=startStr?new Date(startStr+'T12:00:00').getDate():1;
     weeks[dayToW(day)]=cost;
   }
@@ -1288,17 +1340,17 @@ function virtualSubChildren(){
   }).filter(c=>c.cost>0);
 }
 
-// ── Render ─────────────────────────────────────────────────────────────────────
+
 function render(){
   const table=document.getElementById('sheet'); table.innerHTML='';
   const cg=document.createElement('colgroup');
   const hc=document.createElement('col');hc.id='cg-hdr';hc.style.width=(state.headerColWidth||185)+'px';cg.appendChild(hc);
-  state.cols.forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(col.width||100)+'px';cg.appendChild(c);});
+  getCols().forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(col.width||100)+'px';cg.appendChild(c);});
   const tc=document.createElement('col');tc.style.width=(state.totalColWidth||110)+'px';cg.appendChild(tc);
   const dc=document.createElement('col');dc.style.width='32px';cg.appendChild(dc);
   table.appendChild(cg);
 
-  // thead
+  
   const thead=document.createElement('thead'),htr=document.createElement('tr');
   const corner=document.createElement('th');
   const ci=document.createElement('div');ci.className='th-inner';
@@ -1306,11 +1358,11 @@ function render(){
   corner.appendChild(ci);
   const chr=document.createElement('div');chr.className='col-resize';attachHdrResize(chr);corner.appendChild(chr);
   htr.appendChild(corner);
-  state.cols.forEach(col=>{
+  getCols().forEach(col=>{
     const th=document.createElement('th');
     th.dataset.colId=col.id;
     const inner=document.createElement('div');inner.className='th-inner';
-    // Column drag handle
+    
     const cdh=document.createElement('span');cdh.className='col-drag-handle';cdh.textContent='⠿';cdh.title='Drag to reorder column';
     cdh.addEventListener('mousedown',()=>{ th.draggable=true; });
     cdh.addEventListener('mouseup',()=>{ th.draggable=false; });
@@ -1322,7 +1374,7 @@ function render(){
     const del=document.createElement('button');del.className='col-del';del.title='Delete column';del.textContent='×';del.addEventListener('click',()=>deleteCol(col.id));inner.appendChild(del);
     th.appendChild(inner);
     const cr=document.createElement('div');cr.className='col-resize';attachColResize(cr,col);th.appendChild(cr);
-    // Column drag events
+    
     th.addEventListener('dragstart',e=>{ _dragColId=col.id; e.dataTransfer.effectAllowed='move'; });
     th.addEventListener('dragend',()=>{
       _dragColId=null; th.draggable=false;
@@ -1339,15 +1391,18 @@ function render(){
       if(!_dragColId||_dragColId===col.id) return;
       e.preventDefault();
       document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
-      const fromIdx=state.cols.findIndex(c=>c.id===_dragColId);
-      const toCol=state.cols.findIndex(c=>c.id===col.id);
-      if(fromIdx===-1||toCol===-1) return;
+      forkCurrentMonth();
+      const mk2=currentMK();
+      const cols=state.colsByMonth[mk2];
+      const fromIdx=cols.findIndex(c=>c.id===_dragColId);
+      const toIdx=cols.findIndex(c=>c.id===col.id);
+      if(fromIdx===-1||toIdx===-1) return;
       const rect=th.getBoundingClientRect();
       const before=e.clientX<rect.left+rect.width/2;
       snapshot();
-      const [moved]=state.cols.splice(fromIdx,1);
-      const insertAt=state.cols.findIndex(c=>c.id===col.id);
-      state.cols.splice(before?insertAt:insertAt+1,0,moved);
+      const [moved]=cols.splice(fromIdx,1);
+      const insertAt=cols.findIndex(c=>c.id===col.id);
+      cols.splice(before?insertAt:insertAt+1,0,moved);
       save(); render();
     });
     htr.appendChild(th);
@@ -1360,9 +1415,9 @@ function render(){
   const acb=document.createElement('button');acb.className='btn-add-col';acb.textContent='+';acb.title='Add column';acb.addEventListener('click',addCol);act.appendChild(acb);htr.appendChild(act);
   thead.appendChild(htr);table.appendChild(thead);
 
-  // tbody
+  
   const tbody=document.createElement('tbody');
-  // Tbody-level drag handlers so top/bottom row drops are always reachable
+  
   tbody.addEventListener('dragover',e=>{
     if(!_dragRowId){return;}
     e.preventDefault();
@@ -1416,14 +1471,14 @@ function render(){
       const cb=document.createElement('button');cb.className='collapse-btn';cb.title=collapsed?'Expand':'Collapse';cb.textContent=collapsed?'▸':'▾';
       cb.addEventListener('click',()=>toggleCollapse(row.id));rhIn.appendChild(cb);
     }
-    // Background-colour swatch — input overlaid directly for iOS touch compatibility
+    
     const colorWrap=document.createElement('div');colorWrap.className='color-swatch-wrap tip-host';colorWrap.dataset.tip='Row background colour';
     const swatch=document.createElement('div');swatch.className='color-swatch';swatch.style.backgroundColor=row.color;
     const cInp=document.createElement('input');cInp.type='color';cInp.className='color-inp-overlay';cInp.value=row.color;
     cInp.addEventListener('input',()=>{row.color=cInp.value;rhTd.style.backgroundColor=cInp.value;swatch.style.backgroundColor=cInp.value;textSwatch.style.backgroundColor=cInp.value;});
     cInp.addEventListener('change',save);
     colorWrap.appendChild(swatch);colorWrap.appendChild(cInp);
-    // Text-colour swatch — same overlay pattern
+    
     const tcWrap=document.createElement('div');tcWrap.className='color-swatch-wrap tip-host';tcWrap.dataset.tip='Row text colour';
     const textSwatch=document.createElement('div');textSwatch.className='text-color-swatch';textSwatch.textContent='A';textSwatch.style.color=row.textColor||'#1f2937';textSwatch.style.backgroundColor=row.color||'#ffffff';
     const tcInp=document.createElement('input');tcInp.type='color';tcInp.className='color-inp-overlay';tcInp.value=row.textColor||'#1f2937';
@@ -1465,7 +1520,7 @@ function render(){
 
     const isLinkedRow=row.linked==='subscriptions'||row.snapshotLinkedRow;
     const linkedVC=isLinkedRow?(row.linked==='subscriptions'?virtualSubChildren():((row.subsSnapshotByMonth||{})[currentMK()]||virtualSubChildren())):null;
-    state.cols.forEach((col,colIdx)=>{
+    getCols().forEach((col,colIdx)=>{
       const td=document.createElement('td');
       if(hasKids||isLinkedRow){
         const span=document.createElement('span');span.className='parent-sum';span.id='ps-'+row.id+'-'+col.id;
@@ -1502,7 +1557,7 @@ function render(){
     tbody.appendChild(tr);
     if(!isChild&&!collapsed){
       children(row.id).forEach(renderRow);
-      // Linked subscriptions virtual children (live link or pasted snapshot)
+      
       const _vchildren = row.linked==='subscriptions' ? virtualSubChildren()
         : row.snapshotLinkedRow ? ((row.subsSnapshotByMonth||{})[currentMK()]||virtualSubChildren())
         : [];
@@ -1514,7 +1569,7 @@ function render(){
           const vbadge=document.createElement('span'); vbadge.style.cssText='font-size:.7rem;margin-right:3px;'; vbadge.textContent='🔗'; vbadge.title='From Subscription Tracker';
           const vlbl=document.createElement('span'); vlbl.className='row-label'; vlbl.style.cssText='font-weight:500;font-size:.83rem;color:'+(row.textColor||'#1f2937')+';cursor:default;pointer-events:none;'; vlbl.textContent=vc.label;
           vrhIn.appendChild(vbadge); vrhIn.appendChild(vlbl); vrhTd.appendChild(vrhIn); vtr.appendChild(vrhTd);
-          state.cols.forEach((col,idx)=>{
+          getCols().forEach((col,idx)=>{
             const vtd=document.createElement('td');
             const wc=vc.weekCosts?vc.weekCosts[idx]||0:(idx===0?vc.cost:0);
             if(wc>0){
@@ -1531,17 +1586,17 @@ function render(){
       }
     }
   }
-  state.rows.filter(r=>!r.parentId).forEach(renderRow);
+  getRows().filter(r=>!r.parentId).forEach(renderRow);
 
-  const atr=document.createElement('tr');const atd=document.createElement('td');atd.colSpan=state.cols.length+3;atd.style.cssText='border:none;padding:3px 0;';
+  const atr=document.createElement('tr');const atd=document.createElement('td');atd.colSpan=getCols().length+3;atd.style.cssText='border:none;padding:3px 0;';
   const arb=document.createElement('button');arb.className='btn-add-row';arb.textContent='+ Add Row';arb.addEventListener('click',addRow);
   atd.appendChild(arb);atr.appendChild(atd);tbody.appendChild(atr);
   table.appendChild(tbody);
 
-  // tfoot — TOTAL row with per-week column totals + grand total
+  
   const tfoot=document.createElement('tfoot'),ftr=document.createElement('tr');
   const fl=document.createElement('td');fl.style.cssText='font-weight:700;padding:4px 8px;font-size:.85rem;';fl.textContent='TOTAL';ftr.appendChild(fl);
-  state.cols.forEach(col=>{
+  getCols().forEach(col=>{
     const ftd=document.createElement('td'); ftd.className='week-total-cell';
     const fs=document.createElement('span');fs.className='gtotal-val';fs.id='ct-'+col.id;
     fs.textContent=fmt(colTotal(col.id));
@@ -1556,28 +1611,28 @@ function render(){
   if(chartVisible) renderChart();
   adjustBodyWidth();
   updateForecastUI();
-  // Apply forecast italic class to table
+  
   const tbl=document.getElementById('sheet');
   if(tbl) tbl.classList.toggle('forecast',isForecastMonth());
-  // Show/hide expand-collapse buttons based on whether any subcategories exist
-  const hasSubcats=state.rows.some(r=>r.parentId);
+  
+  const hasSubcats=getRows().some(r=>r.parentId);
   const eb=document.getElementById('expand-btn'), cb2=document.getElementById('collapse-btn');
   if(eb) eb.style.display=hasSubcats?'':'none';
   if(cb2) cb2.style.display=hasSubcats?'':'none';
 }
 
-// ── Body-width adjuster (Fix 11) ──────────────────────────────────────────────
+
 function adjustBodyWidth(){
   const naturalWidth=(state.headerColWidth||185)
-    +state.cols.reduce((s,c)=>s+(c.width||100),0)
+    +getCols().reduce((s,c)=>s+(c.width||100),0)
     +(state.totalColWidth||110)+32;
   const cap=Math.min(window.innerWidth*0.95,1500);
   document.body.style.maxWidth=naturalWidth>900?Math.min(naturalWidth+60,cap)+'px':'';
 }
 window.addEventListener('resize',adjustBodyWidth);
 
-// ── Export / Share helpers ─────────────────────────────────────────────────────
-// (Duplicated in subscriptions.html — project intentionally keeps each HTML self-contained.)
+
+
 
 function expPad(s,n){ s=String(s); return s.length>=n?s:s+' '.repeat(n-s.length); }
 function expCsvEsc(v){
@@ -1585,47 +1640,44 @@ function expCsvEsc(v){
   return /[,"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
 }
 
-/** Build 2-D array: [header, ...rows, total-footer] */
+
 function buildRowsArray(){
-  const colLabels=state.cols.map(c=>c.label);
+  const colLabels=getCols().map(c=>c.label);
   const header=['Category','Subcategory',...colLabels,'Total'];
   const out=[header];
-  state.rows.filter(r=>!r.parentId).forEach(parent=>{
+  getRows().filter(r=>!r.parentId).forEach(parent=>{
     const kids=children(parent.id);
     const isLinked=parent.linked==='subscriptions'||parent.snapshotLinkedRow;
     if(isLinked){
-      // Virtual subscription children
       const vcs=parent.linked==='subscriptions'?virtualSubChildren():((parent.subsSnapshotByMonth||{})[currentMK()]||virtualSubChildren());
-      const vals=state.cols.map((col,ci)=>{
+      const vals=getCols().map((col,ci)=>{
         const s=vcs.reduce((t,vc)=>t+(vc.weekCosts?vc.weekCosts[ci]||0:(ci===0?vc.cost:0)),0);
         return s?s.toFixed(2):'';
       });
       out.push([parent.label,'',...vals,rowTotal(parent.id).toFixed(2)]);
       vcs.forEach(vc=>{
-        const kVals=state.cols.map((col,ci)=>{
+        const kVals=getCols().map((col,ci)=>{
           const wc=vc.weekCosts?vc.weekCosts[ci]||0:(ci===0?vc.cost:0);
           return wc?wc.toFixed(2):'';
         });
         out.push(['',vc.label,...kVals,vc.cost.toFixed(2)]);
       });
     } else if(kids.length){
-      // parent summary row
-      const vals=state.cols.map(col=>{
+      const vals=getCols().map(col=>{
         const s=kids.reduce((t,c)=>t+getCell(c.id,col.id),0);
         return s?s.toFixed(2):'';
       });
       out.push([parent.label,'',...vals,rowTotal(parent.id).toFixed(2)]);
       kids.forEach(kid=>{
-        const kVals=state.cols.map(col=>{ const v=getCell(kid.id,col.id); return v?v.toFixed(2):''; });
+        const kVals=getCols().map(col=>{ const v=getCell(kid.id,col.id); return v?v.toFixed(2):''; });
         out.push(['',kid.label,...kVals,rowTotal(kid.id).toFixed(2)]);
       });
     } else {
-      const vals=state.cols.map(col=>{ const v=getCell(parent.id,col.id); return v?v.toFixed(2):''; });
+      const vals=getCols().map(col=>{ const v=getCell(parent.id,col.id); return v?v.toFixed(2):''; });
       out.push([parent.label,'',...vals,rowTotal(parent.id).toFixed(2)]);
     }
   });
-  // footer TOTAL row
-  const totals=state.cols.map(col=>colTotal(col.id).toFixed(2));
+  const totals=getCols().map(col=>colTotal(col.id).toFixed(2));
   out.push(['TOTAL','',...totals,grandTotal().toFixed(2)]);
   return out;
 }
@@ -1636,11 +1688,11 @@ function buildCsv(){
 
 function buildJson(){
   const mk2=currentMK();
-  const topRows=state.rows.filter(r=>!r.parentId);
+  const topRows=getRows().filter(r=>!r.parentId);
   const rowsOut=topRows.map(parent=>{
     const kids=children(parent.id);
     const colVals={};
-    state.cols.forEach(col=>{ colVals[col.label]=getCell(parent.id,col.id)||undefined; });
+    getCols().forEach(col=>{ colVals[col.label]=getCell(parent.id,col.id)||undefined; });
     return {
       label:parent.label,
       color:parent.color,
@@ -1649,7 +1701,7 @@ function buildJson(){
       weeks:colVals,
       subcategories:kids.map(kid=>{
         const kv={};
-        state.cols.forEach(col=>{ kv[col.label]=getCell(kid.id,col.id)||undefined; });
+        getCols().forEach(col=>{ kv[col.label]=getCell(kid.id,col.id)||undefined; });
         return {label:kid.label,total:rowTotal(kid.id),weeks:kv};
       })
     };
@@ -1657,11 +1709,11 @@ function buildJson(){
   const obj={
     month:mk2,
     monthName:MONTHS_FULL[state.currentMonth]+' '+state.currentYear,
-    columns:state.cols.map(c=>c.label),
+    columns:getCols().map(c=>c.label),
     rows:rowsOut,
     totals:{
       grand:grandTotal(),
-      perColumn:Object.fromEntries(state.cols.map(col=>[col.label,colTotal(col.id)]))
+      perColumn:Object.fromEntries(getCols().map(col=>[col.label,colTotal(col.id)]))
     }
   };
   const obj2=state.income[mk2];
@@ -1686,12 +1738,12 @@ function buildTsv(){
 
 // Gmail compose URL helper (works in any browser as long as user is signed into Gmail)
 function gmailHref(subject, body){
-  return 'https://mail.google.com/mail/?view=cm&fs=1&tf=1'
+  return 'https:
        + '&su='+encodeURIComponent(subject)
        + '&body='+encodeURIComponent(body);
 }
 
-// Clipboard write with execCommand fallback. Returns Promise<boolean>.
+
 function clipboardWrite(text){
   if(navigator.clipboard){
     return navigator.clipboard.writeText(text).then(()=>true).catch(()=>fallback());
@@ -1706,7 +1758,7 @@ function clipboardWrite(text){
   }
 }
 
-// Tiny green flash next to the Export button
+
 function showExportFlash(msg){
   const f=document.getElementById('export-flash');if(!f) return;
   f.textContent=msg;f.classList.add('show');
@@ -1714,8 +1766,8 @@ function showExportFlash(msg){
   window._exportFlashT=setTimeout(()=>f.classList.remove('show'),2500);
 }
 
-// ── Copy / Paste blob format ───────────────────────────────────────────────────
-// FIAPP-<KIND>-V1:<base64(JSON)>     KIND ∈ {EXP-MONTH, EXP-FULL, SUBS}
+
+
 function encodeBlob(obj){
   return 'FIAPP-'+obj.kind+'-V1:'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
 }
@@ -1739,7 +1791,7 @@ function decodeBlob(str){
   if(obj.kind==='SUBS'){
     if(typeof obj.cells!=='object'||Array.isArray(obj.cells)) throw new Error('Invalid blob: bad cells object.');
   }
-  // Size limits — prevent memory exhaustion from malicious blobs
+  
   if(obj.rows.length>500)  throw new Error('Blob rejected: too many rows (max 500).');
   if(obj.cols.length>52)   throw new Error('Blob rejected: too many columns (max 52).');
   if(obj.kind==='EXP-FULL'){
@@ -1753,29 +1805,32 @@ function decodeBlob(str){
   return migrateBlob(obj);
 }
 function migrateBlob(obj){
-  // Placeholder for future schema migrations.
-  // Example: if(obj.v===1) { /* upgrade v1→v2 fields here */ obj.v=2; }
+  
+  
   return obj;
 }
 
-// Build single-month blob (only this month's cells)
+
 function buildExpMonthBlob(){
   const mk2=currentMK();
   const cells={};
   Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) cells[k]=state.cells[k]; });
   const inc=state.income[mk2]||{gross:'',tax:''};
+  const rowsByMonth={}; if(state.rowsByMonth&&state.rowsByMonth[mk2]) rowsByMonth[mk2]=JSON.parse(JSON.stringify(state.rowsByMonth[mk2]));
+  const colsByMonth={}; if(state.colsByMonth&&state.colsByMonth[mk2]) colsByMonth[mk2]=JSON.parse(JSON.stringify(state.colsByMonth[mk2]));
   return {
     kind:'EXP-MONTH', v:1, monthKey:mk2,
-    rows:JSON.parse(JSON.stringify(state.rows)),
-    cols:JSON.parse(JSON.stringify(state.cols)),
+    rows:JSON.parse(JSON.stringify(getRows())),
+    cols:JSON.parse(JSON.stringify(getCols())),
+    rowsByMonth, colsByMonth,
     cells, income:{gross:inc.gross||'',tax:inc.tax||''},
     headerColWidth:state.headerColWidth, totalColWidth:state.totalColWidth,
     subsSnapshot:virtualSubChildren().map(c=>({label:c.label,cost:c.cost,weekCosts:c.weekCosts})),
   };
 }
-// Build full-state blob
+
 function buildExpFullBlob(){
-  // Group cells by monthKey so the picker can offer them
+  
   const cellsByMonth={};
   Object.keys(state.cells).forEach(k=>{
     const mk2=k.split('|')[0];
@@ -1803,6 +1858,8 @@ function buildExpFullBlob(){
     kind:'EXP-FULL', v:1,
     rows:JSON.parse(JSON.stringify(state.rows)),
     cols:JSON.parse(JSON.stringify(state.cols)),
+    rowsByMonth:JSON.parse(JSON.stringify(state.rowsByMonth||{})),
+    colsByMonth:JSON.parse(JSON.stringify(state.colsByMonth||{})),
     cellsByMonth,
     income:JSON.parse(JSON.stringify(state.income||{})),
     collapsed:JSON.parse(JSON.stringify(state.collapsed||{})),
@@ -1812,11 +1869,11 @@ function buildExpFullBlob(){
   };
 }
 
-// Merge a blob's rows/cols into state.rows/state.cols by label, returning id-maps.
+
 function _mergeRowsCols(blobRows, blobCols){
   const labelToId={};
   state.rows.forEach(r=>{ if(!r.parentId) labelToId[r.label]=r.id; });
-  // For child rows we use parentLabel|childLabel to disambiguate
+  
   const childKeyToId={};
   state.rows.forEach(r=>{
     if(r.parentId){
@@ -1825,7 +1882,7 @@ function _mergeRowsCols(blobRows, blobCols){
     }
   });
   const blobRowIdMap={};
-  // First pass: parent rows
+  
   blobRows.filter(r=>!r.parentId).forEach(br=>{
     if(labelToId[br.label]){
       blobRowIdMap[br.id]=labelToId[br.label];
@@ -1837,7 +1894,7 @@ function _mergeRowsCols(blobRows, blobCols){
       labelToId[br.label]=newId;
     }
   });
-  // Second pass: child rows
+  
   blobRows.filter(r=>r.parentId).forEach(br=>{
     const blobParent=blobRows.find(p=>p.id===br.parentId);
     const parentLabel=blobParent?blobParent.label:'';
@@ -1848,7 +1905,7 @@ function _mergeRowsCols(blobRows, blobCols){
     } else {
       const newId=uid();
       const nr=Object.assign({},br,{id:newId,parentId:localParentId});
-      // insert after the parent's existing children
+      
       const parentIdx=state.rows.findIndex(r=>r.id===localParentId);
       const lastKidIdx=state.rows.reduce((acc,r,i)=>r.parentId===localParentId?i:acc, parentIdx);
       state.rows.splice(lastKidIdx+1,0,nr);
@@ -1856,7 +1913,7 @@ function _mergeRowsCols(blobRows, blobCols){
       childKeyToId[key]=newId;
     }
   });
-  // Cols by label
+  
   const colLblToId={};
   state.cols.forEach(c=>colLblToId[c.label]=c.id);
   const blobColIdMap={};
@@ -1892,16 +1949,24 @@ function applySubsSnapshot(linkedRow, snapshotByMonth){
 
 function importExpMonth(blob){
   const mk2=currentMK();
-  // Wipe just this month's cells
+  
   Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) delete state.cells[k]; });
   const {blobRowIdMap, blobColIdMap}=_mergeRowsCols(blob.rows||[], blob.cols||[]);
   Object.entries(blob.cells||{}).forEach(([k,v])=>{
-    const parts=k.split('|'); // bMK | rId | cId
+    const parts=k.split('|'); 
     const rId=blobRowIdMap[parts[1]], cId=blobColIdMap[parts[2]];
     if(rId&&cId) state.cells[mk2+'|'+rId+'|'+cId]=v;
   });
   if(blob.income) state.income[mk2]={gross:blob.income.gross||'',tax:blob.income.tax||''};
-  // Apply subscription snapshot if present
+  
+  if(blob.rowsByMonth&&blob.rowsByMonth[blob.monthKey]){
+    if(!state.rowsByMonth) state.rowsByMonth={};
+    state.rowsByMonth[mk2]=JSON.parse(JSON.stringify(blob.rowsByMonth[blob.monthKey]));
+  }
+  if(blob.colsByMonth&&blob.colsByMonth[blob.monthKey]){
+    if(!state.colsByMonth) state.colsByMonth={};
+    state.colsByMonth[mk2]=JSON.parse(JSON.stringify(blob.colsByMonth[blob.monthKey]));
+  }
   if(blob.subsSnapshot){
     const lr=state.rows.find(r=>r.linked==='subscriptions'||r.snapshotLinkedRow);
     applySubsSnapshot(lr,{[mk2]:blob.subsSnapshot});
@@ -1910,8 +1975,10 @@ function importExpMonth(blob){
 
 function importExpFull(blob, selectedMonths){
   const {blobRowIdMap, blobColIdMap}=_mergeRowsCols(blob.rows||[], blob.cols||[]);
+  if(blob.rowsByMonth){ if(!state.rowsByMonth) state.rowsByMonth={}; Object.assign(state.rowsByMonth, JSON.parse(JSON.stringify(blob.rowsByMonth))); }
+  if(blob.colsByMonth){ if(!state.colsByMonth) state.colsByMonth={}; Object.assign(state.colsByMonth, JSON.parse(JSON.stringify(blob.colsByMonth))); }
   selectedMonths.forEach(mk2=>{
-    // Wipe local cells for this month
+    
     Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|')) delete state.cells[k]; });
     const blobMonthCells=(blob.cellsByMonth||{})[mk2]||{};
     Object.entries(blobMonthCells).forEach(([k,v])=>{
@@ -1919,10 +1986,10 @@ function importExpFull(blob, selectedMonths){
       const rId=blobRowIdMap[parts[1]], cId=blobColIdMap[parts[2]];
       if(rId&&cId) state.cells[mk2+'|'+rId+'|'+cId]=v;
     });
-    // Income
+    
     if(blob.income && blob.income[mk2]) state.income[mk2]={gross:blob.income[mk2].gross||'',tax:blob.income[mk2].tax||''};
   });
-  // Apply per-month subscription snapshots if present
+  
   if(blob.subsSnapshotByMonth){
     const lr=state.rows.find(r=>r.linked==='subscriptions'||r.snapshotLinkedRow);
     const rel={};
@@ -1931,7 +1998,7 @@ function importExpFull(blob, selectedMonths){
   }
 }
 
-// ── Paste UI ───────────────────────────────────────────────────────────────────
+
 function openPasteModal(){
   const overlay=document.createElement('div');overlay.className='share-overlay';
   const modal=document.createElement('div');modal.className='share-modal';
@@ -2039,7 +2106,7 @@ function downloadText(filename, text, mime){
   downloadBlob(filename,new Blob([text],{type:mime||'text/plain;charset=utf-8'}));
 }
 
-// Lazy-load SheetJS only when XLSX is first requested
+
 let _xlsxLoaded=false,_xlsxLoading=null;
 function lazyLoadXlsx(){
   if(_xlsxLoaded) return Promise.resolve();
@@ -2063,7 +2130,7 @@ function exportXlsx(filename){
   }).catch(err=>showToast('Could not load XLSX library: '+err.message));
 }
 
-// Export format-chooser menu (portal, position:fixed)
+
 let _openExportMenu=null;
 function closeExportMenu(){
   if(_openExportMenu){_openExportMenu.remove();_openExportMenu=null;}
@@ -2099,7 +2166,7 @@ function showExportMenu(ev){
   setTimeout(()=>document.addEventListener('click',closeExportMenu,true),50);
 }
 
-// Share
+
 async function shareSheet(){
   const text=buildTxt();
   const title='FiApp Expenses — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
@@ -2124,7 +2191,7 @@ function showShareModal(title,text){
   const actions=document.createElement('div');actions.className='share-actions';
   const flash=document.createElement('span');flash.className='share-flash';
 
-  // 📋 Copy (TSV)
+  
   const copyBtn=document.createElement('button');copyBtn.className='btn btn-sm';copyBtn.textContent='📋 Copy';
   copyBtn.addEventListener('click',()=>{
     clipboardWrite(tsv).then(ok=>{
@@ -2133,23 +2200,23 @@ function showShareModal(title,text){
     });
   });
 
-  // 📧 Email as Text
+  
   const emailTextBtn=document.createElement('a');emailTextBtn.className='btn btn-sm';emailTextBtn.textContent='📧 Email as Text';
   emailTextBtn.href=gmailHref(title,bodyText);emailTextBtn.target='_blank';emailTextBtn.rel='noopener noreferrer';
 
-  // 📧 Email as XLSX (download + open Gmail)
+  
   const emailXlsxBtn=document.createElement('a');emailXlsxBtn.className='btn btn-sm';emailXlsxBtn.textContent='📧 Email as XLSX';
   const ym=String(state.currentYear)+'-'+String(state.currentMonth+1).padStart(2,'0');
   const xlsxBody='I\'m sharing my FiApp expenses spreadsheet — please find the attached XLSX file (saved to your Downloads folder).\n\nFile: expenses-'+ym+'.xlsx';
   emailXlsxBtn.href=gmailHref(title,xlsxBody);emailXlsxBtn.target='_blank';emailXlsxBtn.rel='noopener noreferrer';
   emailXlsxBtn.addEventListener('click',()=>{
-    // Trigger XLSX download first; the link still opens in the new tab
+    
     exportXlsx('expenses-'+ym+'.xlsx');
     flash.textContent='XLSX downloading — drag it into Gmail to attach.';
     setTimeout(()=>flash.textContent='',5000);
   });
 
-  // 📧 Email as FiApp Paste-link
+  
   const emailPasteBtn=document.createElement('a');emailPasteBtn.className='btn btn-sm';emailPasteBtn.textContent='📧 Email as Paste-link';
   const blob=encodeBlob(buildExpFullBlob());
   const pasteBody='I\'m sharing my FiApp expense data. Paste this entire block into the FiApp Expense Tracker (📋 Paste button) at dbrp2008.github.io to load everything:\n\n'+blob;
@@ -2170,7 +2237,7 @@ function showShareModal(title,text){
   overlay.appendChild(modal);document.body.appendChild(overlay);
 }
 
-// ── Floating swatch tooltip (fixed-position, bypasses table overflow/z-index) ──
+
 (function(){
   const tip=document.createElement('div');tip.id='swatch-tip';document.body.appendChild(tip);
   let hideT;
@@ -2179,11 +2246,11 @@ function showShareModal(title,text){
     const label=el.dataset.tip; if(!label) return;
     tip.textContent=label;
     tip.classList.add('show');
-    // position above the element
+    
     const r=el.getBoundingClientRect();
     tip.style.left=(r.left+r.width/2-tip.offsetWidth/2)+'px';
     tip.style.top=(r.top-tip.offsetHeight-6)+'px';
-    // reposition after paint in case offsetWidth wasn't ready
+    
     requestAnimationFrame(()=>{
       const r2=el.getBoundingClientRect();
       tip.style.left=Math.max(4,r2.left+r2.width/2-tip.offsetWidth/2)+'px';
@@ -2191,7 +2258,7 @@ function showShareModal(title,text){
     });
   }
   function hide(){ hideT=setTimeout(()=>tip.classList.remove('show'),80); }
-  // Mouse events (desktop)
+  
   document.addEventListener('mouseover',e=>{
     const h=e.target.closest('.tip-host[data-tip]');
     if(h) show(h); else hide();
@@ -2199,10 +2266,10 @@ function showShareModal(title,text){
   document.addEventListener('mouseout',e=>{
     if(!e.target.closest('.tip-host[data-tip]')) hide();
   });
-  // Touch events (iOS / mobile) — tap to show, tap elsewhere or touchend to hide
+  
   document.addEventListener('touchstart',e=>{
     const h=e.target.closest('.tip-host[data-tip]');
-    // Also manage .tip-visible for the CSS pseudo-element tooltips
+    
     document.querySelectorAll('.tip-host.tip-visible').forEach(el=>{ if(el!==h) el.classList.remove('tip-visible'); });
     if(h){
       h.classList.add('tip-visible');
@@ -2212,14 +2279,14 @@ function showShareModal(title,text){
     }
   },{passive:true});
   document.addEventListener('touchend',e=>{
-    // Brief delay so the tooltip flashes before disappearing
+    
     setTimeout(()=>{ tip.classList.remove('show'); },600);
   },{passive:true});
 })();
 
-// ── Init ───────────────────────────────────────────────────────────────────────
+
 (async()=>{
-  // Determine auth state — sets window.__currentUser and populates nav badge
+  
   try{
     const me=await fetch('/auth/me').then(r=>r.json());
     window.__currentUser=me.username||null;
@@ -2235,19 +2302,19 @@ function showShareModal(title,text){
     }
   }catch(e){ window.__currentUser=null; }
   if(!window.__currentUser) setSyncStatus('Offline','');
-  await loadFromServer();   // no-op if not logged in; server overwrites localStorage if logged in
-  state=loadState();        // re-read state after potential server load
+  await loadFromServer();   
+  state=loadState();        
   loadHistory();
   loadTaxCarryover();
   updateHistBtns();
   updateMonthNav();
   syncIncomeInputs();
   render();
-  // Fetch exchange rates for currency conversion of linked subscriptions
-  fetchExpRates().then(()=>{ if(state.rows.some(r=>r.linked==='subscriptions')) render(); });
-  // Income tracker sync on load
+  
+  fetchExpRates().then(()=>{ if(getRows().some(r=>r.linked==='subscriptions')) render(); });
+  
   syncFromIncomeTracker(currentMK());
-  // Cross-tab sync: re-render if subscriptions or income change in another tab
+  
   window.addEventListener('storage',e=>{
     if(e.key===SUBS_KEY) render();
     if(e.key===INCOME_KEY||e.key===INCOME_PUSH_KEY) syncFromIncomeTracker(currentMK());
@@ -2255,7 +2322,7 @@ function showShareModal(title,text){
 })();
 </script>
 
-<!-- Help modal -->
+
 <div id="help-modal" style="display:none" class="share-overlay" onclick="if(event.target===this)closeHelp()">
   <div class="share-modal">
     <h3>How to use — Expense Tracker</h3>
@@ -2275,7 +2342,7 @@ function showShareModal(title,text){
 <script>
 function openHelp(){ document.getElementById('help-modal').style.display='flex'; }
 function closeHelp(){ document.getElementById('help-modal').style.display='none'; }
-// Dropdown helpers
+
 function toggleDropdown(id, e){
   e && e.stopPropagation();
   const menu = document.getElementById(id+'-menu');
@@ -2285,7 +2352,7 @@ function toggleDropdown(id, e){
 }
 function closeDropdown(id){ document.getElementById(id+'-menu').classList.remove('open'); }
 document.addEventListener('click', ()=>{ document.querySelectorAll('.dropdown-menu.open').forEach(m=>m.classList.remove('open')); });
-// ── Side drawer ──────────────────────────────────────────────────────────────
+
 function openDrawer(){
   document.getElementById('side-drawer').classList.add('open');
   document.getElementById('drawer-overlay').style.display='block';
@@ -2298,7 +2365,7 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
   if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
 });
 </script>
-  <!-- Side drawer -->
+  
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
   <nav id="side-drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
