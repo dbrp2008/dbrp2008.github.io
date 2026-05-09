@@ -448,6 +448,9 @@ function loadState(){
     const r=localStorage.getItem(STORAGE_KEY);
     if(r){
       const s=JSON.parse(r);
+      if(!Array.isArray(s.rows)) s.rows=[];
+      if(!Array.isArray(s.cols)) s.cols=freshState().cols;
+      if(!s.cells)           s.cells={};
       if(!s.displayCurrency) s.displayCurrency='USD';
       if(!s.rowCurrencies)   s.rowCurrencies={};
       return s;
@@ -485,7 +488,7 @@ async function loadFromServer(){
     const res=await fetch('/api/load/subs');
     if(!res.ok) return;
     const data=await res.json();
-    if(data&&typeof data==='object'){
+    if(data&&typeof data==='object'&&(Array.isArray(data.rows)||Array.isArray(data.cols)||data.cells)){
       localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
     }
   }catch(e){}
