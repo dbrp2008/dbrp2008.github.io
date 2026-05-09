@@ -170,7 +170,7 @@
     <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Register</button>
   </div>
 
-  <!-- Log In form -->
+  
   <div id="panel-login" class="login-panel">
     <div class="auth-error" id="login-error"></div>
     <div class="form-group">
@@ -187,7 +187,7 @@
     <div class="back-link"><a href="/">← Back to FiApp</a></div>
   </div>
 
-  <!-- Register form -->
+  
   <div id="panel-register" class="login-panel" style="display:none;">
     <div class="auth-error" id="register-error"></div>
     <div class="form-group">
@@ -291,7 +291,7 @@ async function submitRegister(){
   }
 }
 
-// Allow Enter key to submit
+
 document.addEventListener('keydown', e=>{
   if(e.key!=='Enter') return;
   const loginVisible = document.getElementById('panel-login').style.display !== 'none';
