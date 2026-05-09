@@ -29,7 +29,7 @@
   <script src="/static/rates-utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* ── Wider body for the subscription tracker ── */
+    
     body{max-width:min(95vw, 1500px)!important;}
     .toolbar-row-1, .toolbar-row-2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;}
     .toolbar-row-1{margin-bottom:.4rem;}
@@ -43,8 +43,8 @@
     .help-btn:hover{background:var(--accent);color:#fff;}
     .help-body ul{margin:.35rem 0 .35rem 1.2rem;padding:0;}
     .help-body li{font-size:.88rem;color:var(--fg);line-height:1.55;margin-bottom:.25rem;}
-    /* Slideshow for summary/leaderboard */
-/*    .summary-slide-wrap{}*/
+    
+
     .slide-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;}
     .slide-arrow{background:none;border:1.5px solid var(--panel-border);border-radius:6px;padding:.2rem .55rem;cursor:pointer;color:var(--fg);font-size:.85rem;line-height:1;}
     .slide-arrow:hover{border-color:var(--accent);color:var(--accent);}
@@ -58,7 +58,7 @@
     .month-nav button{background:var(--secondary-bg);color:var(--fg);border:none;border-radius:6px;cursor:pointer;padding:.3rem .8rem;font-size:.9rem;}
     .month-nav button:hover{background:var(--secondary-hover);}
     .month-nav button:disabled{opacity:.35;cursor:not-allowed;}
-    /* Forecast mode */
+    
     .forecast-badge{padding:.15rem .45rem;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.04em;background:#fef3c7;color:#92400e;border:1px solid #fde68a;margin-left:.5rem;vertical-align:middle;}
     html.dark .forecast-badge{background:#451a03;color:#fde68a;border-color:#78350f;}
     .forecast-bar{display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.65rem 1rem;margin-bottom:.75rem;align-items:center;gap:.5rem;flex-wrap:wrap;}
@@ -89,7 +89,7 @@
     .curr-row select{padding:3px 7px;border:1px solid var(--input-border);border-radius:4px;font-size:.82rem;background:var(--input-bg);color:var(--fg);}
     #curr-note{font-size:.75rem;color:var(--muted);}
 
-    /* Leaderboard */
+    
     .leaderboard{padding:.8rem 1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;margin-bottom:.75rem;}
     html.dark .leaderboard{background:#422006;border-color:#78350f;}
     .leaderboard h3{margin:0 0 .55rem;color:#92400e;font-size:.95rem;display:flex;justify-content:space-between;align-items:center;}
@@ -112,7 +112,7 @@
     .lb-rest li span:first-child{font-weight:500;}
     .lb-cost{font-weight:700;color:var(--link);}
 
-    /* Chart */
+    
     .chart-section{display:none;margin-bottom:1rem;padding:.75rem 1rem;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;}
     .chart-mode-btns{display:flex;gap:.4rem;margin-bottom:.5rem;}
     .chart-mode-btn{padding:.28rem .65rem;font-size:.8rem;border:1px solid var(--input-border);border-radius:5px;cursor:pointer;background:var(--th-bg);color:var(--fg);}
@@ -123,9 +123,9 @@
     .top3 ol{margin:0;padding-left:1.2rem;font-size:.85rem;}
     .top3 li{margin-bottom:.2rem;color:var(--fg);}
 
-    /* Spreadsheet */
+    
     .sheet-wrap{overflow-x:auto;margin-top:.5rem;-webkit-overflow-scrolling:touch;}
-    /* Row drag-to-reorder */
+    
     .drag-handle{cursor:grab;color:var(--muted);font-size:1rem;padding:0 4px;opacity:.45;user-select:none;flex-shrink:0;}
     .drag-handle:active{cursor:grabbing;}
     tr.tr-dragging{opacity:.3;}
@@ -140,7 +140,7 @@
     .col-del:hover{color:#ef4444;}
     .col-resize{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;}
     .col-resize:hover,.col-resize.dragging{background:#93c5fd;}
-    /* Column drag */
+    
     .col-drag-handle{cursor:grab;color:var(--muted);font-size:.75rem;margin-right:.3rem;user-select:none;opacity:.55;}
     .col-drag-handle:hover{opacity:1;}
     th.th-drop-before{border-left:3px solid var(--accent)!important;}
@@ -150,7 +150,7 @@
     .c-text{display:block;width:100%;outline:none;padding:4px 7px;box-sizing:border-box;min-height:32px;background:transparent;font-family:inherit;font-size:.85rem;border:none;color:var(--fg);}
     .c-text:focus{background:var(--input-focus);}
 
-    /* Cost cell — number + currency selector */
+    
     .cost-wrap{display:flex;height:100%;min-height:32px;align-items:stretch;}
     .c-num{flex:1;min-width:0;border:none;outline:none;padding:4px 5px;box-sizing:border-box;background:transparent;font-family:inherit;font-size:.85rem;text-align:right;color:var(--fg);}
     .c-num:focus{background:var(--input-focus);}
@@ -175,7 +175,7 @@
     .cancelled-row td{opacity:.55;}
     .cancelled-row .c-text,.cancelled-row .c-num{text-decoration:line-through;}
 
-    /* Inline custom-currency form (replaces cell-curr-sel when 'Other…' picked) */
+    
     .curr-other-cell{display:flex;align-items:center;gap:2px;padding:2px;background:var(--panel-bg);}
     .curr-other-cell input{width:48px;padding:2px 3px;border:1px solid var(--input-border);border-radius:3px;font-size:.72rem;text-transform:uppercase;outline:none;background:var(--input-bg);color:var(--fg);}
     .curr-other-cell input:focus{border-color:var(--link);}
@@ -183,13 +183,13 @@
     .curr-other-cell .x{background:var(--muted);}
     .curr-other-err{position:absolute;right:0;top:100%;background:var(--error-bg);color:var(--error-fg);font-size:.68rem;padding:1px 4px;border-radius:3px;border:1px solid var(--error-border);white-space:nowrap;z-index:10;}
 
-    /* Export menu */
+    
     .export-menu{position:fixed;z-index:9999;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:6px;box-shadow:var(--shadow);min-width:170px;}
     .export-menu button{display:block;width:100%;text-align:left;padding:.45rem .8rem;font-size:.85rem;border:none;background:none;cursor:pointer;color:var(--fg);}
     .export-menu button:hover{background:var(--hover-bg);}
     .export-menu button + button{border-top:1px solid var(--panel-border);}
 
-    /* Share / Paste modal */
+    
     .share-overlay{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:var(--overlay);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch;}
     .share-modal{background:var(--panel-bg);border-radius:10px;padding:1rem 1.2rem;max-width:600px;width:100%;max-height:85vh;max-height:85dvh;display:flex;flex-direction:column;gap:.6rem;box-shadow:var(--shadow);overflow-y:auto;}
     .share-modal h3{margin:0;font-size:1rem;color:var(--fg);}
@@ -199,15 +199,15 @@
     .share-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;}
     .share-hint{font-size:.74rem;color:var(--muted);font-style:italic;}
 
-    /* Export-menu post-action flash */
+    
     .export-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;background:var(--total-bg);border:1px solid var(--success-border);padding:.25rem .55rem;border-radius:5px;margin-left:.5rem;opacity:0;transition:opacity .25s;}
     .export-flash.show{opacity:1;}
 
-    /* Paste modal */
+    
     .paste-status{font-size:.83rem;padding:.4rem .55rem;border-radius:5px;background:var(--secondary-bg);color:var(--fg);}
     .paste-status.ok{background:var(--success-bg);border:1px solid var(--success-border);color:var(--success-fg);}
     .paste-status.bad{background:var(--error-bg);border:1px solid var(--error-border);color:var(--error-fg);}
-    /* ── Hamburger / Side drawer ── */
+    
     .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
     .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
@@ -245,7 +245,7 @@
   ].forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
-  // Block negative signs and 'e' in ALL number inputs globally
+  
   document.addEventListener('keydown',e=>{
     if(e.target.type==='number'&&(e.key==='-'||e.key==='e'||e.key==='E'))e.preventDefault();
   });
@@ -296,7 +296,7 @@
     <p><strong>Per-cell currency</strong> — Each Cost cell can be in its own currency (USD/EUR/AED/HKD/…). All sums roll up to USD first, then convert to your chosen display currency.</p>
   </details>
 
-  <!-- Spending Summary ↔ Leaderboard slideshow -->
+  
   <div class="summary-slide-wrap">
     <div class="slide-header">
       <button class="slide-arrow" onclick="slidePanel(-1)">◀</button>
@@ -330,7 +330,7 @@
         <span id="curr-note"></span>
       </div>
     </div>
-    <!-- Leaderboard -->
+    
     <div class="leaderboard" id="slide-panel-1" style="display:none">
       <h3>🏆 Subscription Leaderboard <span id="lb-month-lbl" style="font-weight:500;font-size:.78rem;color:#92400e;"></span></h3>
       <div id="lb-content"></div>
@@ -389,10 +389,10 @@ const MEDAL_CLS = ['medal-gold','medal-silver','medal-bronze'];
 function uid(){ return '_'+Math.random().toString(36).slice(2,9); }
 const msDay = 864e5;
 
-// ── Rate cache ────────────────────────────────────────────────────────────────
-const ratesCache = {}; // 'AED' -> rate s.t. 1 USD = rate AED
-let ratesReady = false; // true once at least one successful fetch has completed
-// Fetch all rates from USD base in one call and cache them all
+
+const ratesCache = {}; 
+let ratesReady = false; 
+
 async function fetchAndCacheUSDRates(){
   if(ratesReady) return;
   try{
@@ -420,10 +420,10 @@ function costToUSD(rawCost, rowId){
   const cur=rowCurrency(rowId);
   if(cur==='USD') return rawCost;
   const rate=ratesCache[cur];
-  return rate?rawCost/rate:rawCost; // fallback if rate not yet loaded
+  return rate?rawCost/rate:rawCost; 
 }
 
-// ── State ──────────────────────────────────────────────────────────────────────
+
 function freshState(){
   const c1=uid(),c2=uid(),c3=uid(),c4=uid(),c5=uid(),c6=uid(),c7=uid(),c8=uid();
   const now=new Date();
@@ -456,7 +456,7 @@ function loadState(){
   return freshState();
 }
 let state=loadState();
-// ── Server sync (fire-and-forget; localStorage is source of truth) ─────────────
+
 let _syncTimer=null;
 function setSyncStatus(msg,cls){
   const el=document.getElementById('sync-status');if(!el)return;
@@ -515,7 +515,7 @@ function showToast(msg, isError=true, duration=4000){
   document.body.appendChild(el); setTimeout(()=>el.remove(),duration);
 }
 
-// ── Undo / Redo ────────────────────────────────────────────────────────────────
+
 let undoStack=[], redoStack=[];
 function loadHistory(){
   try{
@@ -538,13 +538,13 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();}
 });
 
-// ── Cell helpers ───────────────────────────────────────────────────────────────
+
 function ck(rId,cId){ return rId+'|'+cId; }
 function getCell(rId,cId){ return state.cells[ck(rId,cId)]||''; }
 function setCell(rId,cId,v){ state.cells[ck(rId,cId)]=v; save(); }
 function colByType(t){ return state.cols.find(c=>c.ctype===t); }
 
-// ── Date helpers ───────────────────────────────────────────────────────────────
+
 function parseDate(str){ if(!str) return null; const d=new Date(str+'T00:00:00'); return isNaN(d.getTime())?null:d; }
 function toDateStr(d){ return d.toISOString().split('T')[0]; }
 function daysInMo(y,m){ return new Date(y,m+1,0).getDate(); }
@@ -563,7 +563,7 @@ function getTrialEnd(start,trial){
   return null;
 }
 
-// ── Cost calculation (event-counting; returns USD) ─────────────────────────────
+
 function calcMonthCost(row, year, month){
   const costCol  =colByType('number');
   const billCol  =colByType('billing');
@@ -630,7 +630,7 @@ function calcMonthCost(row, year, month){
   return cost*count;
 }
 
-// Fix 12: hide cancelled rows whose cancel date is strictly before the first of the viewed month
+
 function isHiddenForMonth(row){
   const cancelCol=colByType('canceldate'), statusCol=colByType('status');
   if(!cancelCol||!statusCol) return false;
@@ -645,7 +645,7 @@ function calcYearlyCost(row,year){
   let t=0; for(let m=0;m<12;m++) t+=calcMonthCost(row,year,m); return t;
 }
 
-// ── Month navigation ───────────────────────────────────────────────────────────
+
 const today=new Date();
 const minY=today.getFullYear()-1, minM=today.getMonth();
 const maxY=today.getFullYear()+1, maxM=today.getMonth();
@@ -745,7 +745,7 @@ function openHelp(){
   setTimeout(()=>close.focus(),20);
 }
 
-// ── Forecast mode ──────────────────────────────────────────────────────────────
+
 function isForecastMonth(){
   const today=new Date();
   const current=new Date(state.currentYear, state.currentMonth);
@@ -755,10 +755,10 @@ function updateForecastUI(){
   const fc=isForecastMonth();
   const bar=document.getElementById('forecast-bar');
   if(bar) bar.style.display=fc?'flex':'none';
-  // Totals panel tint
+  
   const tp=document.querySelector('.totals-panel');
   if(tp) tp.classList.toggle('forecast-panel',fc);
-  // Badge next to month in spending summary header
+  
   const sl=document.getElementById('sum-label');
   if(sl){
     sl.querySelectorAll('.forecast-badge').forEach(b=>b.remove());
@@ -766,14 +766,14 @@ function updateForecastUI(){
   }
 }
 
-// ── Totals ─────────────────────────────────────────────────────────────────────
+
 let currentRate=1;
 function recalcTotals(){
   let mUSD=0,yUSD=0;
   state.rows.forEach(r=>{
     if(isHiddenForMonth(r)) return;
     mUSD+=calcMonthCost(r,state.currentYear,state.currentMonth); yUSD+=calcYearlyCost(r,state.currentYear); });
-  // Check if any row uses a non-USD currency whose rate hasn't loaded yet
+  
   const hasNonUSD=state.rows.some(r=>rowCurrency(r.id)!=='USD');
   const pendingRates=hasNonUSD&&!ratesReady;
   const suffix=pendingRates?' (est.)':'';
@@ -787,7 +787,7 @@ function recalcTotals(){
   renderLeaderboard();
 }
 
-// ── Display Currency ───────────────────────────────────────────────────────────
+
 function showConvFields(cur,rate){
   currentRate=rate;
   document.getElementById('conv-m-lbl').textContent='Monthly ('+cur+')';
@@ -816,7 +816,7 @@ function onCurrencyChange(){
   state.displayCurrency=cur; save();
   if(cur==='USD'){ hideConvFields(); recalcTotals(); return; }
   document.getElementById('curr-note').textContent='Fetching…';
-  // Use cached rate if available
+  
   if(ratesCache[cur]){
     document.getElementById('curr-note').textContent='1 USD = '+ratesCache[cur].toFixed(4)+' '+cur;
     showConvFields(cur,ratesCache[cur]);
@@ -850,7 +850,7 @@ function applyOtherCurrency(){
     }).catch(()=>note.textContent='Could not validate. Check your connection.');
 }
 
-// ── Leaderboard ────────────────────────────────────────────────────────────────
+
 function fmtCost(usd){
   if(currentRate!==1){ return state.displayCurrency+' '+(usd*currentRate).toFixed(2); }
   return '$'+usd.toFixed(2);
@@ -895,7 +895,7 @@ function renderLeaderboard(){
   wrap.innerHTML=html;
 }
 
-// ── Chart ──────────────────────────────────────────────────────────────────────
+
 let chartInstance=null, chartVisible=false, chartMode='monthly';
 function toggleChart(){
   chartVisible=!chartVisible;
@@ -937,7 +937,7 @@ function renderTop3(data,label){
   el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.name)}</strong> — $${(isFinite(t.cost)?t.cost:0).toFixed(2)}</li>`).join('')+'</ol>';
 }
 
-// ── Reset ──────────────────────────────────────────────────────────────────────
+
 let resetTimer=null;
 function resetAll(){
   const btn=document.getElementById('reset-btn');
@@ -950,13 +950,14 @@ function resetAll(){
   }
 }
 
-// ── Add subscription (with duplicate check) ────────────────────────────────────
+
 function onPresetChange(){ document.getElementById('custom-inp').style.display=document.getElementById('sub-sel').value==='__other__'?'inline-block':'none'; }
 function nameAlreadyExists(name){
   const svc=colByType('text'); if(!svc) return false;
   const lower=name.trim().toLowerCase();
   return state.rows.some(r=>(getCell(r.id,svc.id)||'').trim().toLowerCase()===lower);
 }
+const MAX_SUBS = 100;
 function addSubscription(){
   const sel=document.getElementById('sub-sel'); let name=sel.value;
   if(!name){showToast('Please select a service.');return;}
@@ -964,6 +965,7 @@ function addSubscription(){
     name=document.getElementById('custom-inp').value.trim();
     if(!name){showToast('Enter a service name.');return;}
   }
+  if(state.rows.length>=MAX_SUBS){showToast('Maximum '+MAX_SUBS+' subscriptions reached.');return;}
   if(nameAlreadyExists(name)){
     if(!confirm(`You already track "${name}". Add another anyway?`)) return;
   }
@@ -978,7 +980,7 @@ function addSubscription(){
   save(); render(); recalcTotals(); renderChart();
 }
 
-// ── Structural mutations ───────────────────────────────────────────────────────
+
 function addCol(){ snapshot(); state.cols.push({id:uid(),label:'New Column',width:120,ctype:'number'}); save(); render(); }
 function deleteRow(id){
   snapshot(); state.rows=state.rows.filter(r=>r.id!==id);
@@ -1006,7 +1008,7 @@ function moveSubRow(fromId, toId, before){
 let _dragSubId=null;
 let _dragColId=null;
 
-// ── Resize ─────────────────────────────────────────────────────────────────────
+
 function attachColResize(handle,col){
   handle.addEventListener('mousedown',e=>{
     e.preventDefault();handle.classList.add('dragging');
@@ -1026,14 +1028,14 @@ function attachRowResize(handle,row,tr){
   });
 }
 
-// ── Per-cell currency: helpers for custom codes ───────────────────────────────
+
 function getAllUsedCurrencies(){
   const set=new Set(CELL_CURRENCIES);
   Object.values(state.rowCurrencies||{}).forEach(c=>{ if(c) set.add(c); });
   return [...set];
 }
 function showCellCurrencyOther(wrap, sel, row){
-  // Replace the select with an inline input + ✓ / ✕ buttons
+  
   sel.style.display='none';
   const form=document.createElement('span'); form.className='curr-other-cell';
   const inp=document.createElement('input'); inp.type='text'; inp.maxLength=5; inp.placeholder='VND';
@@ -1054,7 +1056,7 @@ function showCellCurrencyOther(wrap, sel, row){
     const code=inp.value.trim().toUpperCase();
     if(!code){ showErr('Enter a code.'); return; }
     if(!/^[A-Z]{2,5}$/.test(code)){ showErr('2–5 letters only.'); return; }
-    if(code==='USD'){ // USD doesn't need a rate
+    if(code==='USD'){ 
       setRowCurrency(row.id,code); close(); render(); recalcTotals(); renderChart(); return;
     }
     ok.disabled=true; ok.textContent='…';
@@ -1072,9 +1074,9 @@ function showCellCurrencyOther(wrap, sel, row){
   });
 }
 
-// ── Export & Share helpers ─────────────────────────────────────────────────────
-// NOTE: these helpers are intentionally duplicated in templates copy/expenses.html
-// (each HTML file is self-contained for GitHub Pages — no shared JS file). Keep in sync.
+
+
+
 function pad(s,n){ s=String(s); return s.length>=n?s:s+' '.repeat(n-s.length); }
 function csvEsc(v){
   v=v==null?'':String(v);
@@ -1087,7 +1089,7 @@ function buildSubsRowsArray(){
   const svcCol=colByType('text'), costCol=colByType('number'), billCol=colByType('billing'),
         startCol=colByType('date'), cancelCol=colByType('canceldate'),
         trialCol=colByType('trial'), statusCol=colByType('status');
-  // Notes col = the second 'text' column (last in cols)
+  
   const notesCol=state.cols.filter(c=>c.ctype==='text')[1];
   state.rows.forEach(r=>{
     const m=calcMonthCost(r,state.currentYear,state.currentMonth);
@@ -1106,7 +1108,7 @@ function buildSubsRowsArray(){
       y.toFixed(2),
     ]);
   });
-  // Footer totals
+  
   let mUSD=0,yUSD=0;
   state.rows.forEach(r=>{ mUSD+=calcMonthCost(r,state.currentYear,state.currentMonth); yUSD+=calcYearlyCost(r,state.currentYear); });
   out.push(['TOTAL','','','','','','','','',mUSD.toFixed(2),yUSD.toFixed(2)]);
@@ -1124,7 +1126,7 @@ function buildJson(){
 }
 function buildTxt(){
   const arr=buildSubsRowsArray();
-  // Compute per-column max width
+  
   const widths=arr[0].map((_,i)=>Math.max(...arr.map(r=>String(r[i]==null?'':r[i]).length)));
   const lines=arr.map((r,ri)=>r.map((v,i)=>pad(v==null?'':v,widths[i])).join(' │ '));
   const sep='─'.repeat(lines[0].length);
@@ -1137,14 +1139,14 @@ function buildTsv(){
     .join('\r\n');
 }
 
-// Gmail compose URL helper
+
 function gmailHref(subject, body){
   return 'https://mail.google.com/mail/?view=cm&fs=1&tf=1'
        + '&su='+encodeURIComponent(subject)
        + '&body='+encodeURIComponent(body);
 }
 
-// Clipboard write with fallback. Returns Promise<boolean>.
+
 function clipboardWrite(text){
   if(navigator.clipboard){
     return navigator.clipboard.writeText(text).then(()=>true).catch(()=>fallback());
@@ -1166,7 +1168,7 @@ function showExportFlash(msg){
   window._exportFlashT=setTimeout(()=>f.classList.remove('show'),2500);
 }
 
-// ── Security helpers ───────────────────────────────────────────────────────────
+
 function escapeHtml(s){
   return String(s==null?'':s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -1177,7 +1179,7 @@ function safeNum(v,max=1e12){
   return (isFinite(n)&&n>=-max&&n<=max)?n:0;
 }
 
-// ── Copy / Paste blob format ───────────────────────────────────────────────────
+
 function encodeBlob(obj){
   return 'FIAPP-'+obj.kind+'-V1:'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
 }
@@ -1194,15 +1196,15 @@ function decodeBlob(str){
   if(obj.kind==='SUBS'){
     if(typeof obj.cells!=='object'||Array.isArray(obj.cells)) throw new Error('Invalid blob: bad cells object.');
   }
-  // Size limits — prevent memory exhaustion from malicious blobs
+  
   if(obj.rows.length>500) throw new Error('Blob rejected: too many rows (max 500).');
   if(obj.cols.length>52)  throw new Error('Blob rejected: too many columns (max 52).');
   if(obj.cells&&Object.keys(obj.cells).length>50000) throw new Error('Blob rejected: too many cells (max 50,000).');
   return migrateBlob(obj);
 }
 function migrateBlob(obj){
-  // Placeholder for future schema migrations.
-  // Example: if(obj.v===1) { /* upgrade v1→v2 fields here */ obj.v=2; }
+  
+  
   return obj;
 }
 function buildSubsBlob(){
@@ -1261,7 +1263,7 @@ function openPasteModal(){
   applyBtn.addEventListener('click',async()=>{
     if(!parsed) return;
     snapshot();importSubs(parsed);save();
-    // Re-fetch rates for any new currencies
+    
     if(state.displayCurrency&&state.displayCurrency!=='USD') await ensureRate(state.displayCurrency);
     const codes=new Set(Object.values(state.rowCurrencies||{}));
     for(const c of codes){ if(c&&c!=='USD'&&!ratesCache[c]) await ensureRate(c); }
@@ -1291,7 +1293,7 @@ function lazyLoadXlsx(){
   if(_xlsxLoading) return _xlsxLoading;
   _xlsxLoading=new Promise((resolve,reject)=>{
     const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.src='https:
     s.onload=()=>resolve(window.XLSX);
     s.onerror=()=>reject(new Error('Failed to load XLSX library'));
     document.head.appendChild(s);
@@ -1406,7 +1408,7 @@ function showShareModal(title,text){
   document.body.appendChild(overlay);
 }
 
-// ── Cell factory ───────────────────────────────────────────────────────────────
+
 function makeCellEl(row,col){
   const v=getCell(row.id,col.id);
   const ct=col.ctype||'text';
@@ -1423,14 +1425,14 @@ function makeCellEl(row,col){
     wrap.appendChild(inp);
     const cur=rowCurrency(row.id);
     const sel=document.createElement('select'); sel.className='cell-curr-sel'; sel.title='Cost currency for this subscription';
-    // Combined list: built-ins + any custom codes the user has used
+    
     const codes=getAllUsedCurrencies();
     if(!codes.includes(cur)) codes.push(cur);
     codes.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; if(c===cur) o.selected=true; sel.appendChild(o); });
     const otherOpt=document.createElement('option'); otherOpt.value='__other__'; otherOpt.textContent='Other…'; sel.appendChild(otherOpt);
     sel.addEventListener('change',()=>{
       if(sel.value==='__other__'){
-        // Inline-replace the select with a small custom-input form
+        
         showCellCurrencyOther(wrap, sel, row);
         return;
       }
@@ -1500,7 +1502,7 @@ function makeCellEl(row,col){
     const startCol=colByType('date'); const startStr=startCol?getCell(row.id,startCol.id):'';
     const inp=document.createElement('input'); inp.type='date'; inp.className='c-date'; inp.value=v;
     inp.disabled=(st!=='Cancelled'); inp.title=st!=='Cancelled'?'Set status to Cancelled to enable':'';
-    // Restrict to viewed month: min = max(startStr, first of month), max = last of month
+    
     const monthFirst=new Date(state.currentYear,state.currentMonth,1);
     const monthLast=new Date(state.currentYear,state.currentMonth+1,0);
     const monthFirstStr=toDateStr(monthFirst);
@@ -1521,14 +1523,14 @@ function makeCellEl(row,col){
     });
     return inp;
   }
-  // text
+  
   const div=document.createElement('div'); div.contentEditable='true'; div.className='c-text'; div.textContent=v;
   div.addEventListener('focus',()=>snapshot());
   div.addEventListener('blur',()=>setCell(row.id,col.id,div.textContent.trim()));
   return div;
 }
 
-// ── Render ─────────────────────────────────────────────────────────────────────
+
 function render(){
   const table=document.getElementById('sheet'); table.innerHTML='';
   const cg=document.createElement('colgroup');
@@ -1586,7 +1588,7 @@ function render(){
   thead.appendChild(htr);table.appendChild(thead);
 
   const tbody=document.createElement('tbody');
-  // Tbody-level drag handlers so top/bottom row drops are always reachable
+  
   tbody.addEventListener('dragover',e=>{
     if(!_dragSubId) return;
     e.preventDefault();
@@ -1621,7 +1623,7 @@ function render(){
     const statusCol=colByType('status');const st=statusCol?getCell(row.id,statusCol.id):'Active';
     const tr=document.createElement('tr');tr.style.height=(row.height||36)+'px';
     if(st==='Cancelled') tr.classList.add('cancelled-row');
-    // Drag-to-reorder (dragover/drop handled at tbody level for full coverage)
+    
     tr.dataset.rowId=row.id;
     tr.addEventListener('dragstart',e=>{
       _dragSubId=row.id;
@@ -1636,7 +1638,7 @@ function render(){
     state.cols.forEach((col,ci)=>{
       const td=document.createElement('td');td.style.position='relative';
       if(ci===0){
-        // Drag handle in the first cell
+        
         const dh=document.createElement('span');dh.className='drag-handle';dh.textContent='⠿';dh.title='Drag to reorder';
         dh.style.cssText+='display:inline-block;vertical-align:middle;margin-right:2px;';
         dh.addEventListener('mousedown',()=>{ tr.draggable=true; });
@@ -1659,20 +1661,20 @@ function render(){
   table.classList.toggle('forecast',isForecastMonth());
   updateForecastUI();
 
-  // restore display currency selector
+  
   const sel=document.getElementById('curr-sel');
   const dc2=state.displayCurrency||'USD';
   const optExists=[...sel.options].some(o=>o.value===dc2);
   sel.value=optExists?dc2:'__other__';
 }
 
-// ── Pre-load rates for all row currencies + display currency ───────────────────
+
 async function preloadRates(){
   const set=new Set();
   Object.values(state.rowCurrencies||{}).forEach(c=>{ if(c&&c!=='USD') set.add(c); });
   if(state.displayCurrency&&state.displayCurrency!=='USD') set.add(state.displayCurrency);
   if(set.size>0){
-    await fetchAndCacheUSDRates(); // fetch all at once
+    await fetchAndCacheUSDRates(); 
   }
   if(state.displayCurrency&&state.displayCurrency!=='USD'&&ratesCache[state.displayCurrency]){
     showConvFields(state.displayCurrency,ratesCache[state.displayCurrency]);
@@ -1684,9 +1686,9 @@ async function preloadRates(){
   recalcTotals();
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────────
+
 (async()=>{
-  // Determine auth state — sets window.__currentUser and populates nav badge
+  
   try{
     const me=await fetch('/auth/me').then(r=>r.json());
     window.__currentUser=me.username||null;
@@ -1702,8 +1704,8 @@ async function preloadRates(){
     }
   }catch(e){ window.__currentUser=null; }
   if(!window.__currentUser) setSyncStatus('Offline','');
-  await loadFromServer();   // no-op if not logged in; server overwrites localStorage if logged in
-  state=loadState();        // re-read state after potential server load
+  await loadFromServer();   
+  state=loadState();        
   loadHistory();
   render();
   updateMonthNav();
@@ -1712,7 +1714,7 @@ async function preloadRates(){
   updateHistBtns();
   preloadRates();
 })();
-// ── Side drawer ──────────────────────────────────────────────────────────────
+
 function openDrawer(){
   document.getElementById('side-drawer').classList.add('open');
   document.getElementById('drawer-overlay').style.display='block';
@@ -1725,7 +1727,7 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
   if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
 });
 </script>
-  <!-- Side drawer -->
+  
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
   <nav id="side-drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
