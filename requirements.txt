@@ -2,3 +2,4 @@ Flask
 requests
 gunicorn
 psycopg2-binary
+Flask-Limiter
