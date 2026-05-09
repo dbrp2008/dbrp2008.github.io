@@ -151,7 +151,7 @@ const CURRENCIES = [
   {code:'SAR', name:'Saudi Riyal'}, {code:'ILS', name:'Israeli Shekel'},
 ];
 
-// Populate the two dropdowns
+
 function populateSelects(){
   ['currency_i','currency_o'].forEach((id,idx)=>{
     const sel=document.getElementById(id);
@@ -170,7 +170,7 @@ function populateSelects(){
     sel.appendChild(other);
     sel.addEventListener('change',()=>onSelChange(id));
   });
-  // Sensible defaults
+  
   document.getElementById('currency_i').value='USD';
   document.getElementById('currency_o').value='HKD';
 }
@@ -202,13 +202,13 @@ function applyOther(id){
   if(!/^[A-Z]{2,5}$/.test(raw)){
     note.textContent='Use 2–5 letters (e.g. THB, VND).'; note.style.color='#dc2626'; return;
   }
-  // Add as ad-hoc option (or select existing)
+  
   let opt=[...sel.options].find(o=>o.value===raw);
   if(!opt){
     opt=document.createElement('option');
     opt.value=raw; opt.textContent=raw+' (custom)';
     opt.dataset.custom='1';
-    // insert before the __other__ option
+    
     sel.insertBefore(opt, sel.querySelector('option[value="__other__"]'));
   }
   sel.value=raw;
@@ -235,7 +235,7 @@ function showInfo(msg){
   document.getElementById('msg-area').innerHTML='<div class="success">'+msg+'</div>';
 }
 
-// Remove a previously-inserted custom option that turned out to be invalid
+
 function dropBadCustom(selectId, code){
   const s=document.getElementById(selectId);
   const bad=[...s.options].find(o=>o.value===code && o.dataset.custom==='1');
@@ -281,7 +281,7 @@ document.getElementById('currency-form').addEventListener('submit', async functi
       +'<br><small style="color:#6b7280">Rate: 1 '+fromRaw+' = '+rate.toFixed(6)+' '+toRaw+'</small>';
     document.getElementById('result-box').style.display='block';
 
-    // Update "rates as of" display
+    
     const ratesDateEl=document.getElementById('rates-date');
     const refreshBtn=document.getElementById('refresh-btn');
     const d=new Date(obj.fetched_at);
