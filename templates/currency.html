@@ -26,6 +26,7 @@
 })();
 </script>
   <link rel="stylesheet" href="/styles.css">
+  <script src="/static/rates-utils.js"></script>
   <style>
     .curr-row{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.25rem;}
     .curr-row select{padding:6px 8px;border:1px solid var(--input-border);border-radius:4px;font-size:.92rem;background:var(--input-bg);color:var(--fg);width:auto;}
@@ -36,6 +37,18 @@
       .curr-row select { width: 100%; box-sizing: border-box; }
       #currency_a { width: 100%; box-sizing: border-box; }
     }
+    .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
+    .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
+    #side-drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--panel-bg);border-right:1px solid var(--panel-border);z-index:901;transform:translateX(-100%);transition:transform .25s ease;padding:1rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto;}
+    #side-drawer.open{transform:translateX(0);}
+    .drawer-close{align-self:flex-end;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:.2rem .4rem;}
+    .drawer-close:hover{color:var(--fg);}
+    #side-drawer h2{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.5rem 0 .25rem;}
+    #side-drawer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.15rem;}
+    #side-drawer a{display:block;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--fg);font-size:.9rem;font-weight:600;}
+    #side-drawer a:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #side-drawer a.drawer-link-active{font-weight:800;color:var(--accent);background:var(--hover-bg);pointer-events:none;}
   </style>
 </head>
 <body>
@@ -66,6 +79,17 @@
   ].forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
+function openDrawer(){
+  document.getElementById('side-drawer').classList.add('open');
+  document.getElementById('drawer-overlay').style.display='block';
+}
+function closeDrawer(){
+  document.getElementById('side-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').style.display='none';
+}
+document.querySelectorAll('.drawer-link').forEach(function(a){
+  if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
+});
   </script>
   <h1>Currency Converter</h1>
 
@@ -96,6 +120,8 @@
     </div>
     <br>
     <button class="btn" type="submit" id="conv-btn">Convert</button>
+    <p id="rates-date" style="font-size:.8rem;color:var(--muted);margin-top:.5rem;"></p>
+    <button id="refresh-btn" class="btn-ghost btn-sm" style="margin-top:.15rem;display:none;" onclick="refreshRates()">↻ Refresh rates</button>
   </form>
 
   <div class="result" id="result-box" style="display:none;">
@@ -103,7 +129,6 @@
   </div>
 
 <script>
-const API_KEY = '081a97e88979627d1194f7ee';
 
 const CURRENCIES = [
   {code:'USD', name:'US Dollar'}, {code:'EUR', name:'Euro'},
@@ -239,21 +264,11 @@ document.getElementById('currency-form').addEventListener('submit', async functi
   showInfo('Fetching exchange rate…');
 
   try{
-    const url='https://v6.exchangerate-api.com/v6/'+API_KEY+'/latest/'+fromRaw;
-    const resp=await fetch(url);
-    const data=await resp.json();
+    const obj = await fiappGetRates(fromRaw);
+    const rates = obj.rates;
 
-    if(data.result!=='success'){
-      const errType=data['error-type']||'unknown-error';
-      if(errType==='unsupported-code'){
-        showError('Unknown currency code: "'+fromRaw+'". Please check and try again.');
-        dropBadCustom('currency_i', fromRaw);
-      } else showError('Exchange rate API error: '+errType);
-      return;
-    }
-
-    const rate=data.conversion_rates[toRaw];
-    if(rate===undefined){
+    const rate = rates[toRaw];
+    if(rate === undefined){
       showError('Unknown target currency code: "'+toRaw+'". Please check and try again.');
       dropBadCustom('currency_o', toRaw);
       return;
@@ -266,12 +281,60 @@ document.getElementById('currency-form').addEventListener('submit', async functi
       +'<br><small style="color:#6b7280">Rate: 1 '+fromRaw+' = '+rate.toFixed(6)+' '+toRaw+'</small>';
     document.getElementById('result-box').style.display='block';
 
+    // Update "rates as of" display
+    const ratesDateEl=document.getElementById('rates-date');
+    const refreshBtn=document.getElementById('refresh-btn');
+    const d=new Date(obj.fetched_at);
+    ratesDateEl.textContent='Rates as of: '+d.toLocaleDateString()+' '+d.toLocaleTimeString();
+    refreshBtn.style.display='';
+
   }catch(err){
-    showError('Network error — could not fetch exchange rates. Check your connection.');
+    if(err.message&&err.message.includes('unsupported-code')){
+      showError('Unknown currency code: "'+fromRaw+'". Please check and try again.');
+      dropBadCustom('currency_i', fromRaw);
+    } else {
+      showError('Could not fetch exchange rates — '+err.message);
+    }
   }finally{
     btn.disabled=false; btn.textContent='Convert';
   }
 });
+
+async function refreshRates(){
+  const fromRaw=document.getElementById('currency_i').value.toUpperCase();
+  const btn=document.getElementById('refresh-btn');
+  btn.disabled=true; btn.textContent='Refreshing…';
+  try{
+    const obj=await fiappGetRates(fromRaw, true);
+    const d=new Date(obj.fetched_at);
+    document.getElementById('rates-date').textContent='Rates as of: '+d.toLocaleDateString()+' '+d.toLocaleTimeString();
+    showInfo('Rates refreshed successfully.');
+  }catch(e){ showError('Refresh failed: '+e.message); }
+  finally{ btn.disabled=false; btn.textContent='↻ Refresh rates'; }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  const d=fiappRatesCachedAt('USD');
+  if(d){
+    document.getElementById('rates-date').textContent='Rates as of: '+d.toLocaleDateString()+' '+d.toLocaleTimeString();
+    document.getElementById('refresh-btn').style.display='';
+  }
+});
 </script>
+<div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
+<nav id="side-drawer">
+  <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  <h2>Tools</h2>
+  <ul>
+    <li><a href="/" class="drawer-link" data-path="/">🏠 Home</a></li>
+    <li><a href="/expenses" class="drawer-link" data-path="/expenses">📊 Expense Tracker</a></li>
+    <li><a href="/income" class="drawer-link" data-path="/income">💰 Income Tracker</a></li>
+    <li><a href="/analytics" class="drawer-link" data-path="/analytics">📉 Analytics</a></li>
+    <li><a href="/subscriptions" class="drawer-link" data-path="/subscriptions">🔄 Subscription Tracker</a></li>
+    <li><a href="/interest" class="drawer-link" data-path="/interest">📈 Interest Calculator</a></li>
+    <li><a href="/tax" class="drawer-link" data-path="/tax">🧾 Tax Calculator</a></li>
+    <li><a href="/currency" class="drawer-link" data-path="/currency">💱 Currency Converter</a></li>
+  </ul>
+</nav>
 </body>
 </html>
