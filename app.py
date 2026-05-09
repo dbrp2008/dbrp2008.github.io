@@ -8,6 +8,12 @@ from flask import (Flask, render_template, request, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import requests
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    _limiter_available = True
+except ImportError:
+    _limiter_available = False
 
 # ── Exchange rate cache (process-local, 1-hour TTL) ───────────────────────────
 _rates_cache: dict = {}   # { "USD": {"EUR": 0.92, ...}, ... }
@@ -17,6 +23,23 @@ RATES_TTL = 3600
 app = Flask(__name__, template_folder='templates')
 app.secret_key = os.environ.get("SECRET_KEY")
 EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
+
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+if _limiter_available:
+    limiter = Limiter(get_remote_address, app=app, default_limits=[],
+                      storage_uri="memory://")
+    def _rl(*limits):
+        """Apply rate limits only when Flask-Limiter is available."""
+        return limiter.limit("; ".join(limits))
+else:
+    class _NoopDecorator:
+        def __call__(self, f): return f
+    def _rl(*limits):
+        return _NoopDecorator()
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({"error": "Too many attempts. Please wait before trying again."}), 429
 
 # ── Database ──────────────────────────────────────────────────────────────────
 
@@ -51,6 +74,8 @@ with app.app_context():
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 
+import secrets
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -59,11 +84,27 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def csrf_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('X-CSRF-Token', '')
+        if not token or token != session.get('csrf_token'):
+            return jsonify({"error": "Invalid CSRF token"}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+def _new_csrf():
+    """Generate and store a fresh CSRF token in the session."""
+    token = secrets.token_hex(32)
+    session['csrf_token'] = token
+    return token
+
 def _ctx():
     """Return Jinja2 template context with current user info."""
     return {
         "current_user": session.get('username'),
         "current_user_id": session.get('user_id'),
+        "csrf_token": session.get('csrf_token', ''),
     }
 
 # ── Static CSS ────────────────────────────────────────────────────────────────
@@ -238,6 +279,7 @@ def tax():
 # ── Auth API ──────────────────────────────────────────────────────────────────
 
 @app.route('/auth/register', methods=['POST'])
+@_rl("5 per minute", "20 per hour")
 def register():
     data = request.get_json()
     username = (data.get('username') or '').strip()
@@ -260,13 +302,14 @@ def register():
                 cur.execute("INSERT INTO user_data (user_id) VALUES (%s)", (user_id,))
         session['user_id'] = user_id
         session['username'] = username
-        return jsonify({"ok": True, "username": username})
+        return jsonify({"ok": True, "username": username, "csrf_token": _new_csrf()})
     except psycopg2.errors.UniqueViolation:
         return jsonify({"error": "Username already taken"}), 409
     finally:
         conn.close()
 
 @app.route('/auth/login', methods=['POST'])
+@_rl("10 per minute", "50 per hour")
 def auth_login():
     data = request.get_json()
     username = (data.get('username') or '').strip()
@@ -280,7 +323,7 @@ def auth_login():
             return jsonify({"error": "Invalid username or password"}), 401
         session['user_id'] = row[0]
         session['username'] = username
-        return jsonify({"ok": True, "username": username})
+        return jsonify({"ok": True, "username": username, "csrf_token": _new_csrf()})
     finally:
         conn.close()
 
@@ -297,6 +340,8 @@ def auth_me():
 
 @app.route('/auth/delete_account', methods=['POST'])
 @login_required
+@csrf_required
+@_rl("3 per minute")
 def delete_account():
     data = request.get_json(silent=True) or {}
     password = data.get('password') or ''
@@ -321,6 +366,7 @@ def delete_account():
 
 @app.route('/auth/change_username', methods=['POST'])
 @login_required
+@csrf_required
 def change_username():
     data = request.get_json(silent=True) or {}
     new_username = (data.get('new_username') or '').strip()
@@ -351,6 +397,8 @@ def change_username():
 
 @app.route('/auth/change_password', methods=['POST'])
 @login_required
+@csrf_required
+@_rl("5 per minute")
 def change_password():
     data = request.get_json(silent=True) or {}
     current_password = data.get('current_password') or ''
