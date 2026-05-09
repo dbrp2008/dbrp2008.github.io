@@ -11,6 +11,20 @@
       if(dark) document.documentElement.classList.add('dark');
     })();
   </script>
+<script>
+(function(){
+  var _srv={{ current_user | default(none) | tojson }};
+  var _stored=localStorage.getItem('fiapp_auth_user');
+  if(_stored && _stored!==_srv){
+    ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+     'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+     'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+     'fiapp_tax_result','fiapp_prefill_income'].forEach(function(k){localStorage.removeItem(k);});
+    localStorage.removeItem('fiapp_auth_user');
+  }
+  if(_srv) localStorage.setItem('fiapp_auth_user',_srv);
+})();
+</script>
   <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -106,6 +120,20 @@
       background: var(--panel-border);
     }
 
+    /* ── Stat customize panel ──────────────────────────────────────────────── */
+    #stat-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: .65rem 1rem;
+      margin-bottom: .85rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: .3rem .75rem;
+    }
+    #stat-panel label { font-size: .83rem; display: flex; align-items: center; gap: .4rem; cursor: pointer; color: var(--fg); }
+    #stat-panel input[type=checkbox] { cursor: pointer; accent-color: var(--accent); }
+
     /* ── Chart slideshow ───────────────────────────────────────────────────── */
     .chart-slideshow .chart-card { display:none; margin-bottom:0; }
     .chart-slideshow .chart-card.slide-active { display:block; }
@@ -162,13 +190,27 @@
       color: var(--muted);
       margin: .5rem 0 0;
     }
+    /* ── Hamburger / Side drawer ── */
+    .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
+    .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
+    #side-drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--panel-bg);border-right:1px solid var(--panel-border);z-index:901;transform:translateX(-100%);transition:transform .25s ease;padding:1rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto;}
+    #side-drawer.open{transform:translateX(0);}
+    .drawer-close{align-self:flex-end;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:.2rem .4rem;}
+    .drawer-close:hover{color:var(--fg);}
+    #side-drawer h2{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.5rem 0 .25rem;}
+    #side-drawer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.15rem;}
+    #side-drawer a{display:block;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--fg);font-size:.9rem;font-weight:600;}
+    #side-drawer a:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #side-drawer a.drawer-link-active{font-weight:800;color:var(--accent);background:var(--hover-bg);pointer-events:none;}
   </style>
 </head>
 <body>
   <div class="nav">
+    <button class="hamburger-btn" onclick="openDrawer()" title="All tools">☰</button>
     <a href="/">← Home</a>
     {% if current_user %}
-      <span class="auth-badge">👤 {{ current_user }}</span>
+      <span class="auth-badge">👤 {{ current_user | default('') }}</span>
       <a class="btn-ghost btn-sm" href="/account" title="Account settings">⚙</a>
       <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
     {% else %}
@@ -186,10 +228,13 @@
   if(document.documentElement.classList.contains('dark'))
     document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
   function logOut(){
-    localStorage.removeItem('fiapp_expenses_v4');
-    localStorage.removeItem('fiapp_subs_v4');
-    fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
-  }
+  ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+   'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+   'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+   'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'
+  ].forEach(function(k){localStorage.removeItem(k);});
+  fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
+}
   </script>
 
   <h1>Analytics</h1>
@@ -619,6 +664,18 @@ function renderAll(){
     root.appendChild(periodRow);
   }
 
+  // ── Stat customize bar + panel ───────────────────────────────────────────
+  const customBar=document.createElement('div');
+  customBar.style.cssText='display:flex;justify-content:flex-end;margin-bottom:.35rem;';
+  const customBtn=document.createElement('button');
+  customBtn.className='btn-ghost btn-sm'; customBtn.textContent='⚙ Customize';
+  customBtn.onclick=toggleStatPanel;
+  customBar.appendChild(customBtn);
+  root.appendChild(customBar);
+  const statPanel=document.createElement('div');
+  statPanel.id='stat-panel'; statPanel.style.display='none';
+  root.appendChild(statPanel);
+
   // ── Top stat grid ─────────────────────────────────────────────────────────
   const statGrid=document.createElement('div');
   statGrid.id='stat-grid'; statGrid.className='stat-grid';
@@ -739,12 +796,49 @@ function _refreshPeriodCache(){
   _cHasForecast = _cm.some(m=>m>_cToday);
 }
 
+// ── Stat customization helpers ────────────────────────────────────────────────
+const HIDDEN_STATS_KEY='fiapp_analytics_hidden_stats';
+function hiddenStats(){ return JSON.parse(localStorage.getItem(HIDDEN_STATS_KEY)||'[]'); }
+function setHiddenStats(arr){ localStorage.setItem(HIDDEN_STATS_KEY,JSON.stringify(arr)); }
+function toggleStatPanel(){
+  const p=document.getElementById('stat-panel'); if(!p) return;
+  const open=p.style.display==='none';
+  p.style.display=open?'':'none';
+  if(open) buildStatPanel();
+}
+function buildStatPanel(){
+  const p=document.getElementById('stat-panel'); if(!p) return;
+  const hidden=hiddenStats();
+  const cards=[...document.querySelectorAll('#stat-grid .stat-card, #sub-stat-grid .stat-card')];
+  if(!cards.length){ p.innerHTML='<span style="font-size:.83rem;color:var(--muted)">No stat boxes yet.</span>'; return; }
+  p.innerHTML='';
+  cards.forEach(card=>{
+    const id=card.dataset.statId;
+    if(!id) return;
+    const label=card.querySelector('.stat-label')&&card.querySelector('.stat-label').textContent||id;
+    const wrap=document.createElement('label');
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!hidden.includes(id);
+    cb.addEventListener('change',function(){
+      const h=hiddenStats();
+      if(!cb.checked){ if(!h.includes(id)) h.push(id); }
+      else { const i=h.indexOf(id); if(i>=0) h.splice(i,1); }
+      setHiddenStats(h);
+      card.style.display=cb.checked?'':'none';
+    });
+    wrap.appendChild(cb);
+    wrap.appendChild(document.createTextNode(' '+label));
+    p.appendChild(wrap);
+  });
+}
+
 // ── A: Stat cards ─────────────────────────────────────────────────────────────
 function renderStatCards(){
   const statGrid=document.getElementById('stat-grid'); if(!statGrid) return;
   statGrid.innerHTML='';
-  const sc=(label,value,sub)=>{
-    const c=document.createElement('div'); c.className='stat-card';
+  const hidden=hiddenStats();
+  const sc=(id,label,value,sub)=>{
+    const c=document.createElement('div'); c.className='stat-card'; c.dataset.statId=id;
+    if(hidden.includes(id)) c.style.display='none';
     c.innerHTML=`<div class="stat-label">${escapeHtml(label)}</div>`+
       `<div class="stat-value">${escapeHtml(String(value))}</div>`+
       (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
@@ -753,43 +847,45 @@ function renderStatCards(){
   if(_cStatMs.length){
     const totalSpend=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0);
     const avgMonthly=totalSpend/(_cStatMs.length||1);
-    statGrid.appendChild(sc('Total Spent',fmtMoney(totalSpend),
+    statGrid.appendChild(sc('total-spent','Total Spent',fmtMoney(totalSpend),
       _cStatMs.length+' month'+(_cStatMs.length!==1?'s':'')+(_cHasForecast?' · actuals only':'')));
-    statGrid.appendChild(sc('Monthly Avg',fmtMoney(avgMonthly),
+    statGrid.appendChild(sc('monthly-avg','Monthly Avg',fmtMoney(avgMonthly),
       'per month'+(_cHasForecast?' · actuals only':'')));
     const catTotals=combinedCategoryTotals(_exp,_subs,_cStatMs);
     const catSorted=Object.entries(catTotals).sort((a,b)=>b[1].value-a[1].value);
     if(catSorted.length)
-      statGrid.appendChild(sc('Top Category',catSorted[0][0],fmtMoney(catSorted[0][1].value)+' spent'));
+      statGrid.appendChild(sc('top-cat','Top Category',catSorted[0][0],fmtMoney(catSorted[0][1].value)+' spent'));
     const withData=_cStatMs.map(m=>({m,v:_monthTotals[m]||0})).filter(x=>x.v>0);
     if(withData.length>=2){
       const best =withData.reduce((a,b)=>a.v<b.v?a:b);
       const worst=withData.reduce((a,b)=>a.v>b.v?a:b);
-      statGrid.appendChild(sc('Best Month', mkLabel(best.m), fmtMoney(best.v)+' · lowest'));
-      statGrid.appendChild(sc('Worst Month',mkLabel(worst.m),fmtMoney(worst.v)+' · highest'));
+      statGrid.appendChild(sc('best-month', 'Best Month', mkLabel(best.m), fmtMoney(best.v)+' · lowest'));
+      statGrid.appendChild(sc('worst-month','Worst Month',mkLabel(worst.m),fmtMoney(worst.v)+' · highest'));
     }
     const incMonths=_cStatMs.filter(m=>_monthIncomes[m]);
     if(incMonths.length){
       const totInc=incMonths.reduce((s,m)=>s+(_monthIncomes[m]||0),0);
       const totExp=incMonths.reduce((s,m)=>s+(_monthTotals[m]||0),0);
       const rate=totInc>0?Math.max(0,(totInc-totExp)/totInc*100):0;
-      statGrid.appendChild(sc('Savings Rate',fmtPct(rate),
+      statGrid.appendChild(sc('savings-rate','Savings Rate',fmtPct(rate),
         'across '+incMonths.length+' month'+(incMonths.length!==1?'s':'')));
     }
   }
   if(_subRows.length){
     const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
-    statGrid.appendChild(sc('Active Subs',_subRows.length,
+    statGrid.appendChild(sc('active-subs','Active Subs',_subRows.length,
       _subRows.length===1?'subscription':'subscriptions'));
-    statGrid.appendChild(sc('Sub Monthly',fmtMoneyCard(totalMo)+'/mo',fmtMoneyCard(totalMo*12)+'/yr'));
+    statGrid.appendChild(sc('sub-monthly','Sub Monthly',fmtMoneyCard(totalMo)+'/mo',fmtMoneyCard(totalMo*12)+'/yr'));
     if(_cStatMs.length){
       const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
-      if(avgExp>0) statGrid.appendChild(sc('Subs % of Spend',
+      if(avgExp>0) statGrid.appendChild(sc('subs-pct','Subs % of Spend',
         fmtPct(totalMo/avgExp*100),'of avg monthly expenses'));
     }
     const costliest=_subRows.reduce((a,b)=>a.monthly>b.monthly?a:b,_subRows[0]);
-    if(costliest) statGrid.appendChild(sc('Costliest Sub',costliest.name,fmtMoney(costliest.monthly)+'/mo'));
+    if(costliest) statGrid.appendChild(sc('costliest-sub','Costliest Sub',costliest.name,fmtMoney(costliest.monthly)+'/mo'));
   }
+  // Rebuild panel if it's currently open
+  if((document.getElementById('stat-panel')||{}).style&&document.getElementById('stat-panel').style.display!=='none') buildStatPanel();
 }
 
 // ── Sub mini-stat cards ───────────────────────────────────────────────────────
@@ -797,21 +893,23 @@ function renderSubStatCards(){
   const subStatGrid=document.getElementById('sub-stat-grid');
   if(!subStatGrid||!_subRows.length) return;
   subStatGrid.innerHTML='';
-  const ssc=(label,value,sub)=>{
-    const c=document.createElement('div'); c.className='stat-card';
+  const hidden=hiddenStats();
+  const ssc=(id,label,value,sub)=>{
+    const c=document.createElement('div'); c.className='stat-card'; c.dataset.statId=id;
+    if(hidden.includes(id)) c.style.display='none';
     c.innerHTML=`<div class="stat-label">${escapeHtml(label)}</div>`+
       `<div class="stat-value">${escapeHtml(String(value))}</div>`+
       (sub?`<div class="stat-sub">${escapeHtml(String(sub))}</div>`:'');
     return c;
   };
   const totalMo=_subRows.reduce((s,r)=>s+r.monthly,0);
-  [ssc('Active',      _subRows.length, _subRows.length===1?'subscription':'subscriptions'),
-   ssc('Monthly Cost',fmtMoneyCard(totalMo),'per month'),
-   ssc('Annual Cost', fmtMoneyCard(totalMo*12),'per year'),
+  [ssc('s-active',      'Active',       _subRows.length, _subRows.length===1?'subscription':'subscriptions'),
+   ssc('s-monthly-cost','Monthly Cost', fmtMoneyCard(totalMo),'per month'),
+   ssc('s-annual-cost', 'Annual Cost',  fmtMoneyCard(totalMo*12),'per year'),
   ].forEach(c=>subStatGrid.appendChild(c));
   if(_cStatMs&&_cStatMs.length){
     const avgExp=_cStatMs.reduce((s,m)=>s+(_monthTotals[m]||0),0)/(_cStatMs.length||1);
-    if(avgExp>0) subStatGrid.appendChild(ssc('% of Expenses',fmtPct(totalMo/avgExp*100),'of avg monthly spend'));
+    if(avgExp>0) subStatGrid.appendChild(ssc('s-pct-exp','% of Expenses',fmtPct(totalMo/avgExp*100),'of avg monthly spend'));
   }
 }
 
@@ -1104,6 +1202,34 @@ function reRenderCharts(){
 window.addEventListener('storage', e=>{
   if(e.key===EXP_KEY||e.key===SUBS_KEY||e.key===INC_KEY) renderAll();
 });
+// ── Side drawer ──────────────────────────────────────────────────────────────
+function openDrawer(){
+  document.getElementById('side-drawer').classList.add('open');
+  document.getElementById('drawer-overlay').style.display='block';
+}
+function closeDrawer(){
+  document.getElementById('side-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').style.display='none';
+}
+document.querySelectorAll('.drawer-link').forEach(function(a){
+  if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
+});
 </script>
+  <!-- Side drawer -->
+  <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
+  <nav id="side-drawer">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <h2>Tools</h2>
+    <ul>
+      <li><a href="/" class="drawer-link" data-path="/">🏠 Home</a></li>
+      <li><a href="/expenses" class="drawer-link" data-path="/expenses">📊 Expense Tracker</a></li>
+      <li><a href="/income" class="drawer-link" data-path="/income">💰 Income Tracker</a></li>
+      <li><a href="/analytics" class="drawer-link" data-path="/analytics">📉 Analytics</a></li>
+      <li><a href="/subscriptions" class="drawer-link" data-path="/subscriptions">🔄 Subscription Tracker</a></li>
+      <li><a href="/interest" class="drawer-link" data-path="/interest">📈 Interest Calculator</a></li>
+      <li><a href="/tax" class="drawer-link" data-path="/tax">🧾 Tax Calculator</a></li>
+      <li><a href="/currency" class="drawer-link" data-path="/currency">💱 Currency Converter</a></li>
+    </ul>
+  </nav>
 </body>
 </html>
