@@ -11,19 +11,39 @@
       if(dark) document.documentElement.classList.add('dark');
     })();
   </script>
+<script>
+(function(){
+  var _srv={{ current_user | default(none) | tojson }};
+  var _stored=localStorage.getItem('fiapp_auth_user');
+  if(_stored && _stored!==_srv){
+    ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+     'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+     'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+     'fiapp_tax_result','fiapp_prefill_income'].forEach(function(k){localStorage.removeItem(k);});
+    localStorage.removeItem('fiapp_auth_user');
+  }
+  if(_srv) localStorage.setItem('fiapp_auth_user',_srv);
+})();
+</script>
   <link rel="stylesheet" href="/styles.css">
   <style>
     .curr-row{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.25rem;}
     .curr-row select{padding:6px 8px;border:1px solid var(--input-border);border-radius:4px;font-size:.92rem;background:var(--input-bg);color:var(--fg);width:auto;}
     .curr-row input[type="text"]{padding:6px 8px;border:1px solid var(--input-border);border-radius:4px;font-size:.92rem;width:90px;text-transform:uppercase;background:var(--input-bg);color:var(--fg);}
     .curr-row .other-btn{padding:.35rem .7rem;font-size:.85rem;}
+    @media (max-width: 480px) {
+      .curr-row { flex-direction: column; align-items: flex-start; }
+      .curr-row select { width: 100%; box-sizing: border-box; }
+      #currency_a { width: 100%; box-sizing: border-box; }
+    }
   </style>
 </head>
 <body>
   <div class="nav">
+    <button class="hamburger-btn" onclick="openDrawer()" title="All tools">☰</button>
     <a href="/">← Home</a>
-    {% if current_user %}
-      <span class="auth-badge">👤 {{ current_user }}</span>
+    {% if current_user | default(none) %}
+      <span class="auth-badge">👤 {{ current_user | default('') }}</span>
       <a class="btn-ghost btn-sm" href="/account" title="Account settings">⚙</a>
       <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
     {% else %}
@@ -39,10 +59,13 @@
   }
   if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
   function logOut(){
-    localStorage.removeItem('fiapp_expenses_v4');
-    localStorage.removeItem('fiapp_subs_v4');
-    fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
-  }
+  ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+   'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+   'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+   'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'
+  ].forEach(function(k){localStorage.removeItem(k);});
+  fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
+}
   </script>
   <h1>Currency Converter</h1>
 
