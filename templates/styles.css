@@ -368,6 +368,13 @@ h1, h2, h3, h4 { color: var(--fg); }
 .acct-logout { color:var(--fg); }
 .acct-logout:hover { background:#dc2626 !important; color:#fff !important; }
 
+.theme-menu-wrap { position:relative; display:inline-flex; align-items:center; margin-left:auto; }
+.theme-dropdown { display:none; flex-direction:column; position:absolute; top:calc(100% + 6px); right:0; background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.15); z-index:9999; min-width:155px; padding:.35rem; }
+.theme-dropdown.open { display:flex; }
+.theme-opt { display:block; width:100%; text-align:left; padding:.5rem .85rem; border-radius:7px; font-size:.87rem; color:var(--fg); background:none; border:none; cursor:pointer; font-family:inherit; font-weight:600; white-space:nowrap; box-sizing:border-box; transition:background .12s; }
+.theme-opt:hover { background:var(--hover-bg); }
+.theme-opt.active { background:var(--accent); color:#fff; }
+
 
 * { touch-action: manipulation; }
 
