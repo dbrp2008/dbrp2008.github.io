@@ -57,8 +57,10 @@
     .summary-bar h3{margin:0 0 .6rem;font-size:.9rem;color:var(--total-fg);}
     .summary-bar.forecast-panel{background:#fffbeb;border-color:#fde68a;}
     html.dark .summary-bar.forecast-panel{background:#451a03;border-color:#78350f;}
+    html.theme-midnight .summary-bar.forecast-panel{background:#451a03;border-color:#78350f;}
     .summary-bar.forecast-panel h3{color:#92400e;}
     html.dark .summary-bar.forecast-panel h3{color:#fde68a;}
+    html.theme-midnight .summary-bar.forecast-panel h3{color:#fde68a;}
     .summary-grid{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center;}
     .summary-item{display:flex;flex-direction:column;gap:2px;}
     .summary-label{font-size:.73rem;font-weight:600;color:var(--muted);}
@@ -92,15 +94,20 @@
     
     .forecast-badge{padding:.15rem .45rem;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.04em;background:#fef3c7;color:#92400e;border:1px solid #fde68a;margin-left:.5rem;vertical-align:middle;}
     html.dark .forecast-badge{background:#451a03;color:#fde68a;border-color:#78350f;}
+    html.theme-midnight .forecast-badge{background:#451a03;color:#fde68a;border-color:#78350f;}
     .forecast-bar{display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.65rem 1rem;margin-bottom:.75rem;align-items:center;gap:.6rem;flex-wrap:wrap;}
     html.dark .forecast-bar{background:#451a03;border-color:#78350f;}
+    html.theme-midnight .forecast-bar{background:#451a03;border-color:#78350f;}
     .forecast-bar p{margin:0;font-size:.83rem;color:#92400e;flex:1;font-weight:500;}
     html.dark .forecast-bar p{color:#fde68a;}
+    html.theme-midnight .forecast-bar p{color:#fde68a;}
     table.sheet.forecast tbody td:not(.rh-cell){font-style:italic;}
     .gtotal-cell.forecast-total{background:#fef3c7!important;}
     html.dark .gtotal-cell.forecast-total{background:#451a03!important;}
+    html.theme-midnight .gtotal-cell.forecast-total{background:#451a03!important;}
     .gtotal-cell.forecast-total .gtotal-val{color:#92400e!important;}
     html.dark .gtotal-cell.forecast-total .gtotal-val{color:#fde68a!important;}
+    html.theme-midnight .gtotal-cell.forecast-total .gtotal-val{color:#fde68a!important;}
     .forecast-toast{position:fixed;bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);background:#065f46;color:#fff;padding:.5rem 1.1rem;border-radius:6px;font-size:.83rem;font-weight:600;z-index:99999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
     .forecast-toast.show{opacity:1;}
 
@@ -274,12 +281,13 @@
     if(typeof renderChart==='function') renderChart();
   }
   var toggleThemeMenu=toggleAcctMenu;
-  function logOut(){
-  ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
-   'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
-   'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
-   'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'
-  ].forEach(function(k){localStorage.removeItem(k);});
+  const FIAPP_USER_KEYS=['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+  'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+  'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+  'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'];
+// keep in sync with head auth-clear script
+function logOut(){
+  FIAPP_USER_KEYS.forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
   function toggleAcctMenu(btn){
@@ -1104,6 +1112,7 @@ function moveParentRow(fromId, toId, before){
   save(); render();
 }
 let _dragRowId=null;
+let _activeDropEl=null;
 let _dragColId=null;
 
 
@@ -1246,16 +1255,13 @@ function attachRowResize(handle,row,tr){
 }
 
 
-function render(){
-  const table=document.getElementById('sheet'); table.innerHTML='';
+function renderTableHeader(table){
   const cg=document.createElement('colgroup');
   const hc=document.createElement('col');hc.id='cg-hdr';hc.style.width=(state.headerColWidth||185)+'px';cg.appendChild(hc);
   getCols().forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(col.width||120)+'px';cg.appendChild(c);});
   const tc=document.createElement('col');tc.style.width=(state.totalColWidth||110)+'px';cg.appendChild(tc);
   const dc=document.createElement('col');dc.style.width='32px';cg.appendChild(dc);
   table.appendChild(cg);
-
-  
   const thead=document.createElement('thead'),htr=document.createElement('tr');
   const corner=document.createElement('th');
   const ci=document.createElement('div');ci.className='th-inner';
@@ -1317,40 +1323,38 @@ function render(){
   const act=document.createElement('th');act.style.cssText='background:#f9fafb;border:1px dashed #d1d5db;';
   const acb=document.createElement('button');acb.className='btn-add-col';acb.textContent='+';acb.title='Add column';acb.addEventListener('click',addCol);act.appendChild(acb);htr.appendChild(act);
   thead.appendChild(htr);table.appendChild(thead);
+}
 
-  
+function renderTableBody(table){
   const tbody=document.createElement('tbody');
-  
   tbody.addEventListener('dragover',e=>{
     if(!_dragRowId){return;}
     e.preventDefault();
     const trs=[...tbody.querySelectorAll('tr[data-row-id]')];
     if(!trs.length) return;
-    document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+    if(_activeDropEl){_activeDropEl.classList.remove('tr-drop-before','tr-drop-after');_activeDropEl=null;}
     let target=null,before=true;
     for(let i=0;i<trs.length;i++){
       const rect=trs[i].getBoundingClientRect();
       if(e.clientY<rect.top+rect.height/2){target=trs[i];before=true;break;}
       if(i===trs.length-1){target=trs[i];before=false;}
     }
-    if(target&&target.dataset.rowId!==_dragRowId) target.classList.add(before?'tr-drop-before':'tr-drop-after');
+    if(target&&target.dataset.rowId!==_dragRowId){target.classList.add(before?'tr-drop-before':'tr-drop-after');_activeDropEl=target;}
   });
   tbody.addEventListener('drop',e=>{
     if(!_dragRowId) return;
     e.preventDefault();
-    const beforeTr=tbody.querySelector('.tr-drop-before');
-    const afterTr=tbody.querySelector('.tr-drop-after');
-    const targetTr=beforeTr||afterTr;
-    if(!targetTr) return;
-    const targetId=targetTr.dataset.rowId;
-    document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
-    if(targetId&&targetId!==_dragRowId) moveParentRow(_dragRowId,targetId,!!beforeTr);
+    const targetEl=_activeDropEl;
+    const isBefore=targetEl&&targetEl.classList.contains('tr-drop-before');
+    if(_activeDropEl){_activeDropEl.classList.remove('tr-drop-before','tr-drop-after');_activeDropEl=null;}
+    if(!targetEl) return;
+    const targetId=targetEl.dataset.rowId;
+    if(targetId&&targetId!==_dragRowId) moveParentRow(_dragRowId,targetId,isBefore);
   });
   function renderRow(row){
     const isChild=!!row.parentId, hasKids=hasChildren(row.id), collapsed=isCollapsed(row.id);
     const tr=document.createElement('tr');tr.style.height=(row.height||36)+'px';
     if(isChild) tr.classList.add('child-row');
-
     const rhTd=document.createElement('td');rhTd.className='rh-cell';rhTd.style.backgroundColor=row.color;
     const rhIn=document.createElement('div');rhIn.className='rh-inner';
     if(!isChild){
@@ -1367,21 +1371,19 @@ function render(){
       tr.addEventListener('dragend',()=>{
         _dragRowId=null;
         tr.classList.remove('tr-dragging');
-        document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+        if(_activeDropEl){_activeDropEl.classList.remove('tr-drop-before','tr-drop-after');_activeDropEl=null;}
       });
     }
     if(hasKids){
       const cb=document.createElement('button');cb.className='collapse-btn';cb.title=collapsed?'Expand':'Collapse';cb.textContent=collapsed?'▸':'▾';
       cb.addEventListener('click',()=>toggleCollapse(row.id));rhIn.appendChild(cb);
     }
-    
     const colorWrap=document.createElement('div');colorWrap.className='color-swatch-wrap tip-host';colorWrap.dataset.tip='Row background colour';
     const swatch=document.createElement('div');swatch.className='color-swatch';swatch.style.backgroundColor=row.color;
     const cInp=document.createElement('input');cInp.type='color';cInp.className='color-inp-overlay';cInp.value=row.color;
     cInp.addEventListener('input',()=>{row.color=cInp.value;rhTd.style.backgroundColor=cInp.value;swatch.style.backgroundColor=cInp.value;textSwatch.style.backgroundColor=cInp.value;});
     cInp.addEventListener('change',save);
     colorWrap.appendChild(swatch);colorWrap.appendChild(cInp);
-    
     const tcWrap=document.createElement('div');tcWrap.className='color-swatch-wrap tip-host';tcWrap.dataset.tip='Row text colour';
     const textSwatch=document.createElement('div');textSwatch.className='text-color-swatch';textSwatch.textContent='A';textSwatch.style.color=row.textColor||'#1f2937';textSwatch.style.backgroundColor=row.color||'#ffffff';
     const tcInp=document.createElement('input');tcInp.type='color';tcInp.className='color-inp-overlay';tcInp.value=row.textColor||'#1f2937';
@@ -1392,6 +1394,7 @@ function render(){
     rowLabel.style.color=row.textColor||'#1f2937';
     rowLabel.addEventListener('blur',()=>{row.label=rowLabel.textContent.trim()||row.label;save();});
     rowLabel.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();rowLabel.blur();}});
+    rowLabel.addEventListener('paste',function(e){e.preventDefault();const text=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,text);});
     rhIn.appendChild(colorWrap);rhIn.appendChild(tcWrap);rhIn.appendChild(rowLabel);
     if(!isChild){
       const dd=document.createElement('div');dd.className='sub-dropdown';
@@ -1402,7 +1405,6 @@ function render(){
     rhTd.appendChild(rhIn);
     const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);rhTd.appendChild(rr);
     tr.appendChild(rhTd);
-
     getCols().forEach(col=>{
       const td=document.createElement('td');
       if(hasKids){
@@ -1421,7 +1423,6 @@ function render(){
           ensureRate(rowCurrency(currentMK(), row.id)).then(()=>updateAll(row.id));
         });
         wrap.appendChild(inp);
-        
         const cur=rowCurrency(currentMK(), row.id);
         const sel=document.createElement('select'); sel.className='cell-curr-sel'; sel.title='Currency for this row';
         const codes=getAllUsedCurrencies();
@@ -1438,28 +1439,23 @@ function render(){
       }
       tr.appendChild(td);
     });
-
     const totTd=document.createElement('td');totTd.className='th-total';
     const totSpan=document.createElement('span');totSpan.className='total-val';totSpan.id='rt-'+row.id;
     totSpan.textContent=fmt(rowTotal(row.id));totTd.appendChild(totSpan);tr.appendChild(totTd);
-
     const delTd=document.createElement('td');delTd.className='del-td';
     const delBtn=document.createElement('button');delBtn.className='row-del';delBtn.title='Delete row';delBtn.textContent='🗑';
     delBtn.addEventListener('click',()=>deleteRow(row.id));delTd.appendChild(delBtn);tr.appendChild(delTd);
-
     tbody.appendChild(tr);
-    if(!isChild&&!collapsed){
-      children(row.id).forEach(renderRow);
-    }
+    if(!isChild&&!collapsed){ children(row.id).forEach(renderRow); }
   }
   getRows().filter(r=>!r.parentId).forEach(renderRow);
-
   const atr=document.createElement('tr');const atd=document.createElement('td');atd.colSpan=getCols().length+3;atd.style.cssText='border:none;padding:3px 0;';
   const arb=document.createElement('button');arb.className='btn-add-row';arb.textContent='+ Add Row';arb.addEventListener('click',addRow);
   atd.appendChild(arb);atr.appendChild(atd);tbody.appendChild(atr);
   table.appendChild(tbody);
+}
 
-  
+function renderFooter(table){
   const tfoot=document.createElement('tfoot'),ftr=document.createElement('tr');
   const fl=document.createElement('td');fl.style.cssText='font-weight:700;padding:4px 8px;font-size:.85rem;';fl.textContent='TOTAL';ftr.appendChild(fl);
   getCols().forEach(col=>{
@@ -1472,7 +1468,13 @@ function render(){
   const gs=document.createElement('span');gs.className='gtotal-val';gs.id='gt';gs.textContent=fmt(grandTotal());gtd.appendChild(gs);ftr.appendChild(gtd);
   ftr.appendChild(document.createElement('td'));
   tfoot.appendChild(ftr);table.appendChild(tfoot);
+}
 
+function render(){
+  const table=document.getElementById('sheet'); table.innerHTML='';
+  renderTableHeader(table);
+  renderTableBody(table);
+  renderFooter(table);
   updateSummaryBar();
   if(chartVisible) renderChart();
   adjustBodyWidth();
@@ -2018,6 +2020,8 @@ function showShareModal(title,text){
   },{passive:true});
 })();
 
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+function _esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 (async()=>{
   try{
@@ -2027,7 +2031,7 @@ function showShareModal(title,text){
     if(badge){
       if(me.username){
         badge.innerHTML='<div class="acct-menu-wrap">'
-          +'<button class="btn-ghost btn-sm" onclick="toggleAcctMenu(this)">👤 '+me.username+'</button>'
+          +'<button class="btn-ghost btn-sm" onclick="toggleAcctMenu(this)">👤 '+_esc(me.username)+'</button>'
           +'<div class="acct-dropdown">'
           +'<a href="/account" class="acct-item">⚙ Account settings</a>'
           +'<button onclick="logOut()" class="acct-item acct-logout">⬅ Log out</button>'
@@ -2109,6 +2113,7 @@ function closeDrawer(){
   document.getElementById('side-drawer').classList.remove('open');
   document.getElementById('drawer-overlay').style.display='none';
 }
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
 </script>
 
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
