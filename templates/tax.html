@@ -209,7 +209,7 @@
 
   <form id="tax-form">
     <div>
-      <label for="income">Annual Income (no $ sign) <small style="font-weight:400;color:var(--muted)">— or pick from Income Source above</small></label>
+      <label for="income">Annual Income (no $ sign) <small style="font-weight:400;color:var(--muted)">- or pick from Income Source above</small></label>
       <input type="text" name="income" id="income" required>
     </div>
     <div>
@@ -450,7 +450,7 @@ function _buildUI(inc){
   
   if(_mode==='1'){
     const hint=document.createElement('span'); hint.className='tax-hint';
-    hint.textContent='Pick a month — its salary total will be multiplied by 12:';
+    hint.textContent='Pick a month - its salary total will be multiplied by 12:';
     picker.appendChild(hint);
 
     const sel=document.createElement('select'); sel.className='tax-month-sel';
@@ -464,7 +464,7 @@ function _buildUI(inc){
         const mk=_mk(y,m);
         const opt=document.createElement('option');
         opt.value=mk;
-        opt.textContent=_MOS[m]+' '+y+((!_mthHas(mk,inc))?' — no data':'');
+        opt.textContent=_MOS[m]+' '+y+((!_mthHas(mk,inc))?' - no data':'');
         if(!_mthHas(mk,inc)) opt.disabled=true;
         grp.appendChild(opt); added++;
       }
@@ -483,7 +483,7 @@ function _buildUI(inc){
       picker.appendChild(note);
     } else {
       const hint=document.createElement('span'); hint.className='tax-hint';
-      hint.textContent='Select a year — all salary entries will be summed:';
+      hint.textContent='Select a year - all salary entries will be summed:';
       picker.appendChild(hint);
 
       const ybar=document.createElement('div'); ybar.className='tax-year-bar';
