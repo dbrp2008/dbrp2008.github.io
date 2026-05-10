@@ -1519,7 +1519,7 @@ function buildTsv(){
 }
 
 function gmailHref(subject, body){
-  return 'https://mail.google.com/mail/?compose=1'
+  return 'https://mail.google.com/mail/?view=cm&fs=1&tf=1'
        + '&su='+encodeURIComponent(subject)
        + '&body='+encodeURIComponent(body);
 }
@@ -1909,6 +1909,17 @@ function showShareModal(title,text){
   emailTextBtn.href=gmailHref(title,bodyText);emailTextBtn.target='_blank';emailTextBtn.rel='noopener noreferrer';
   emailTextBtn.style.textDecoration='none';
 
+  const ym=String(state.currentYear)+'-'+String(state.currentMonth+1).padStart(2,'0');
+  const xlsxBody='I\'m sharing my FiApp income spreadsheet — please find the attached XLSX file (saved to your Downloads folder).\n\nFile: income-'+ym+'.xlsx';
+  const emailXlsxBtn=document.createElement('a');emailXlsxBtn.className='btn btn-sm';emailXlsxBtn.textContent='📧 Email as XLSX';
+  emailXlsxBtn.href=gmailHref(title,xlsxBody);emailXlsxBtn.target='_blank';emailXlsxBtn.rel='noopener noreferrer';
+  emailXlsxBtn.style.textDecoration='none';
+  emailXlsxBtn.addEventListener('click',()=>{
+    exportXlsx('income-'+ym+'.xlsx');
+    flash.textContent='XLSX downloading — drag it into Gmail to attach.';
+    setTimeout(()=>flash.textContent='',5000);
+  });
+
   const blobStr=encodeBlob(buildIncMonthBlob());
   const blobBody='Here is my income data for '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear+'.\n\nPaste this entire block into the FiApp Income Tracker (📋 Paste button) to load my data:\n\n'+blobStr;
   const emailBlobBtn=document.createElement('a');emailBlobBtn.className='btn btn-sm';emailBlobBtn.textContent='📧 Email as FiApp Paste-link';
@@ -1919,7 +1930,7 @@ function showShareModal(title,text){
   closeBtn.addEventListener('click',()=>overlay.remove());
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
 
-  actions.appendChild(copyBtn);actions.appendChild(emailTextBtn);actions.appendChild(emailBlobBtn);
+  actions.appendChild(copyBtn);actions.appendChild(emailTextBtn);actions.appendChild(emailXlsxBtn);actions.appendChild(emailBlobBtn);
   actions.appendChild(flash);actions.appendChild(closeBtn);
   modal.appendChild(h);modal.appendChild(ta);modal.appendChild(hint);modal.appendChild(actions);
   overlay.appendChild(modal);document.body.appendChild(overlay);
