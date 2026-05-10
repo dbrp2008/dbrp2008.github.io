@@ -199,9 +199,13 @@
     <div class="form-group">
       <label for="reg-password">Password</label>
       <input type="password" id="reg-password" autocomplete="new-password"
-             placeholder="Choose a password" minlength="6" />
+             placeholder="At least 6 characters" minlength="6" />
     </div>
-    <p class="form-hint">At least 6 characters.</p>
+    <div class="form-group">
+      <label for="reg-password-confirm">Confirm password</label>
+      <input type="password" id="reg-password-confirm" autocomplete="new-password"
+             placeholder="Repeat your password" minlength="6" />
+    </div>
     <button class="login-btn" id="register-btn" onclick="submitRegister()">Create Account</button>
     <div class="back-link"><a href="/">← Back to FiApp</a></div>
   </div>
@@ -265,9 +269,11 @@ async function submitRegister(){
   clearError('register-error');
   const username=document.getElementById('reg-username').value.trim();
   const password=document.getElementById('reg-password').value;
-  if(!username||!password){ showError('register-error','Please fill in all fields.'); return; }
+  const confirm=document.getElementById('reg-password-confirm').value;
+  if(!username||!password||!confirm){ showError('register-error','Please fill in all fields.'); return; }
   if(username.length<3){ showError('register-error','Username must be at least 3 characters.'); return; }
   if(password.length<6){ showError('register-error','Password must be at least 6 characters.'); return; }
+  if(password!==confirm){ showError('register-error','Passwords do not match.'); return; }
 
   const btn=document.getElementById('register-btn');
   btn.disabled=true; btn.textContent='Creating account…';
