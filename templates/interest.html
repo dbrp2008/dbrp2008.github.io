@@ -45,14 +45,18 @@
 <body>
   <div class="nav">
     <button class="hamburger-btn" onclick="openDrawer()" title="All tools">☰</button>
-    <a href="/">← Home</a>
     {% if current_user | default(none) %}
-      <span class="auth-badge">👤 {{ current_user | default('') }}</span>
-      <a class="btn-ghost btn-sm" href="/account" title="Account settings">⚙</a>
-      <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+      <div class="acct-menu-wrap">
+        <button class="btn-ghost btn-sm" onclick="toggleAcctMenu(this)">👤 {{ current_user | default('') }}</button>
+        <div class="acct-dropdown">
+          <a href="/account" class="acct-item">⚙ Account settings</a>
+          <button onclick="logOut()" class="acct-item acct-logout">⬅ Log out</button>
+        </div>
+      </div>
     {% else %}
       <a class="btn-ghost btn-sm" href="/login">Log in</a>
     {% endif %}
+    <a href="/">← Home</a>
     <select id="theme-sel" onchange="setTheme(this.value)" title="Choose theme" style="font-size:.85rem;padding:.25rem .4rem;border-radius:6px;border:1px solid var(--panel-border);background:var(--panel-bg);color:var(--fg);cursor:pointer;width:auto;"><option value="light">☀️ Light</option><option value="dark">🌙 Dark</option><option value="ocean">🌊 Ocean</option><option value="forest">🌿 Forest</option><option value="sunset">🌅 Sunset</option><option value="midnight">🌃 Midnight</option><option value="rose">🌹 Rose</option><option value="purple">💜 Purple</option><option value="indigo">🔷 Indigo</option></select><script>(function(){var s=document.getElementById('theme-sel');if(s)s.value=localStorage.getItem('fiapp_theme')||'light';})();</script>
   </div>
   <script>
@@ -73,6 +77,15 @@
   ].forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
+  function toggleAcctMenu(btn){
+    const drop=btn.nextElementSibling;
+    const open=drop.style.display==='block';
+    drop.style.display=open?'none':'block';
+    if(!open){
+      function handler(e){ if(!btn.parentElement.contains(e.target)){ drop.style.display='none'; document.removeEventListener('click',handler,true); } }
+      setTimeout(function(){ document.addEventListener('click',handler,true); },0);
+    }
+  }
   </script>
   <h1>Interest Calculator</h1>
 
