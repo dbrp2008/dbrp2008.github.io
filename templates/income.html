@@ -6,9 +6,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <script>
     (function(){
-      var pref=localStorage.getItem('fiapp_theme');
-      var dark = pref==='dark' || (!pref && matchMedia('(prefers-color-scheme: dark)').matches);
-      if(dark) document.documentElement.classList.add('dark');
+      var t=localStorage.getItem('fiapp_theme')||'light';
+      if(t==='dark') document.documentElement.classList.add('dark');
+      else if(t!=='light') document.documentElement.classList.add('theme-'+t);
     })();
   </script>
 <script>
@@ -257,16 +257,19 @@
     <a href="/">← Home</a>
     <span id="auth-badge-container"></span>
     <span id="sync-status"></span>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+    <select id="theme-sel" onchange="setTheme(this.value)" title="Choose theme" style="font-size:.85rem;padding:.25rem .4rem;border-radius:6px;border:1px solid var(--panel-border);background:var(--panel-bg);color:var(--fg);cursor:pointer;"><option value="light">☀️ Light</option><option value="dark">🌙 Dark</option><option value="ocean">🌊 Ocean</option><option value="forest">🌿 Forest</option><option value="sunset">🌅 Sunset</option><option value="midnight">🌃 Midnight</option><option value="rose">🌹 Rose</option><option value="purple">💜 Purple</option><option value="indigo">🔷 Indigo</option></select><script>(function(){var s=document.getElementById('theme-sel');if(s)s.value=localStorage.getItem('fiapp_theme')||'light';})();</script>
   </div>
   <script>
-  function toggleTheme(){
-    const d=document.documentElement.classList.toggle('dark');
-    localStorage.setItem('fiapp_theme', d?'dark':'light');
-    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+  function setTheme(name){
+    document.documentElement.classList.remove('dark','theme-ocean','theme-forest',
+      'theme-sunset','theme-midnight','theme-rose','theme-purple','theme-indigo');
+    if(name==='dark') document.documentElement.classList.add('dark');
+    else if(name!=='light') document.documentElement.classList.add('theme-'+name);
+    localStorage.setItem('fiapp_theme',name);
+    const sel=document.getElementById('theme-sel');
+    if(sel) sel.value=name;
     if(typeof renderChart==='function') renderChart();
   }
-  if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
   function logOut(){
   ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
    'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
@@ -295,6 +298,7 @@
   </div>
   <div style="margin-bottom:.5rem;">
     <button class="btn-ghost btn-sm" onclick="copyStructureFromPrevMonth()">📋 Copy rows/cols from previous month</button>
+    <button class="btn-ghost btn-sm" onclick="showMonthCopyPicker()">📋 Copy from a specific month…</button>
   </div>
 
   <div class="forecast-bar" id="forecast-bar">
@@ -608,6 +612,42 @@ function copyStructureFromPrevMonth(){
   state.colsByMonth[mk2]=prevCols.map(c=>({...c}));
   save(); render();
   showToast('Copied structure from previous month');
+}
+function copyStructureFromMonth(sourceMk){
+  const mk2=currentMK();
+  if(sourceMk===mk2){showToast('Already on that month.');return;}
+  const srcRows=getRows(sourceMk),srcCols=getCols(sourceMk);
+  if(!srcRows.length){showToast('No rows in that month.');return;}
+  const alreadyForked=state.rowsByMonth&&state.rowsByMonth[mk2];
+  if(alreadyForked&&!confirm('This month already has its own structure. Overwrite with '+sourceMk+'\'s rows/columns?')) return;
+  if(!state.rowsByMonth) state.rowsByMonth={};
+  if(!state.colsByMonth) state.colsByMonth={};
+  state.rowsByMonth[mk2]=srcRows.map(r=>({...r}));
+  state.colsByMonth[mk2]=srcCols.map(c=>({...c}));
+  save(); render();
+  showToast('Copied structure from '+sourceMk);
+}
+function showMonthCopyPicker(){
+  const months=new Set();
+  Object.keys(state.rowsByMonth||{}).forEach(m=>months.add(m));
+  Object.keys(state.cells||{}).forEach(k=>{const m=k.split('|')[0];if(m&&m.match(/^\d{4}-\d{2}$/))months.add(m);});
+  const cur=currentMK();
+  const opts=[...months].filter(m=>m!==cur).sort();
+  if(!opts.length){showToast('No other months with data found.');return;}
+  const overlay=document.createElement('div');overlay.className='share-overlay';
+  const modal=document.createElement('div');modal.className='share-modal';modal.style.maxWidth='340px';
+  const h=document.createElement('h3');h.textContent='Copy structure from month';
+  const sel=document.createElement('select');sel.style.cssText='width:100%;padding:.5rem;border:1px solid var(--input-border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-size:.9rem;margin:.5rem 0;';
+  opts.forEach(m=>{const o=document.createElement('option');o.value=m;const [y,mo]=m.split('-');o.textContent=new Date(+y,+mo-1,1).toLocaleString('default',{month:'long',year:'numeric'});sel.appendChild(o);});
+  const actions=document.createElement('div');actions.style.cssText='display:flex;gap:.5rem;justify-content:flex-end;margin-top:.5rem;';
+  const confirmBtn=document.createElement('button');confirmBtn.className='btn btn-sm';confirmBtn.textContent='Copy';
+  confirmBtn.addEventListener('click',()=>{copyStructureFromMonth(sel.value);overlay.remove();});
+  const cancelBtn=document.createElement('button');cancelBtn.className='btn btn-sm btn-ghost';cancelBtn.textContent='Cancel';
+  cancelBtn.addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  actions.appendChild(cancelBtn);actions.appendChild(confirmBtn);
+  modal.appendChild(h);modal.appendChild(sel);modal.appendChild(actions);
+  overlay.appendChild(modal);document.body.appendChild(overlay);
 }
 
 
@@ -1907,13 +1947,11 @@ function showShareModal(title,text){
 
   const emailTextBtn=document.createElement('a');emailTextBtn.className='btn btn-sm';emailTextBtn.textContent='📧 Email as Text';
   emailTextBtn.href=gmailHref(title,bodyText);emailTextBtn.target='_blank';emailTextBtn.rel='noopener noreferrer';
-  emailTextBtn.style.textDecoration='none';
 
   const ym=String(state.currentYear)+'-'+String(state.currentMonth+1).padStart(2,'0');
-  const xlsxBody='I\'m sharing my FiApp income spreadsheet — please find the attached XLSX file (saved to your Downloads folder).\n\nFile: income-'+ym+'.xlsx';
+  const xlsxBody='I\'m sharing my FiApp income spreadsheet. Open FiApp at https://fiapp.onrender.com/income to view your own data.\n\nAttached XLSX file (saved to your Downloads folder): income-'+ym+'.xlsx';
   const emailXlsxBtn=document.createElement('a');emailXlsxBtn.className='btn btn-sm';emailXlsxBtn.textContent='📧 Email as XLSX';
   emailXlsxBtn.href=gmailHref(title,xlsxBody);emailXlsxBtn.target='_blank';emailXlsxBtn.rel='noopener noreferrer';
-  emailXlsxBtn.style.textDecoration='none';
   emailXlsxBtn.addEventListener('click',()=>{
     exportXlsx('income-'+ym+'.xlsx');
     flash.textContent='XLSX downloading — drag it into Gmail to attach.';
@@ -1921,17 +1959,16 @@ function showShareModal(title,text){
   });
 
   const blobStr=encodeBlob(buildIncMonthBlob());
-  const blobBody='Here is my income data for '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear+'.\n\nPaste this entire block into the FiApp Income Tracker (📋 Paste button) to load my data:\n\n'+blobStr;
+  const blobBody='Here is my income data for '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear+'.\n\nPaste this block into the FiApp Income Tracker at https://fiapp.onrender.com/income using the 📋 Paste button to load the data:\n\n'+blobStr;
   const emailBlobBtn=document.createElement('a');emailBlobBtn.className='btn btn-sm';emailBlobBtn.textContent='📧 Email as FiApp Paste-link';
   emailBlobBtn.href=gmailHref(title,blobBody.slice(0,2000));emailBlobBtn.target='_blank';emailBlobBtn.rel='noopener noreferrer';
-  emailBlobBtn.style.textDecoration='none';
 
   const closeBtn=document.createElement('button');closeBtn.className='btn btn-sm btn-ghost';closeBtn.textContent='Close';
   closeBtn.addEventListener('click',()=>overlay.remove());
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
 
-  actions.appendChild(copyBtn);actions.appendChild(emailTextBtn);actions.appendChild(emailXlsxBtn);actions.appendChild(emailBlobBtn);
-  actions.appendChild(flash);actions.appendChild(closeBtn);
+  actions.appendChild(flash);actions.appendChild(copyBtn);actions.appendChild(emailTextBtn);actions.appendChild(emailXlsxBtn);actions.appendChild(emailBlobBtn);
+  actions.appendChild(closeBtn);
   modal.appendChild(h);modal.appendChild(ta);modal.appendChild(hint);modal.appendChild(actions);
   overlay.appendChild(modal);document.body.appendChild(overlay);
 }
@@ -2055,11 +2092,8 @@ function closeDrawer(){
   document.getElementById('side-drawer').classList.remove('open');
   document.getElementById('drawer-overlay').style.display='none';
 }
-document.querySelectorAll('.drawer-link').forEach(function(a){
-  if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
-});
 </script>
-  
+
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
   <nav id="side-drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
@@ -2075,5 +2109,10 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
       <li><a href="/currency" class="drawer-link" data-path="/currency">💱 Currency Converter</a></li>
     </ul>
   </nav>
+<script>
+document.querySelectorAll('.drawer-link').forEach(function(a){
+  if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
+});
+</script>
 </body>
 </html>
