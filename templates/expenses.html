@@ -535,6 +535,19 @@ async function loadFromServer(){
     }
   }catch(e){}
 }
+async function loadSubsFromServer(){
+  // Fetch subscriptions data into localStorage so virtualSubChildren() works
+  // on first login without needing to visit subscriptions.html first.
+  if(!window.__currentUser) return;
+  try{
+    const res=await fetch('/api/load/subscriptions');
+    if(!res.ok) return;
+    const data=await res.json();
+    if(data&&typeof data==='object'&&(Array.isArray(data.rows)||Array.isArray(data.cols)||data.cells)){
+      localStorage.setItem(SUBS_KEY,JSON.stringify(data));
+    }
+  }catch(e){}
+}
 function save(){
   try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
   catch(e){
@@ -2305,6 +2318,7 @@ function showShareModal(title,text){
   }catch(e){ window.__currentUser=null; }
   if(!window.__currentUser) setSyncStatus('Offline','');
   try{ await loadFromServer(); }catch(e){ console.warn('FiApp: loadFromServer failed',e); }
+  try{ await loadSubsFromServer(); }catch(e){ console.warn('FiApp: loadSubsFromServer failed',e); }
   try{ state=loadState(); }catch(e){ console.warn('FiApp: loadState failed',e); state=freshState(); }
   try{ loadHistory(); }catch(e){}
   try{ loadTaxCarryover(); }catch(e){}
