@@ -280,10 +280,10 @@
 }
   function toggleAcctMenu(btn){
     const drop=btn.nextElementSibling;
-    const open=drop.style.display==='block';
-    drop.style.display=open?'none':'block';
-    if(!open){
-      function handler(e){ if(!btn.parentElement.contains(e.target)){ drop.style.display='none'; document.removeEventListener('click',handler,true); } }
+    const isOpen=drop.classList.contains('open');
+    drop.classList.toggle('open');
+    if(!isOpen){
+      function handler(e){ if(!btn.parentElement.contains(e.target)){ drop.classList.remove('open'); document.removeEventListener('click',handler,true); } }
       setTimeout(function(){ document.addEventListener('click',handler,true); },0);
     }
   }
