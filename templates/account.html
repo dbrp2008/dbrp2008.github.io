@@ -186,7 +186,7 @@
       </div>
     </div>
     <a href="/">← Home</a>
-    <select id="theme-sel" onchange="setTheme(this.value)" title="Choose theme" style="font-size:.85rem;padding:.25rem .4rem;border-radius:6px;border:1px solid var(--panel-border);background:var(--panel-bg);color:var(--fg);cursor:pointer;width:auto;"><option value="light">☀️ Light</option><option value="dark">🌙 Dark</option><option value="ocean">🌊 Ocean</option><option value="forest">🌿 Forest</option><option value="sunset">🌅 Sunset</option><option value="midnight">🌃 Midnight</option><option value="rose">🌹 Rose</option><option value="purple">💜 Purple</option><option value="indigo">🔷 Indigo</option></select><script>(function(){var s=document.getElementById('theme-sel');if(s)s.value=localStorage.getItem('fiapp_theme')||'light';})();</script>
+    <div class="theme-menu-wrap"><button class="btn-ghost btn-sm" id="theme-btn" onclick="toggleThemeMenu(this)">☀️ Light</button><div class="theme-dropdown"><button class="theme-opt" data-theme="light" onclick="setTheme('light')">☀️ Light</button><button class="theme-opt" data-theme="dark" onclick="setTheme('dark')">🌙 Dark</button><button class="theme-opt" data-theme="ocean" onclick="setTheme('ocean')">🌊 Ocean</button><button class="theme-opt" data-theme="forest" onclick="setTheme('forest')">🌿 Forest</button><button class="theme-opt" data-theme="sunset" onclick="setTheme('sunset')">🌅 Sunset</button><button class="theme-opt" data-theme="midnight" onclick="setTheme('midnight')">🌃 Midnight</button><button class="theme-opt" data-theme="rose" onclick="setTheme('rose')">🌹 Rose</button><button class="theme-opt" data-theme="purple" onclick="setTheme('purple')">💜 Purple</button><button class="theme-opt" data-theme="indigo" onclick="setTheme('indigo')">🔷 Indigo</button></div></div><script>(function(){var t=localStorage.getItem('fiapp_theme')||'light';var L={'light':'☀️ Light','dark':'🌙 Dark','ocean':'🌊 Ocean','forest':'🌿 Forest','sunset':'🌅 Sunset','midnight':'🌃 Midnight','rose':'🌹 Rose','purple':'💜 Purple','indigo':'🔷 Indigo'};var b=document.getElementById('theme-btn');if(b)b.textContent=L[t]||t;document.querySelectorAll('.theme-opt').forEach(function(o){if(o.dataset.theme===t)o.classList.add('active');});})();</script>
   </div>
   <script>
   window._csrfToken={{ csrf_token | default('') | tojson }};
@@ -204,9 +204,13 @@
     if(name==='dark') document.documentElement.classList.add('dark');
     else if(name!=='light') document.documentElement.classList.add('theme-'+name);
     localStorage.setItem('fiapp_theme',name);
-    const sel=document.getElementById('theme-sel');
-    if(sel) sel.value=name;
+    var _tl={'light':'☀️ Light','dark':'🌙 Dark','ocean':'🌊 Ocean','forest':'🌿 Forest','sunset':'🌅 Sunset','midnight':'🌃 Midnight','rose':'🌹 Rose','purple':'💜 Purple','indigo':'🔷 Indigo'};
+    var _tb=document.getElementById('theme-btn');
+    if(_tb) _tb.textContent=_tl[name]||name;
+    var _td=document.querySelector('.theme-dropdown');
+    if(_td){ _td.classList.remove('open'); _td.querySelectorAll('.theme-opt').forEach(function(o){ o.classList.toggle('active',o.dataset.theme===name); }); }
   }
+  var toggleThemeMenu=toggleAcctMenu;
   function toggleAcctMenu(btn){
     const drop=btn.nextElementSibling;
     const isOpen=drop.classList.contains('open');
