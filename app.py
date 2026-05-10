@@ -372,8 +372,9 @@ def delete_account ():
         conn .close ()
 
 @app .route ('/auth/change_username',methods =['POST'])
-@login_required 
-@csrf_required 
+@login_required
+@csrf_required
+@_rl ("5 per minute")
 def change_username ():
     data =request .get_json (silent =True )or {}
     new_username =(data .get ('new_username')or '').strip ()
