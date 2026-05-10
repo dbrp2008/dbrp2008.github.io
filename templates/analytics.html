@@ -26,6 +26,7 @@
 })();
 </script>
   <link rel="stylesheet" href="/styles.css">
+  <script src="/static/rates-utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     body { max-width: 960px; }
@@ -264,6 +265,25 @@ function logOut(){
 
 const EXP_KEY  = 'fiapp_expenses_v4';
 const SUBS_KEY = 'fiapp_subs_v4';
+
+const _ratesCache={};
+let _ratesReady=false;
+async function _fetchRates(){
+  if(_ratesReady) return;
+  try{
+    const obj=await fiappGetRates('USD');
+    const r=obj.rates;
+    if(r&&typeof r==='object'){
+      Object.keys(r).forEach(k=>{ if(/^[A-Z]{2,5}$/.test(k)&&typeof r[k]==='number') _ratesCache[k]=r[k]; });
+      _ratesReady=true;
+    }
+  }catch(e){ console.warn('Analytics: rate fetch failed',e.message); }
+}
+function _toUSD(cost, currency){
+  if(!currency||currency==='USD') return cost;
+  const rate=_ratesCache[currency];
+  return rate ? cost/rate : cost;
+}
 const INC_KEY  = 'fiapp_income_v1';
 
 
@@ -416,9 +436,11 @@ function allSpendingMonths(exp, subs){
 
 function combinedMonthTotals(exp, subs, allMonths){
   const totals={};
-  allMonths.forEach(mk2=>{
-    let sum=0;
-    
+  // Use subCostPerMonth for subscription costs — same code path as Subscription Cost Trend
+  const subCosts=subCostPerMonth(subs, allMonths);
+  allMonths.forEach((mk2, idx)=>{
+    let sum=subCosts[idx]||0;
+
     if(exp&&exp.cells){
       const mCols=(exp.colsByMonth&&exp.colsByMonth[mk2])||exp.cols||[];
       expRows(exp,mk2).forEach(row=>{
@@ -427,11 +449,7 @@ function combinedMonthTotals(exp, subs, allMonths){
         });
       });
     }
-    
-    if(subs&&subs.rows&&subs.cols){
-      const [y,m]=mk2.split('-').map(Number);
-      sum+=(subs.rows||[]).reduce((s,r)=>s+calcSubCostForMonth(r,subs,y,m-1),0);
-    }
+
     if(sum>0) totals[mk2]=parseFloat(sum.toFixed(2));
   });
   return totals;
@@ -541,7 +559,9 @@ function calcSubCostForMonth(row, subs, year, month){
   const status   =statusCol  ? get(statusCol.id)||'Active'  : 'Active';
   const startStr =startCol   ? get(startCol.id)             : '';
   const cancelStr=cancelCol  ? get(cancelCol.id)            : '';
-  const cost     =parseFloat(costCol?get(costCol.id):0)||0;
+  const rawCost  =parseFloat(costCol?get(costCol.id):0)||0;
+  const currency =(subs.rowCurrencies||{})[row.id]||'USD';
+  const cost     =_toUSD(rawCost, currency);
   const billing  =billingCol ? get(billingCol.id)||'Monthly': 'Monthly';
 
   const monthStart=new Date(year,month,1);
@@ -594,9 +614,11 @@ function subMonthlySnapshot(subs){
   return (subs.rows||[]).map(r=>{
     const status=statusCol?subs.cells[r.id+'|'+statusCol.id]||'Active':'Active';
     if(status==='Cancelled') return null;
-    const name  =nameCol  ?subs.cells[r.id+'|'+nameCol.id]  ||'—':'—';
-    const cost  =parseFloat(costCol?subs.cells[r.id+'|'+costCol.id]||0:0)||0;
-    const bill  =billingCol?subs.cells[r.id+'|'+billingCol.id]||'Monthly':'Monthly';
+    const name    =nameCol  ?subs.cells[r.id+'|'+nameCol.id]  ||'—':'—';
+    const rawCost =parseFloat(costCol?subs.cells[r.id+'|'+costCol.id]||0:0)||0;
+    const currency=(subs.rowCurrencies||{})[r.id]||'USD';
+    const cost    =_toUSD(rawCost, currency);
+    const bill    =billingCol?subs.cells[r.id+'|'+billingCol.id]||'Monthly':'Monthly';
     let monthly=0;
     if(bill==='Monthly')        monthly=cost;
     else if(bill==='Yearly')    monthly=cost/12;
@@ -1289,6 +1311,7 @@ function reRenderCharts(){
       if(incRes.ok){const d=await incRes.json();if(d&&typeof d==='object') localStorage.setItem(INC_KEY,JSON.stringify(d));}
     }
   }catch(e){}
+  await _fetchRates();
   renderAll();
 })();
 
