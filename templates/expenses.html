@@ -296,14 +296,14 @@
   </div>
 
   <div class="forecast-bar" id="forecast-bar">
-    <p>📋 <strong>Forecast mode</strong> — this is a future month. Enter planned spend, or seed from history:</p>
+    <p>📋 <strong>Forecast mode</strong> - this is a future month. Enter planned spend, or seed from history:</p>
     <button class="btn btn-sm" onclick="copyLastMonth()">Copy last month</button>
     <button class="btn btn-sm" onclick="useAverages()">Use 3-month avg</button>
   </div>
 
   
   <div class="income-panel">
-    <h3>Monthly Budget — <span id="budget-month"></span></h3>
+    <h3>Monthly Budget - <span id="budget-month"></span></h3>
     <div class="income-grid" id="income-grid">
       <div class="income-field">
         <label>Gross Monthly Income ($)</label>
@@ -311,7 +311,7 @@
         <div id="income-sync-badge" style="margin-top:4px;"></div>
       </div>
       <div class="income-field">
-        <label>Monthly Tax / Deductions ($) <span id="tax-link" style="font-weight:400;font-size:.75rem;color:var(--muted)"> — auto-filled from Tax Calculator</span></label>
+        <label>Monthly Tax / Deductions ($) <span id="tax-link" style="font-weight:400;font-size:.75rem;color:var(--muted)"> - auto-filled from Tax Calculator</span></label>
         <input type="number" id="inp-tax" min="0" step="0.01" inputmode="decimal" placeholder="0.00" oninput="onIncomeInput()">
       </div>
       <div class="income-field">
@@ -403,7 +403,7 @@ async function fetchExpRates(){
         if(/^[A-Z]{2,5}$/.test(k)&&typeof rates[k]==='number') expRatesCache[k]=rates[k];
       });
     }
-  }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
+  }catch(e){ console.warn('FiApp: rate fetch failed -',e.message); }
 }
 
 const CATEGORIES = {
@@ -469,7 +469,7 @@ function loadState(){
       }
       return s;
     }
-  }catch(e){ console.warn('FiApp: loadState failed, using fresh state —',e.message); }
+  }catch(e){ console.warn('FiApp: loadState failed, using fresh state -',e.message); }
   return freshState();
 }
 let state=loadState();
@@ -562,7 +562,7 @@ function showSaveQuotaWarning(){
   if(document.getElementById('quota-warn')) return;
   const el=document.createElement('div'); el.id='quota-warn'; el.className='error';
   el.style.cssText='position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
-  el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
+  el.textContent='⚠ Storage full - latest changes could not be saved. Export your data and clear some rows.';
   document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
 }
 function showToast(msg, isError=true, duration=4000){
@@ -679,7 +679,7 @@ function copyLastMonth(){
     if(pi) state.income[curMk]={gross:pi.gross||'',tax:pi.tax||''};
   }
   save(); render(); syncIncomeInputs();
-  showForecastToast(copied?`Copied ${copied} values from ${MONTHS_SHORT[pm]} ${py}.`:'All cells already have values — nothing to copy.');
+  showForecastToast(copied?`Copied ${copied} values from ${MONTHS_SHORT[pm]} ${py}.`:'All cells already have values - nothing to copy.');
 }
 function useAverages(){
   if(!isForecastMonth()) return;
@@ -883,7 +883,7 @@ function loadTaxCarryover(){
     banner.innerHTML=`✓ Monthly tax ($${Number(monthlyTax).toLocaleString()}) applied to ${monthLabel}. Annual: $${Number(t.income).toLocaleString()}, tax: $${Number(t.tax).toLocaleString()}. <a href="/tax">Recalculate →</a>`;
     document.getElementById('income-grid').prepend(banner);
     document.getElementById('tax-link').style.display='none';
-  }catch(e){ console.warn('FiApp: loadTaxCarryover failed —',e.message); }
+  }catch(e){ console.warn('FiApp: loadTaxCarryover failed -',e.message); }
 }
 
 
@@ -1153,10 +1153,10 @@ function renderChart(){
   let data, topLabel;
   if(chartMode==='yearly'){
     data=topRows.map(r=>({label:r.label,value:rowTotalForYear(r.id,state.currentYear),color:r.color})).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
-    topLabel='Top Expenses — '+state.currentYear;
+    topLabel='Top Expenses - '+state.currentYear;
   } else {
     data=topRows.map(r=>({label:r.label,value:rowTotal(r.id),color:r.color})).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
-    topLabel='Top Expenses — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+    topLabel='Top Expenses - '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   }
   if(chartInstance){chartInstance.destroy();chartInstance=null;}
   if(!data.length){renderTop3([],topLabel);return;}
@@ -1198,7 +1198,7 @@ function renderTop3(data,label){
   const top=(data||[]).slice(0,3);
   const el=document.getElementById('top3');
   if(!top.length){el.innerHTML='';return;}
-  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.label)}</strong> — $${parseFloat(t.value.toFixed(2))}</li>`).join('')+'</ol>';
+  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.label)}</strong> - $${parseFloat(t.value.toFixed(2))}</li>`).join('')+'</ol>';
 }
 
 
@@ -1510,7 +1510,7 @@ function render(){
       rowLabel.style.textDecorationStyle='dashed';
       rowLabel.style.cursor='pointer';
       rowLabel.classList.add('tip-host');
-      rowLabel.dataset.tip='Pasted snapshot — click to restore live link to your Subscription Tracker';
+      rowLabel.dataset.tip='Pasted snapshot - click to restore live link to your Subscription Tracker';
       rowLabel.addEventListener('click',e=>{e.stopPropagation();restoreSubsLink(row.id);});
     }
     rhIn.appendChild(colorWrap);rhIn.appendChild(tcWrap);rhIn.appendChild(rowLabel);
@@ -1524,8 +1524,8 @@ function render(){
       const linkBtn=document.createElement('a');
       linkBtn.href='/subscriptions';
       linkBtn.className='subs-link-btn tip-host';
-      linkBtn.dataset.tip='This category is linked to your Subscription Tracker — click to open it';
-      linkBtn.title='This category is linked to your Subscription Tracker — click to open it';
+      linkBtn.dataset.tip='This category is linked to your Subscription Tracker - click to open it';
+      linkBtn.title='This category is linked to your Subscription Tracker - click to open it';
       linkBtn.textContent='→ Subscriptions';
       rhIn.appendChild(linkBtn);
     }
@@ -1791,7 +1791,7 @@ function decodeBlob(str){
   if(!m) throw new Error('Not a FiApp paste-blob.');
   let obj;
   try{ obj=JSON.parse(decodeURIComponent(escape(atob(m[2])))); }
-  catch(e){ throw new Error('Blob is corrupted or incomplete — could not decode.'); }
+  catch(e){ throw new Error('Blob is corrupted or incomplete - could not decode.'); }
   if(typeof obj!=='object'||obj===null) throw new Error('Invalid blob: unexpected format.');
   if(obj.kind!==m[1]) throw new Error('Blob kind mismatch.');
   if(!Array.isArray(obj.rows)) throw new Error('Invalid blob: missing rows array.');
@@ -2034,17 +2034,17 @@ function openPasteModal(){
       let label='';
       if(obj.kind==='EXP-MONTH'){
         const [yy,mm]=obj.monthKey.split('-');
-        label='This month — '+MONTHS_FULL[parseInt(mm,10)-1]+' '+yy;
+        label='This month - '+MONTHS_FULL[parseInt(mm,10)-1]+' '+yy;
       } else if(obj.kind==='EXP-FULL'){
         const months=Object.keys(obj.cellsByMonth||{}).filter(k=>Object.keys(obj.cellsByMonth[k]).length).length;
         if(months===0){
-          status.textContent='⚠ This blob has no month data — the spreadsheet was empty when it was copied.';
+          status.textContent='⚠ This blob has no month data - the spreadsheet was empty when it was copied.';
           status.className='paste-status bad';
           applyBtn.disabled=true;
           parsed=null;
           return;
         }
-        label='Full data — '+months+' month'+(months===1?'':'s');
+        label='Full data - '+months+' month'+(months===1?'':'s');
       } else if(obj.kind==='SUBS'){
         label='Subscription tracker (open the Subscription Tracker page to paste)'; applyBtn.disabled=true; status.textContent='⚠ '+label; status.className='paste-status bad'; return;
       } else { throw new Error('Unsupported kind: '+obj.kind); }
@@ -2162,8 +2162,8 @@ function showExportMenu(ev){
     {label:'{ } JSON',fn:()=>downloadText(base+'.json',buildJson(),'application/json')},
     {label:'📃 TXT',  fn:()=>downloadText(base+'.txt',buildTxt(),'text/plain;charset=utf-8')},
     {label:'📊 XLSX', fn:()=>exportXlsx(base+'.xlsx')},
-    {label:'📋 Copy table — This month', fn:()=>clipboardWrite(encodeBlob(buildExpMonthBlob())).then(ok=>showExportFlash(ok?'✓ Copied (this month)':'Copy failed'))},
-    {label:'📋 Copy table — Full data',  fn:()=>clipboardWrite(encodeBlob(buildExpFullBlob())).then(ok=>showExportFlash(ok?'✓ Copied (full)':'Copy failed'))},
+    {label:'📋 Copy table - This month', fn:()=>clipboardWrite(encodeBlob(buildExpMonthBlob())).then(ok=>showExportFlash(ok?'✓ Copied (this month)':'Copy failed'))},
+    {label:'📋 Copy table - Full data',  fn:()=>clipboardWrite(encodeBlob(buildExpFullBlob())).then(ok=>showExportFlash(ok?'✓ Copied (full)':'Copy failed'))},
   ];
   formats.forEach(f=>{
     const btn=document.createElement('button');btn.textContent=f.label;
@@ -2184,7 +2184,7 @@ function showExportMenu(ev){
 
 async function shareSheet(){
   const text=buildTxt();
-  const title='FiApp Expenses — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  const title='FiApp Expenses - '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
   if(isMobile&&navigator.share){
     try{await navigator.share({title,text});return;}catch(e){if(e.name==='AbortError')return;}
@@ -2194,14 +2194,14 @@ async function shareSheet(){
 function showShareModal(title,text){
   const overlay=document.createElement('div');overlay.className='share-overlay';
   const modal=document.createElement('div');modal.className='share-modal';
-  const h=document.createElement('h3');h.textContent='Share — '+title;
+  const h=document.createElement('h3');h.textContent='Share - '+title;
   const ta=document.createElement('textarea');ta.readOnly=true;ta.value=text;
   const hint=document.createElement('span');hint.className='share-hint';
-  hint.textContent='Copy puts a tab-separated version on your clipboard — pastes cleanly into Word, Docs, Excel and Sheets.';
+  hint.textContent='Copy puts a tab-separated version on your clipboard - pastes cleanly into Word, Docs, Excel and Sheets.';
 
   const tsv=buildTsv();
   const MAX_BODY=1500;
-  const bodyText=text.length>MAX_BODY?text.slice(0,MAX_BODY)+'\n…(truncated — use Export for full data)':text;
+  const bodyText=text.length>MAX_BODY?text.slice(0,MAX_BODY)+'\n…(truncated - use Export for full data)':text;
 
   const actions=document.createElement('div');actions.className='share-actions';
   const flash=document.createElement('span');flash.className='share-flash';
@@ -2341,7 +2341,7 @@ function showShareModal(title,text){
 
 <div id="help-modal" style="display:none" class="share-overlay" onclick="if(event.target===this)closeHelp()">
   <div class="share-modal">
-    <h3>How to use — Expense Tracker</h3>
+    <h3>How to use the Expense Tracker</h3>
     <div class="help-body">
       <ul>
         <li>Add expense categories as rows via <strong>Table ▾ → + Row</strong>; add subcategories with <strong>+Sub</strong> on any row.</li>
