@@ -293,7 +293,7 @@ document.getElementById('currency-form').addEventListener('submit', async functi
       showError('Unknown currency code: "'+fromRaw+'". Please check and try again.');
       dropBadCustom('currency_i', fromRaw);
     } else {
-      showError('Could not fetch exchange rates — '+err.message);
+      showError('Could not fetch exchange rates - '+err.message);
     }
   }finally{
     btn.disabled=false; btn.textContent='Convert';
