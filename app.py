@@ -1,6 +1,7 @@
-import os 
-import json 
-import time 
+import os
+import re
+import json
+import time
 from datetime import datetime ,timezone 
 import psycopg2 
 import psycopg2 .extras 
@@ -24,6 +25,9 @@ RATES_TTL_DB =7 *24 *3600
 
 app =Flask (__name__ ,template_folder ='templates')
 app .secret_key =os .environ .get ("SECRET_KEY")
+app .config ['SESSION_COOKIE_HTTPONLY' ]=True
+app .config ['SESSION_COOKIE_SAMESITE' ]='Lax'
+app .config ['SESSION_COOKIE_SECURE' ]=os .environ .get ('FLASK_ENV')!='development'
 EXCHANGE_API_KEY =os .environ .get ("EXCHANGE_API_KEY")
 
 
@@ -294,9 +298,11 @@ def register ():
     if not username or not password :
         return jsonify ({"error":"Username and password required"}),400 
     if len (username )<3 :
-        return jsonify ({"error":"Username must be at least 3 characters"}),400 
+        return jsonify ({"error":"Username must be at least 3 characters"}),400
+    if not re .match (r'^[a-zA-Z0-9_.\-]+$',username ):
+        return jsonify ({"error":"Username may only contain letters, numbers, _, . or -"}),400
     if len (password )<6 :
-        return jsonify ({"error":"Password must be at least 6 characters"}),400 
+        return jsonify ({"error":"Password must be at least 6 characters"}),400
     conn =get_db ()
     try :
         with conn :
@@ -382,7 +388,9 @@ def change_username ():
     if not new_username :
         return jsonify ({"error":"New username is required"}),400 
     if len (new_username )<3 :
-        return jsonify ({"error":"Username must be at least 3 characters"}),400 
+        return jsonify ({"error":"Username must be at least 3 characters"}),400
+    if not re .match (r'^[a-zA-Z0-9_.\-]+$',new_username ):
+        return jsonify ({"error":"Username may only contain letters, numbers, _, . or -"}),400
     if not password :
         return jsonify ({"error":"Password is required"}),400 
     user_id =session ['user_id']
