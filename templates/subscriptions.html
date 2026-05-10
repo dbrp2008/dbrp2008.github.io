@@ -265,7 +265,7 @@
   </div>
 
   <div class="forecast-bar" id="forecast-bar">
-    <p>📋 <strong>Forecast mode</strong> — costs shown are projected from your billing schedules. Add or edit subscriptions to update the forecast.</p>
+    <p>📋 <strong>Forecast mode</strong> - costs shown are projected from your billing schedules. Add or edit subscriptions to update the forecast.</p>
   </div>
 
   <div class="add-bar">
@@ -288,12 +288,13 @@
 
   <details class="disc-box">
     <summary>ℹ️ How billing costs are calculated</summary>
-    <p><strong>Monthly</strong> — One charge per month, on the same day-of-month as your start date. Full cost only; no partial amounts.</p>
-    <p><strong>Weekly / Bi-Weekly</strong> — Every 7 or 14 days from start. Every event landing in the month is counted at full cost.</p>
-    <p><strong>Quarterly / Semi-Annual / Annual</strong> — Anniversary billing dates. Only events that fall within the displayed month count.</p>
-    <p><strong>Yearly total</strong> — Sum of all billing events across the 12 months of the year. Subscriptions starting Jul–Dec will show a lower yearly total for their start year (fewer events before year-end).</p>
-    <p><strong>Trial</strong> — Billing events during the trial window cost $0. <strong>Cancelled</strong> — Events after the cancel date are excluded.</p>
-    <p><strong>Per-cell currency</strong> — Each Cost cell can be in its own currency (USD/EUR/AED/HKD/…). All sums roll up to USD first, then convert to your chosen display currency.</p>
+    <p><strong>Monthly</strong> - One charge per month, on the same day-of-month as your start date. Full cost only; no partial amounts.</p>
+    <p><strong>Weekly / Bi-Weekly</strong> - Every 7 or 14 days from start. Every event landing in the month is counted at full cost.</p>
+    <p><strong>Quarterly / Semi-Annual / Annual</strong> - Anniversary billing dates. Only events that fall within the displayed month count.</p>
+    <p><strong>Yearly total</strong> - Sum of all billing events across the 12 months of the year. Subscriptions starting Jul–Dec will show a lower yearly total for their start year (fewer events before year-end).</p>
+    <p><strong>Trial</strong> - Billing events during the trial window cost $0. </p>
+    <p><strong>Cancelled</strong> - Events after the cancel date are excluded.</p>
+    <p><strong>Per-cell currency</strong> - Each Cost cell can be in its own currency (USD/EUR/AED/HKD/…). All sums roll up to USD first, then convert to your chosen display currency.</p>
   </details>
 
   
@@ -304,12 +305,12 @@
       <button class="slide-arrow" onclick="slidePanel(1)">▶</button>
     </div>
     <div class="totals-panel" id="slide-panel-0">
-      <h3>Spending Summary — <span id="sum-label"></span></h3>
+      <h3>Spending Summary - <span id="sum-label"></span></h3>
       <div class="tot-field"><label>Monthly Cost (USD)</label><div class="tot-val" id="tot-m-usd">$0.00</div></div>
       <div class="tot-field"><label>Yearly Cost (USD)</label><div class="tot-val" id="tot-y-usd">$0.00</div></div>
       <p style="font-size:.72rem;color:var(--muted);margin:.25rem 0 .5rem;font-style:italic;">All non-USD costs normalized to USD at current exchange rates.</p>
-      <div class="tot-field" id="conv-m-wrap" style="display:none"><label id="conv-m-lbl">Monthly</label><div class="tot-val" id="tot-m-conv">—</div></div>
-      <div class="tot-field" id="conv-y-wrap" style="display:none"><label id="conv-y-lbl">Yearly</label><div class="tot-val" id="tot-y-conv">—</div></div>
+      <div class="tot-field" id="conv-m-wrap" style="display:none"><label id="conv-m-lbl">Monthly</label><div class="tot-val" id="tot-m-conv">-</div></div>
+      <div class="tot-field" id="conv-y-wrap" style="display:none"><label id="conv-y-lbl">Yearly</label><div class="tot-val" id="tot-y-conv">-</div></div>
       <div class="curr-row">
         <label>Display currency:</label>
         <select id="curr-sel" onchange="onCurrencyChange()">
@@ -404,7 +405,7 @@ async function fetchAndCacheUSDRates(){
       });
       ratesReady=true;
     }
-  }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
+  }catch(e){ console.warn('FiApp: rate fetch failed -',e.message); }
 }
 async function ensureRate(currency){
   if(!currency||currency==='USD'||ratesCache[currency]) return;
@@ -455,7 +456,7 @@ function loadState(){
       if(!s.rowCurrencies)   s.rowCurrencies={};
       return s;
     }
-  }catch(e){ console.warn('FiApp: loadState failed, using fresh state —',e.message); }
+  }catch(e){ console.warn('FiApp: loadState failed, using fresh state -',e.message); }
   return freshState();
 }
 let state=loadState();
@@ -507,7 +508,7 @@ function showSaveQuotaWarning(){
   if(document.getElementById('quota-warn')) return;
   const el=document.createElement('div'); el.id='quota-warn'; el.className='error';
   el.style.cssText='position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
-  el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
+  el.textContent='⚠ Storage full - latest changes could not be saved. Export your data and clear some rows.';
   document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
 }
 function showToast(msg, isError=true, duration=4000){
@@ -860,7 +861,7 @@ function fmtCost(usd){
 }
 function renderLeaderboard(){
   const wrap=document.getElementById('lb-content');
-  if(!state.rows.length){ wrap.innerHTML='<div class="lb-empty">No subscriptions yet — add one above to see the leaderboard.</div>'; return; }
+  if(!state.rows.length){ wrap.innerHTML='<div class="lb-empty">No subscriptions yet - add one above to see the leaderboard.</div>'; return; }
   const serviceCol=colByType('text');
   const data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({
     name: serviceCol?(getCell(r.id,serviceCol.id)||'(unnamed)'):'(unnamed)',
@@ -918,10 +919,10 @@ function renderChart(){
   let data, topLabel;
   if(chartMode==='yearly'){
     data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcYearlyCost(r,state.currentYear)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
-    topLabel='Top Subscriptions — '+state.currentYear;
+    topLabel='Top Subscriptions - '+state.currentYear;
   } else {
     data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcMonthCost(r,state.currentYear,state.currentMonth)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
-    topLabel='Top Subscriptions — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+    topLabel='Top Subscriptions - '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   }
   if(chartInstance){ chartInstance.destroy(); chartInstance=null; }
   if(!data.length){document.getElementById('sub-chart').style.display='none';renderTop3([],topLabel);return;}
@@ -1133,7 +1134,7 @@ function buildTxt(){
   const widths=arr[0].map((_,i)=>Math.max(...arr.map(r=>String(r[i]==null?'':r[i]).length)));
   const lines=arr.map((r,ri)=>r.map((v,i)=>pad(v==null?'':v,widths[i])).join(' │ '));
   const sep='─'.repeat(lines[0].length);
-  const title='FiApp Subscriptions — '+MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
+  const title='FiApp Subscriptions - '+MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
   return title+'\n'+sep+'\n'+lines[0]+'\n'+sep+'\n'+lines.slice(1,-1).join('\n')+'\n'+sep+'\n'+lines[lines.length-1]+'\n';
 }
 function buildTsv(){
@@ -1191,7 +1192,7 @@ function decodeBlob(str){
   if(!m) throw new Error('Not a FiApp paste-blob.');
   let obj;
   try{ obj=JSON.parse(decodeURIComponent(escape(atob(m[2])))); }
-  catch(e){ throw new Error('Blob is corrupted or incomplete — could not decode.'); }
+  catch(e){ throw new Error('Blob is corrupted or incomplete - could not decode.'); }
   if(typeof obj!=='object'||obj===null) throw new Error('Invalid blob: unexpected format.');
   if(obj.kind!==m[1]) throw new Error('Blob kind mismatch.');
   if(!Array.isArray(obj.rows)) throw new Error('Invalid blob: missing rows array.');
@@ -1248,7 +1249,7 @@ function openPasteModal(){
       parsed=obj;
       if(obj.kind==='SUBS'){
         const n=(obj.rows||[]).length;
-        status.textContent='Detected: Subscription tracker — '+n+' subscription'+(n===1?'':'s');
+        status.textContent='Detected: Subscription tracker - '+n+' subscription'+(n===1?'':'s');
         status.className='paste-status ok';applyBtn.disabled=false;
       } else if(obj.kind==='EXP-MONTH'||obj.kind==='EXP-FULL'){
         status.textContent='⚠ This blob is for the Expense Tracker. Paste it there instead.';
@@ -1347,7 +1348,7 @@ function showExportMenu(ev){
 
 async function shareSheet(){
   const text=buildTxt();
-  const title='FiApp Subscriptions — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  const title='FiApp Subscriptions - '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
   if(isMobile && navigator.share){
     try{ await navigator.share({title,text}); return; }catch{}
@@ -1362,14 +1363,14 @@ function showShareModal(title,text){
   const bodyText=text.length>MAX?text.slice(0,MAX)+'\n…(truncated — use Export to send full data)':text;
   const ym=state.currentYear+'-'+String(state.currentMonth+1).padStart(2,'0');
   const xlsxFile='subscriptions-'+ym+'.xlsx';
-  const xlsxBody='I\'m sharing my FiApp subscriptions spreadsheet — please find the attached XLSX file (saved to your Downloads folder).\n\nFile: '+xlsxFile;
+  const xlsxBody='I\'m sharing my FiApp subscriptions spreadsheet - please find the attached XLSX file (saved to your Downloads folder).\n\nFile: '+xlsxFile;
   const blob=encodeBlob(buildSubsBlob());
   const pasteBody='I\'m sharing my FiApp subscription data. Paste this entire block into the FiApp Subscription Tracker (📋 Paste button) to load everything:\n\n'+blob;
 
   const h=document.createElement('h3');h.textContent=title;
   const ta=document.createElement('textarea');ta.readOnly=true;ta.value=text;
   const hint=document.createElement('span');hint.className='share-hint';
-  hint.textContent='Copy puts a tab-separated version on your clipboard — pastes cleanly into Word, Docs, Excel and Sheets.';
+  hint.textContent='Copy puts a tab-separated version on your clipboard - pastes cleanly into Word, Docs, Excel and Sheets.';
   const actions=document.createElement('div');actions.className='share-actions';
   const flash=document.createElement('span');flash.className='share-flash';
 
@@ -1388,7 +1389,7 @@ function showShareModal(title,text){
   emailXlsxBtn.href=gmailHref(title,xlsxBody);emailXlsxBtn.target='_blank';emailXlsxBtn.rel='noopener noreferrer';
   emailXlsxBtn.addEventListener('click',()=>{
     exportXlsx(xlsxFile);
-    flash.textContent='XLSX downloading — drag it into Gmail to attach.';
+    flash.textContent='XLSX downloading - drag it into Gmail to attach.';
     setTimeout(()=>flash.textContent='',5000);
   });
 
