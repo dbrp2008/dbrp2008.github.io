@@ -419,9 +419,10 @@ function combinedMonthTotals(exp, subs, allMonths){
   allMonths.forEach(mk2=>{
     let sum=0;
     
-    if(exp&&exp.cells&&exp.cols){
+    if(exp&&exp.cells){
+      const mCols=(exp.colsByMonth&&exp.colsByMonth[mk2])||exp.cols||[];
       expRows(exp,mk2).forEach(row=>{
-        (exp.cols||[]).forEach(col=>{
+        mCols.forEach(col=>{
           sum+=parseFloat(exp.cells[mk2+'|'+row.id+'|'+col.id]||0)||0;
         });
       });
@@ -549,11 +550,27 @@ function calcSubCostForMonth(row, subs, year, month){
   if(startStr){ const sd=new Date(startStr); if(sd>monthEnd) return 0; }
   if(status==='Cancelled'&&cancelStr){ const cd=new Date(cancelStr); if(cd<monthStart) return 0; }
 
-  if(billing==='Monthly')    return cost;
-  if(billing==='Yearly')     return cost/12;
-  if(billing==='Weekly')     return cost*4.33;
-  if(billing==='Bi-Weekly')  return cost*2.17;
-  if(billing==='Quarterly')  return cost/3;
+  if(billing==='Monthly')   return cost;
+  if(billing==='Yearly')    return cost/12;
+  if(billing==='Quarterly') return cost/3;
+
+  // Weekly / Bi-Weekly: count actual billing events in the month
+  if((billing==='Weekly'||billing==='Bi-Weekly')&&startStr){
+    const msDay=86400000;
+    const itvMs=(billing==='Weekly'?7:14)*msDay;
+    const start=new Date(startStr);
+    let ev=new Date(start.getTime());
+    if(ev<monthStart){
+      const ahead=Math.ceil((monthStart-ev)/itvMs);
+      ev=new Date(start.getTime()+ahead*itvMs);
+    }
+    let count=0;
+    while(ev<=monthEnd){
+      if(!cancelStr||ev<=new Date(cancelStr)) count++;
+      ev=new Date(ev.getTime()+itvMs);
+    }
+    return cost*count;
+  }
   return cost;
 }
 
