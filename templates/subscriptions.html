@@ -6,9 +6,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <script>
     (function(){
-      var pref=localStorage.getItem('fiapp_theme');
-      var dark = pref==='dark' || (!pref && matchMedia('(prefers-color-scheme: dark)').matches);
-      if(dark) document.documentElement.classList.add('dark');
+      var t=localStorage.getItem('fiapp_theme')||'light';
+      if(t==='dark') document.documentElement.classList.add('dark');
+      else if(t!=='light') document.documentElement.classList.add('theme-'+t);
     })();
   </script>
 <script>
@@ -228,15 +228,18 @@
     <a href="/">← Home</a>
     <span id="auth-badge-container"></span>
     <span id="sync-status"></span>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+    <select id="theme-sel" onchange="setTheme(this.value)" title="Choose theme" style="font-size:.85rem;padding:.25rem .4rem;border-radius:6px;border:1px solid var(--panel-border);background:var(--panel-bg);color:var(--fg);cursor:pointer;"><option value="light">☀️ Light</option><option value="dark">🌙 Dark</option><option value="ocean">🌊 Ocean</option><option value="forest">🌿 Forest</option><option value="sunset">🌅 Sunset</option><option value="midnight">🌃 Midnight</option><option value="rose">🌹 Rose</option><option value="purple">💜 Purple</option><option value="indigo">🔷 Indigo</option></select><script>(function(){var s=document.getElementById('theme-sel');if(s)s.value=localStorage.getItem('fiapp_theme')||'light';})();</script>
   </div>
   <script>
-  function toggleTheme(){
-    const d=document.documentElement.classList.toggle('dark');
-    localStorage.setItem('fiapp_theme', d?'dark':'light');
-    document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent=d?'☀️':'🌙');
+  function setTheme(name){
+    document.documentElement.classList.remove('dark','theme-ocean','theme-forest',
+      'theme-sunset','theme-midnight','theme-rose','theme-purple','theme-indigo');
+    if(name==='dark') document.documentElement.classList.add('dark');
+    else if(name!=='light') document.documentElement.classList.add('theme-'+name);
+    localStorage.setItem('fiapp_theme',name);
+    const sel=document.getElementById('theme-sel');
+    if(sel) sel.value=name;
   }
-  if(document.documentElement.classList.contains('dark')) document.querySelectorAll('.theme-toggle').forEach(b=>b.textContent='☀️');
   function logOut(){
   ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
    'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
@@ -1363,9 +1366,9 @@ function showShareModal(title,text){
   const bodyText=text.length>MAX?text.slice(0,MAX)+'\n…(truncated — use Export to send full data)':text;
   const ym=state.currentYear+'-'+String(state.currentMonth+1).padStart(2,'0');
   const xlsxFile='subscriptions-'+ym+'.xlsx';
-  const xlsxBody='I\'m sharing my FiApp subscriptions spreadsheet - please find the attached XLSX file (saved to your Downloads folder).\n\nFile: '+xlsxFile;
+  const xlsxBody='I\'m sharing my FiApp subscriptions spreadsheet. Open FiApp at https://fiapp.onrender.com/subscriptions to view your own data.\n\nAttached XLSX file (saved to your Downloads folder): '+xlsxFile;
   const blob=encodeBlob(buildSubsBlob());
-  const pasteBody='I\'m sharing my FiApp subscription data. Paste this entire block into the FiApp Subscription Tracker (📋 Paste button) to load everything:\n\n'+blob;
+  const pasteBody=('I\'m sharing my FiApp subscription data. Paste this block into the FiApp Subscription Tracker at https://fiapp.onrender.com/subscriptions using the 📋 Paste button to load the data:\n\n'+blob).slice(0,2000);
 
   const h=document.createElement('h3');h.textContent=title;
   const ta=document.createElement('textarea');ta.readOnly=true;ta.value=text;
@@ -1727,11 +1730,8 @@ function closeDrawer(){
   document.getElementById('side-drawer').classList.remove('open');
   document.getElementById('drawer-overlay').style.display='none';
 }
-document.querySelectorAll('.drawer-link').forEach(function(a){
-  if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
-});
 </script>
-  
+
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
   <nav id="side-drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
@@ -1747,5 +1747,10 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
       <li><a href="/currency" class="drawer-link" data-path="/currency">💱 Currency Converter</a></li>
     </ul>
   </nav>
+<script>
+document.querySelectorAll('.drawer-link').forEach(function(a){
+  if(a.dataset.path===window.location.pathname) a.classList.add('drawer-link-active');
+});
+</script>
 </body>
 </html>
