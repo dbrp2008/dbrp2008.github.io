@@ -1059,7 +1059,7 @@ function renderTrendChart(){
     const ds={label,data,borderColor:color,borderWidth:2};
     if(trendType==='bar'){
       ds.backgroundColor=rgba; ds.borderRadius=4; ds.borderWidth=1;
-      ds.stack='combined'; 
+      ds.stack='combined'; ds.minBarLength=6;
     } else {
       ds.backgroundColor='transparent'; ds.fill=false;
       ds.tension=0.3; ds.pointRadius=4; ds.pointBackgroundColor=color;
