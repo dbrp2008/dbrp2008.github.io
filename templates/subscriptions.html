@@ -61,21 +61,27 @@
     
     .forecast-badge{padding:.15rem .45rem;border-radius:4px;font-size:.7rem;font-weight:700;letter-spacing:.04em;background:#fef3c7;color:#92400e;border:1px solid #fde68a;margin-left:.5rem;vertical-align:middle;}
     html.dark .forecast-badge{background:#451a03;color:#fde68a;border-color:#78350f;}
+    html.theme-midnight .forecast-badge{background:#451a03;color:#fde68a;border-color:#78350f;}
     .forecast-bar{display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.65rem 1rem;margin-bottom:.75rem;align-items:center;gap:.5rem;flex-wrap:wrap;}
     html.dark .forecast-bar{background:#451a03;border-color:#78350f;}
+    html.theme-midnight .forecast-bar{background:#451a03;border-color:#78350f;}
     .forecast-bar p{margin:0;font-size:.83rem;color:#92400e;font-weight:500;}
     html.dark .forecast-bar p{color:#fde68a;}
+    html.theme-midnight .forecast-bar p{color:#fde68a;}
     table.sheet.forecast tbody td{font-style:italic;}
     .totals-panel.forecast-panel{background:#fffbeb;border-color:#fde68a;}
     html.dark .totals-panel.forecast-panel{background:#451a03;border-color:#78350f;}
+    html.theme-midnight .totals-panel.forecast-panel{background:#451a03;border-color:#78350f;}
     .totals-panel.forecast-panel h3{color:#92400e;}
     html.dark .totals-panel.forecast-panel h3{color:#fde68a;}
+    html.theme-midnight .totals-panel.forecast-panel h3{color:#fde68a;}
     .add-bar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;padding:.65rem 1rem;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;margin-bottom:.6rem;}
     .add-bar label{font-weight:600;font-size:.88rem;margin:0;color:var(--fg);}
     .add-bar select,.add-bar input[type="text"]{padding:5px 9px;border:1px solid var(--input-border);border-radius:4px;font-size:.88rem;width:auto;background:var(--input-bg);color:var(--fg);}
     #custom-inp{display:none;min-width:150px;}
     .opts-bar{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.4rem .75rem;background:#fefce8;border:1px solid #fde68a;border-radius:6px;margin-bottom:.6rem;font-size:.85rem;color:#713f12;}
     html.dark .opts-bar{background:#422006;border-color:#78350f;color:#fde68a;}
+    html.theme-midnight .opts-bar{background:#422006;border-color:#78350f;color:#fde68a;}
     .opts-bar label{display:flex;align-items:center;gap:.35rem;cursor:pointer;font-weight:500;}
     .disc-box{font-size:.82rem;color:var(--fg);padding:.45rem .75rem;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:6px;margin-bottom:.6rem;}
     .disc-box summary{cursor:pointer;font-weight:600;color:var(--fg);user-select:none;}
@@ -92,8 +98,10 @@
     
     .leaderboard{padding:.8rem 1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;margin-bottom:.75rem;}
     html.dark .leaderboard{background:#422006;border-color:#78350f;}
+    html.theme-midnight .leaderboard{background:#422006;border-color:#78350f;}
     .leaderboard h3{margin:0 0 .55rem;color:#92400e;font-size:.95rem;display:flex;justify-content:space-between;align-items:center;}
     html.dark .leaderboard h3{color:#fde68a;}
+    html.theme-midnight .leaderboard h3{color:#fde68a;}
     .lb-empty{color:var(--muted);font-size:.85rem;text-align:center;padding:.5rem 0;}
     .podium{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin-bottom:.55rem;}
     .podium-card{background:var(--panel-bg);border:1.5px solid var(--panel-border);border-radius:8px;padding:.55rem .65rem;text-align:center;display:flex;flex-direction:column;gap:.2rem;}
@@ -105,8 +113,11 @@
     .medal-silver{border-color:#9ca3af;background:linear-gradient(180deg,#e2e8f0 0%,var(--panel-bg) 60%);}
     .medal-bronze{border-color:#b45309;background:linear-gradient(180deg,#fed7aa 0%,var(--panel-bg) 60%);}
     html.dark .medal-gold{background:linear-gradient(180deg,#78350f 0%,var(--panel-bg) 60%);}
+    html.theme-midnight .medal-gold{background:linear-gradient(180deg,#78350f 0%,var(--panel-bg) 60%);}
     html.dark .medal-silver{background:linear-gradient(180deg,#374151 0%,var(--panel-bg) 60%);}
+    html.theme-midnight .medal-silver{background:linear-gradient(180deg,#374151 0%,var(--panel-bg) 60%);}
     html.dark .medal-bronze{background:linear-gradient(180deg,#431407 0%,var(--panel-bg) 60%);}
+    html.theme-midnight .medal-bronze{background:linear-gradient(180deg,#431407 0%,var(--panel-bg) 60%);}
     .lb-rest{margin:0;padding-left:1.5rem;font-size:.85rem;color:var(--fg);}
     .lb-rest li{margin:.2rem 0;display:flex;justify-content:space-between;gap:.5rem;}
     .lb-rest li span:first-child{font-weight:500;}
@@ -244,12 +255,13 @@
     if(_td){ _td.classList.remove('open'); _td.querySelectorAll('.theme-opt').forEach(function(o){ o.classList.toggle('active',o.dataset.theme===name); }); }
   }
   var toggleThemeMenu=toggleAcctMenu;
-  function logOut(){
-  ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
-   'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
-   'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
-   'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'
-  ].forEach(function(k){localStorage.removeItem(k);});
+  const FIAPP_USER_KEYS=['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+  'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+  'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+  'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'];
+// keep in sync with head auth-clear script
+function logOut(){
+  FIAPP_USER_KEYS.forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
   function toggleAcctMenu(btn){
@@ -1706,9 +1718,10 @@ async function preloadRates(){
   recalcTotals();
 }
 
+function _esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 (async()=>{
-  
+
   try{
     const me=await fetch('/auth/me').then(r=>r.json());
     window.__currentUser=me.username||null;
@@ -1716,7 +1729,7 @@ async function preloadRates(){
     if(badge){
       if(me.username){
         badge.innerHTML='<div class="acct-menu-wrap">'
-          +'<button class="btn-ghost btn-sm" onclick="toggleAcctMenu(this)">👤 '+me.username+'</button>'
+          +'<button class="btn-ghost btn-sm" onclick="toggleAcctMenu(this)">👤 '+_esc(me.username)+'</button>'
           +'<div class="acct-dropdown">'
           +'<a href="/account" class="acct-item">⚙ Account settings</a>'
           +'<button onclick="logOut()" class="acct-item acct-logout">⬅ Log out</button>'
@@ -1747,6 +1760,7 @@ function closeDrawer(){
   document.getElementById('side-drawer').classList.remove('open');
   document.getElementById('drawer-overlay').style.display='none';
 }
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
 </script>
 
   <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
