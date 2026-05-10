@@ -298,14 +298,14 @@
   </div>
 
   <div class="forecast-bar" id="forecast-bar">
-    <p>📋 <strong>Forecast mode</strong> — this is a future month. Enter projected income, or seed from history:</p>
+    <p>📋 <strong>Forecast mode</strong> - this is a future month. Enter projected income, or seed from history:</p>
     <button class="btn btn-sm" onclick="copyLastMonth()">Copy last month</button>
     <button class="btn btn-sm" onclick="useAverages()">Use 3-month avg</button>
   </div>
 
   
   <div class="summary-bar" id="summary-bar">
-    <h3>Income Summary — <span id="summary-month"></span></h3>
+    <h3>Income Summary - <span id="summary-month"></span></h3>
     <div class="summary-grid">
       <div class="summary-item">
         <span class="summary-label">Total This Month (USD)</span>
@@ -411,7 +411,7 @@ async function fetchAndCacheUSDRates(){
       });
       ratesReady=true;
     }
-  }catch(e){ console.warn('FiApp: rate fetch failed —',e.message); }
+  }catch(e){ console.warn('FiApp: rate fetch failed -',e.message); }
 }
 async function ensureRate(currency){
   if(!currency||currency==='USD'||ratesCache[currency]) return;
@@ -577,7 +577,7 @@ function loadState(){
       if(!s.colsByMonth)    s.colsByMonth={};
       return s;
     }
-  }catch(e){ console.warn('FiApp: loadState failed, using fresh state —',e.message); }
+  }catch(e){ console.warn('FiApp: loadState failed, using fresh state -',e.message); }
   return freshState();
 }
 let state=loadState();
@@ -660,7 +660,7 @@ function showSaveQuotaWarning(){
   if(document.getElementById('quota-warn')) return;
   const el=document.createElement('div'); el.id='quota-warn'; el.className='error';
   el.style.cssText='position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;text-align:center;padding:.6rem 1rem;';
-  el.textContent='⚠ Storage full — latest changes could not be saved. Export your data and clear some rows.';
+  el.textContent='⚠ Storage full - latest changes could not be saved. Export your data and clear some rows.';
   document.body.appendChild(el); setTimeout(()=>el.remove(),8000);
 }
 function showToast(msg, isError=true, duration=4000){
@@ -768,7 +768,7 @@ function copyLastMonth(){
     if(!state.cells[newKey]){state.cells[newKey]=state.cells[k];copied++;}
   });
   save(); render();
-  showForecastToast(copied?`Copied ${copied} values from ${MONTHS_SHORT[pm]} ${py}.`:'All cells already have values — nothing to copy.');
+  showForecastToast(copied?`Copied ${copied} values from ${MONTHS_SHORT[pm]} ${py}.`:'All cells already have values - nothing to copy.');
 }
 function useAverages(){
   if(!isForecastMonth()) return;
@@ -1101,10 +1101,10 @@ function renderChart(){
   let data, topLabel;
   if(chartMode==='yearly'){
     data=topRows.map(r=>({label:r.label,value:rowTotalForYear(r.id,state.currentYear),color:r.color})).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
-    topLabel='Top Income — '+state.currentYear;
+    topLabel='Top Income - '+state.currentYear;
   } else {
     data=topRows.map(r=>({label:r.label,value:rowTotal(r.id),color:r.color})).filter(d=>d.value>0).sort((a,b)=>b.value-a.value);
-    topLabel='Top Income — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+    topLabel='Top Income - '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   }
   if(chartInstance){chartInstance.destroy();chartInstance=null;}
   if(!data.length){renderTop3([],topLabel);return;}
@@ -1146,7 +1146,7 @@ function renderTop3(data,label){
   const top=(data||[]).slice(0,3);
   const el=document.getElementById('top3');
   if(!top.length){el.innerHTML='';return;}
-  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.label)}</strong> — $${parseFloat(t.value.toFixed(2))}</li>`).join('')+'</ol>';
+  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.label)}</strong> - $${parseFloat(t.value.toFixed(2))}</li>`).join('')+'</ol>';
 }
 
 
@@ -1555,7 +1555,7 @@ function decodeBlob(str){
   if(!m) throw new Error('Not a FiApp paste-blob.');
   let obj;
   try{ obj=JSON.parse(decodeURIComponent(escape(atob(m[2])))); }
-  catch(e){ throw new Error('Blob is corrupted or incomplete — could not decode.'); }
+  catch(e){ throw new Error('Blob is corrupted or incomplete - could not decode.'); }
   if(typeof obj!=='object'||obj===null) throw new Error('Invalid blob: unexpected format.');
   if(obj.kind!==m[1]) throw new Error('Blob kind mismatch.');
   if(!Array.isArray(obj.rows)) throw new Error('Invalid blob: missing rows array.');
@@ -1729,17 +1729,17 @@ function openPasteModal(){
       let label='';
       if(obj.kind==='INC-MONTH'){
         const [yy,mm]=obj.monthKey.split('-');
-        label='This month — '+MONTHS_FULL[parseInt(mm,10)-1]+' '+yy;
+        label='This month - '+MONTHS_FULL[parseInt(mm,10)-1]+' '+yy;
       } else if(obj.kind==='INC-FULL'){
         const months=Object.keys(obj.cellsByMonth||{}).filter(k=>Object.keys(obj.cellsByMonth[k]).length).length;
         if(months===0){
-          status.textContent='⚠ This blob has no month data — the income tracker was empty when it was copied.';
+          status.textContent='⚠ This blob has no month data - the income tracker was empty when it was copied.';
           status.className='paste-status bad';
           applyBtn.disabled=true;
           parsed=null;
           return;
         }
-        label='Full data — '+months+' month'+(months===1?'':'s');
+        label='Full data - '+months+' month'+(months===1?'':'s');
       } else {
         throw new Error('This blob is from a different tracker ('+obj.kind+'). Open the matching tracker page to paste it.');
       }
@@ -1854,8 +1854,8 @@ function showExportMenu(ev){
     {label:'{ } JSON',fn:()=>downloadText(base+'.json',buildJson(),'application/json')},
     {label:'📃 TXT',  fn:()=>downloadText(base+'.txt',buildTxt(),'text/plain;charset=utf-8')},
     {label:'📊 XLSX', fn:()=>exportXlsx(base+'.xlsx')},
-    {label:'📋 Copy table — This month', fn:()=>clipboardWrite(encodeBlob(buildIncMonthBlob())).then(ok=>showExportFlash(ok?'✓ Copied (this month)':'Copy failed'))},
-    {label:'📋 Copy table — Full data',  fn:()=>clipboardWrite(encodeBlob(buildIncFullBlob())).then(ok=>showExportFlash(ok?'✓ Copied (full)':'Copy failed'))},
+    {label:'📋 Copy table - This month', fn:()=>clipboardWrite(encodeBlob(buildIncMonthBlob())).then(ok=>showExportFlash(ok?'✓ Copied (this month)':'Copy failed'))},
+    {label:'📋 Copy table - Full data',  fn:()=>clipboardWrite(encodeBlob(buildIncFullBlob())).then(ok=>showExportFlash(ok?'✓ Copied (full)':'Copy failed'))},
   ];
   formats.forEach(f=>{
     const btn=document.createElement('button');btn.textContent=f.label;
@@ -1875,7 +1875,7 @@ function showExportMenu(ev){
 
 async function shareSheet(){
   const text=buildTxt();
-  const title='FiApp Income — '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  const title='FiApp Income - '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
   if(isMobile&&navigator.share){
     try{await navigator.share({title,text});return;}catch(e){if(e.name==='AbortError')return;}
@@ -1885,14 +1885,14 @@ async function shareSheet(){
 function showShareModal(title,text){
   const overlay=document.createElement('div');overlay.className='share-overlay';
   const modal=document.createElement('div');modal.className='share-modal';
-  const h=document.createElement('h3');h.textContent='Share — '+title;
+  const h=document.createElement('h3');h.textContent='Share - '+title;
   const ta=document.createElement('textarea');ta.readOnly=true;ta.value=text;
   const hint=document.createElement('span');hint.className='share-hint';
-  hint.textContent='Copy puts a tab-separated version on your clipboard — pastes cleanly into Word, Docs, Excel and Sheets.';
+  hint.textContent='Copy puts a tab-separated version on your clipboard - pastes cleanly into Word, Docs, Excel and Sheets.';
 
   const tsv=buildTsv();
   const MAX_BODY=1500;
-  const bodyText=text.length>MAX_BODY?text.slice(0,MAX_BODY)+'\n…(truncated — use Export for full data)':text;
+  const bodyText=text.length>MAX_BODY?text.slice(0,MAX_BODY)+'\n…(truncated - use Export for full data)':text;
 
   const actions=document.createElement('div');actions.className='share-actions';
   const flash=document.createElement('span');flash.className='share-flash';
@@ -2009,11 +2009,11 @@ function showShareModal(title,text){
 
 <div id="help-modal" style="display:none" class="share-overlay" onclick="if(event.target===this)closeHelp()">
   <div class="share-modal">
-    <h3>How to use — Income Tracker</h3>
+    <h3>How to use - Income Tracker</h3>
     <div class="help-body">
       <ul>
         <li>Add income sources as rows; add sub-sources with <strong>+Sub</strong> on any row.</li>
-        <li>Each cell can use its own currency — select it from the dropdown next to the amount.</li>
+        <li>Each cell can use its own currency - select it from the dropdown next to the amount.</li>
         <li>Per-month currencies are independent: changing one month's currency doesn't affect others.</li>
         <li>In <strong>Forecast mode</strong>, "Use 3-month avg" converts all historical values to USD before averaging, so mixed currencies average correctly.</li>
         <li>Totals auto-link to the <strong>Expense Tracker</strong> income panel and the <strong>Tax Calculator</strong>.</li>
