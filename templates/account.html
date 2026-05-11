@@ -316,6 +316,7 @@ function _clearAllStorage(){
   FIAPP_USER_KEYS.forEach(function(k){ localStorage.removeItem(k); });
 }
 function logOut(){
+  if(!confirm('Log out and clear all local data?')) return;
   _clearAllStorage();
   fetch('/auth/logout',{method:'POST'}).then(()=>{ window.location='/login'; });
 }
