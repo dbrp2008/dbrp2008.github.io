@@ -240,6 +240,14 @@
     .month-picker{display:flex;flex-direction:column;gap:.3rem;max-height:260px;overflow-y:auto;border:1px solid var(--panel-border);border-radius:5px;padding:.5rem;}
     .month-picker label{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--fg);cursor:pointer;}
     .month-picker input[type="checkbox"]{cursor:pointer;}
+    .copy-to-menu{min-width:210px;max-height:290px;overflow-y:auto;}
+    .copy-to-hd{padding:.3rem .75rem .15rem;font-size:.71rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+    .copy-to-item{display:flex;align-items:center;gap:.55rem;padding:.38rem .75rem;border-radius:5px;font-size:.85rem;color:var(--fg);cursor:pointer;white-space:nowrap;}
+    .copy-to-item:hover{background:var(--hover-bg,rgba(0,0,0,.06));}
+    .copy-to-item input[type="checkbox"]{cursor:pointer;accent-color:var(--accent);}
+    .copy-to-divider{border:none;border-top:1px solid var(--panel-border);margin:.3rem .4rem;}
+    .copy-to-copy-btn{display:block;width:calc(100% - .8rem);margin:.1rem .4rem .25rem;padding:.4rem .75rem;border-radius:5px;font-size:.85rem;cursor:pointer;background:var(--accent);color:#fff;border:none;font-family:inherit;font-weight:600;}
+    .copy-to-copy-btn:hover{opacity:.88;}
     .picker-tools{display:flex;gap:.4rem;font-size:.78rem;}
     .picker-tools button{background:var(--secondary-bg);border:none;border-radius:4px;padding:.2rem .55rem;cursor:pointer;color:var(--secondary-fg);}
     .picker-tools button:hover{background:var(--secondary-hover);}
@@ -321,7 +329,7 @@ function logOut(){
   <div style="margin-bottom:.5rem;">
     <button class="btn-ghost btn-sm" onclick="copyStructureFromPrevMonth()">📋 Copy rows/cols from previous month</button>
     <button class="btn-ghost btn-sm" onclick="showMonthCopyPicker()">📋 Copy from a specific month…</button>
-    <button class="btn-ghost btn-sm" onclick="showCopyToMonthsPicker()">📤 Copy to months…</button>
+    <div class="dropdown" id="dd-copy-to"><button class="btn-ghost btn-sm" onclick="openCopyToDropdown(event)">📤 Copy to ▾</button><div class="dropdown-menu copy-to-menu" id="dd-copy-to-menu"></div></div>
   </div>
 
   <div class="forecast-bar" id="forecast-bar">
@@ -677,12 +685,11 @@ function copyMonthToTargets(sourceMk, targetMks, overwrite){
   showToast('Copied to '+targetMks.length+' month'+(targetMks.length>1?'s':'')+'.');
 }
 
-function showCopyToMonthsPicker(){
+function openCopyToDropdown(e){
   const sourceMk=currentMK();
   const months=new Set();
   Object.keys(state.cells||{}).forEach(k=>{const m=k.split('|')[0];if(m&&m!==sourceMk&&/^\d{4}-\d{2}$/.test(m))months.add(m);});
   Object.keys(state.rowsByMonth||{}).forEach(m=>{if(m!==sourceMk)months.add(m);});
-  // also offer the next 12 calendar months as targets
   let d=new Date(); d.setDate(1);
   for(let i=0;i<12;i++){
     d.setMonth(d.getMonth()+1);
@@ -690,39 +697,39 @@ function showCopyToMonthsPicker(){
     if(m!==sourceMk) months.add(m);
   }
   const opts=[...months].sort();
-  const overlay=document.createElement('div');overlay.className='share-overlay';
-  const modal=document.createElement('div');modal.className='share-modal';modal.style.maxWidth='360px';
-  const h=document.createElement('h3');
+  const menu=document.getElementById('dd-copy-to-menu');
+  menu.innerHTML='';
+  if(!opts.length){
+    const em=document.createElement('div');em.style.cssText='padding:.5rem .75rem;font-size:.83rem;color:var(--muted);white-space:nowrap;';
+    em.textContent='No other months available.';menu.appendChild(em);
+    toggleDropdown('dd-copy-to',e);return;
+  }
   const [sy,sm]=sourceMk.split('-');
-  h.textContent='Copy '+new Date(+sy,+sm-1,1).toLocaleString('default',{month:'long',year:'numeric'})+' to:';
-  // checkbox list
-  const list=document.createElement('div');list.className='month-picker';list.style.marginTop='.5rem';
+  const hd=document.createElement('div');hd.className='copy-to-hd';
+  hd.textContent='Copy '+new Date(+sy,+sm-1,1).toLocaleString('default',{month:'long',year:'numeric'})+' to:';
+  menu.appendChild(hd);
   opts.forEach(m=>{
-    const lbl=document.createElement('label');
+    const lbl=document.createElement('label');lbl.className='copy-to-item';
     const cb=document.createElement('input');cb.type='checkbox';cb.value=m;
+    cb.addEventListener('click',ev=>ev.stopPropagation());
     const [y,mo]=m.split('-');
     lbl.appendChild(cb);
     lbl.appendChild(document.createTextNode(' '+new Date(+y,+mo-1,1).toLocaleString('default',{month:'long',year:'numeric'})));
-    list.appendChild(lbl);
+    menu.appendChild(lbl);
   });
-  // overwrite checkbox
-  const owWrap=document.createElement('label');owWrap.style.cssText='display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--muted);margin-top:.6rem;cursor:pointer;';
-  const owCb=document.createElement('input');owCb.type='checkbox';
-  owWrap.appendChild(owCb);owWrap.appendChild(document.createTextNode(' Overwrite existing values'));
-  const actions=document.createElement('div');actions.style.cssText='display:flex;gap:.5rem;justify-content:flex-end;margin-top:.75rem;';
-  const cancelBtn=document.createElement('button');cancelBtn.className='btn btn-sm btn-ghost';cancelBtn.textContent='Cancel';
-  cancelBtn.addEventListener('click',()=>overlay.remove());
-  const copyBtn=document.createElement('button');copyBtn.className='btn btn-sm';copyBtn.textContent='Copy';
-  copyBtn.addEventListener('click',()=>{
-    const selected=[...list.querySelectorAll('input[type="checkbox"]:checked')].map(c=>c.value);
+  const hr=document.createElement('hr');hr.className='copy-to-divider';menu.appendChild(hr);
+  const copyBtn=document.createElement('button');copyBtn.className='copy-to-copy-btn';copyBtn.textContent='Copy';
+  copyBtn.addEventListener('click',ev=>{
+    ev.stopPropagation();
+    const selected=[...menu.querySelectorAll('.copy-to-item input:checked')].map(c=>c.value);
     if(!selected.length){showToast('Select at least one month.');return;}
-    copyMonthToTargets(sourceMk,selected,owCb.checked);
-    overlay.remove();
+    const hasExisting=selected.some(tMk=>Object.keys(state.cells||{}).some(k=>k.startsWith(tMk+'|')&&state.cells[k]));
+    if(hasExisting&&!confirm('Some selected months already have data — overwrite it?')) return;
+    menu.classList.remove('open');
+    copyMonthToTargets(sourceMk,selected,true);
   });
-  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-  actions.appendChild(cancelBtn);actions.appendChild(copyBtn);
-  modal.appendChild(h);modal.appendChild(list);modal.appendChild(owWrap);modal.appendChild(actions);
-  overlay.appendChild(modal);document.body.appendChild(overlay);
+  menu.appendChild(copyBtn);
+  toggleDropdown('dd-copy-to',e);
 }
 
 function showMonthCopyPicker(){
