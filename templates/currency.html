@@ -49,9 +49,9 @@
     #side-drawer a{display:block;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--fg);font-size:.9rem;font-weight:600;}
     #side-drawer a:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #side-drawer a.drawer-link-active{font-weight:800;color:var(--accent);background:var(--hover-bg);pointer-events:none;}
-    .rates-date-btn{background:none;border:none;padding:0;font-size:.8rem;color:var(--muted);cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;margin-top:.5rem;display:none;}
-    .rates-date-btn:hover{color:var(--accent);}
-    .rates-wrap{position:relative;display:inline-block;}
+    .rates-date-btn{background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:20px;padding:.28rem .85rem;font-size:.78rem;color:var(--muted);cursor:pointer;display:none;transition:border-color .15s,color .15s,background .15s;white-space:nowrap;}
+    .rates-date-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--hover-bg);}
+    .rates-wrap{position:relative;display:block;margin-top:.6rem;}
     .rates-info-panel{position:absolute;left:0;top:calc(100% + 4px);z-index:20;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;padding:.75rem 1rem;min-width:280px;box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:.82rem;display:none;}
     .rates-info-row{display:flex;justify-content:space-between;gap:1.5rem;padding:.18rem 0;color:var(--fg);}
     .rates-info-label{color:var(--muted);font-weight:600;}
@@ -398,14 +398,17 @@ function _buildRatesPanel(){
       const fetched=new Date(b.fetched_at);
       const msLeft=fetched.getTime()+_LS_TTL_MS-now;
       html+='<div class="rates-info-row"><span class="rates-info-label">Base: '+b.base+'</span>'
-        +'<span>'+fetched.toLocaleDateString()+' '+fetched.toLocaleTimeString()+'</span></div>'
+        +'<span style="display:flex;align-items:center;gap:.5rem;">'
+        +'<span>'+fetched.toLocaleDateString()+' '+fetched.toLocaleTimeString()+'</span>'
+        +'<button type="button" class="btn-ghost btn-sm" style="padding:.1rem .4rem;font-size:.75rem;" onclick="_refreshBase(\''+b.base+'\')">↻</button>'
+        +'</span></div>'
         +'<div style="font-size:.77rem;padding-bottom:.38rem;color:var(--muted);">'
         +'Next refresh: <span class="rates-countdown" id="rcd-'+b.base+'">'+_fmtCountdown(msLeft)+'</span></div>';
     });
   }
   html+='<hr style="border:none;border-top:1px solid var(--panel-border);margin:.4rem -.1rem .45rem;">'
     +'<div style="display:flex;gap:.5rem;">'
-    +'<button type="button" class="btn-ghost btn-sm" onclick="_refreshFromPanel()">↻ Refresh</button>'
+    +'<button type="button" class="btn-ghost btn-sm" onclick="_refreshFromPanel()">↻ Refresh all</button>'
     +'<button type="button" class="btn-ghost btn-sm" onclick="closeRatesPanel()">✕ Close</button>'
     +'</div>';
   panel.innerHTML=html;
@@ -445,11 +448,27 @@ function _closeRatesPanelOutside(e){
 }
 
 async function _refreshFromPanel(){
-  const fromRaw=(document.getElementById('currency_i').value||'USD').toUpperCase();
-  const refreshBtns=document.querySelectorAll('#rates-info-panel .btn-ghost');
-  refreshBtns.forEach(b=>{b.disabled=true;});
-  await refreshRates(fromRaw);
-  refreshBtns.forEach(b=>{b.disabled=false;});
+  const panel=document.getElementById('rates-info-panel');
+  panel.querySelectorAll('button').forEach(b=>{b.disabled=true;});
+  const toRefresh=_getCachedBases().map(b=>b.base);
+  if(!toRefresh.length) toRefresh.push('USD');
+  for(const base of toRefresh){
+    try{ await fiappGetRates(base,true); }catch(e){ showError('Refresh '+base+' failed: '+e.message); }
+  }
+  const first=_getCachedBases()[0];
+  if(first) updateRatesDateBtn(new Date(first.fetched_at));
+  showInfo('All rates refreshed.');
+  _buildRatesPanel();
+}
+
+async function _refreshBase(base){
+  const panel=document.getElementById('rates-info-panel');
+  panel.querySelectorAll('button').forEach(b=>{b.disabled=true;});
+  try{
+    const obj=await fiappGetRates(base,true);
+    updateRatesDateBtn(new Date(obj.fetched_at));
+    showInfo(base+' rates refreshed.');
+  }catch(e){ showError('Refresh '+base+' failed: '+e.message); }
   _buildRatesPanel();
 }
 </script>
