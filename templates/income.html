@@ -240,13 +240,14 @@
     .month-picker{display:flex;flex-direction:column;gap:.3rem;max-height:260px;overflow-y:auto;border:1px solid var(--panel-border);border-radius:5px;padding:.5rem;}
     .month-picker label{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--fg);cursor:pointer;}
     .month-picker input[type="checkbox"]{cursor:pointer;}
-    .copy-to-menu{min-width:210px;max-height:290px;overflow-y:auto;}
-    .copy-to-hd{padding:.3rem .75rem .15rem;font-size:.71rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
-    .copy-to-item{display:flex;align-items:center;gap:.55rem;padding:.38rem .75rem;border-radius:5px;font-size:.85rem;color:var(--fg);cursor:pointer;white-space:nowrap;}
-    .copy-to-item:hover{background:var(--hover-bg,rgba(0,0,0,.06));}
-    .copy-to-item input[type="checkbox"]{cursor:pointer;accent-color:var(--accent);}
-    .copy-to-divider{border:none;border-top:1px solid var(--panel-border);margin:.3rem .4rem;}
-    .copy-to-copy-btn{display:block;width:calc(100% - .8rem);margin:.1rem .4rem .25rem;padding:.4rem .75rem;border-radius:5px;font-size:.85rem;cursor:pointer;background:var(--accent);color:#fff;border:none;font-family:inherit;font-weight:600;}
+    .copy-to-menu{min-width:240px;max-width:300px;padding:.5rem .6rem .4rem;}
+    .copy-to-hd{padding:.1rem .15rem .4rem;font-size:.71rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+    .copy-to-pills{display:flex;flex-wrap:wrap;gap:.35rem;padding-bottom:.4rem;}
+    .copy-to-pill{padding:.28rem .65rem;border-radius:20px;font-size:.8rem;font-weight:500;color:var(--fg);background:transparent;border:1.5px solid var(--panel-border);cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+    .copy-to-pill:hover{background:var(--hover-bg,rgba(0,0,0,.07));border-color:var(--accent);}
+    .copy-to-pill.selected{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .copy-to-divider{border:none;border-top:1px solid var(--panel-border);margin:.2rem -.1rem .35rem;}
+    .copy-to-copy-btn{display:block;width:100%;padding:.38rem .75rem;border-radius:5px;font-size:.85rem;cursor:pointer;background:var(--accent);color:#fff;border:none;font-family:inherit;font-weight:600;}
     .copy-to-copy-btn:hover{opacity:.88;}
     .picker-tools{display:flex;gap:.4rem;font-size:.78rem;}
     .picker-tools button{background:var(--secondary-bg);border:none;border-radius:4px;padding:.2rem .55rem;cursor:pointer;color:var(--secondary-fg);}
@@ -708,20 +709,25 @@ function openCopyToDropdown(e){
   const hd=document.createElement('div');hd.className='copy-to-hd';
   hd.textContent='Copy '+new Date(+sy,+sm-1,1).toLocaleString('default',{month:'long',year:'numeric'})+' to:';
   menu.appendChild(hd);
+  const pillsDiv=document.createElement('div');pillsDiv.className='copy-to-pills';
   opts.forEach(m=>{
-    const lbl=document.createElement('label');lbl.className='copy-to-item';
-    const cb=document.createElement('input');cb.type='checkbox';cb.value=m;
-    cb.addEventListener('click',ev=>ev.stopPropagation());
     const [y,mo]=m.split('-');
-    lbl.appendChild(cb);
-    lbl.appendChild(document.createTextNode(' '+new Date(+y,+mo-1,1).toLocaleString('default',{month:'long',year:'numeric'})));
-    menu.appendChild(lbl);
+    const pill=document.createElement('span');
+    pill.className='copy-to-pill';
+    pill.dataset.mk=m;
+    pill.textContent=new Date(+y,+mo-1,1).toLocaleString('default',{month:'short',year:'numeric'});
+    pill.addEventListener('click',ev=>{
+      ev.stopPropagation();
+      pill.classList.toggle('selected');
+    });
+    pillsDiv.appendChild(pill);
   });
+  menu.appendChild(pillsDiv);
   const hr=document.createElement('hr');hr.className='copy-to-divider';menu.appendChild(hr);
   const copyBtn=document.createElement('button');copyBtn.className='copy-to-copy-btn';copyBtn.textContent='Copy';
   copyBtn.addEventListener('click',ev=>{
     ev.stopPropagation();
-    const selected=[...menu.querySelectorAll('.copy-to-item input:checked')].map(c=>c.value);
+    const selected=[...menu.querySelectorAll('.copy-to-pill.selected')].map(p=>p.dataset.mk);
     if(!selected.length){showToast('Select at least one month.');return;}
     const hasExisting=selected.some(tMk=>Object.keys(state.cells||{}).some(k=>k.startsWith(tMk+'|')&&state.cells[k]));
     if(hasExisting&&!confirm('Some selected months already have data — overwrite it?')) return;
