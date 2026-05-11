@@ -185,7 +185,7 @@ function populateSelects(){
     sel.appendChild(placeholder);
     CURRENCIES.forEach(c=>{
       const opt=document.createElement('option');
-      opt.value=c.code; opt.textContent=c.name+' — '+c.code;
+      opt.value=c.code; opt.textContent=c.name+' - '+c.code;
       sel.appendChild(opt);
     });
     const other=document.createElement('option');
@@ -299,11 +299,11 @@ document.getElementById('currency-form').addEventListener('submit', async functi
       return;
     }
 
-    const converted=(amount*rate).toFixed(4);
+    const converted=(amount*rate).toFixed(2);
     clearMsg();
     document.getElementById('result-text').innerHTML=
       '<strong>'+amount+' '+fromRaw+'</strong> = <strong>'+converted+' '+toRaw+'</strong>'
-      +'<br><small style="color:#6b7280">Rate: 1 '+fromRaw+' = '+rate.toFixed(6)+' '+toRaw+'</small>';
+      +'<br><small style="color:#6b7280">Rate: 1 '+fromRaw+' = '+rate.toFixed(4)+' '+toRaw+'</small>';
     document.getElementById('result-box').style.display='block';
 
     
