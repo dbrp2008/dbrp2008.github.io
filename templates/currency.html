@@ -49,6 +49,13 @@
     #side-drawer a{display:block;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--fg);font-size:.9rem;font-weight:600;}
     #side-drawer a:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #side-drawer a.drawer-link-active{font-weight:800;color:var(--accent);background:var(--hover-bg);pointer-events:none;}
+    .rates-date-btn{background:none;border:none;padding:0;font-size:.8rem;color:var(--muted);cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;margin-top:.5rem;display:none;}
+    .rates-date-btn:hover{color:var(--accent);}
+    .rates-wrap{position:relative;display:inline-block;}
+    .rates-info-panel{position:absolute;left:0;top:calc(100% + 4px);z-index:20;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;padding:.75rem 1rem;min-width:280px;box-shadow:0 4px 16px rgba(0,0,0,.12);font-size:.82rem;display:none;}
+    .rates-info-row{display:flex;justify-content:space-between;gap:1.5rem;padding:.18rem 0;color:var(--fg);}
+    .rates-info-label{color:var(--muted);font-weight:600;}
+    .rates-countdown{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:600;}
   </style>
 </head>
 <body>
@@ -143,8 +150,10 @@ document.querySelectorAll('.drawer-link').forEach(function(a){
     </div>
     <br>
     <button class="btn" type="submit" id="conv-btn">Convert</button>
-    <p id="rates-date" style="font-size:.8rem;color:var(--muted);margin-top:.5rem;"></p>
-    <button id="refresh-btn" class="btn-ghost btn-sm" style="margin-top:.15rem;display:none;" onclick="refreshRates()">↻ Refresh rates</button>
+    <div class="rates-wrap">
+      <button id="rates-date-btn" type="button" class="rates-date-btn" onclick="toggleRatesPanel()"></button>
+      <div id="rates-info-panel" class="rates-info-panel"></div>
+    </div>
   </form>
 
   <div class="result" id="result-box" style="display:none;">
@@ -307,11 +316,7 @@ document.getElementById('currency-form').addEventListener('submit', async functi
     document.getElementById('result-box').style.display='block';
 
     
-    const ratesDateEl=document.getElementById('rates-date');
-    const refreshBtn=document.getElementById('refresh-btn');
-    const d=new Date(obj.fetched_at);
-    ratesDateEl.textContent='Rates as of: '+d.toLocaleDateString()+' '+d.toLocaleTimeString();
-    refreshBtn.style.display='';
+    updateRatesDateBtn(new Date(obj.fetched_at));
 
   }catch(err){
     if(err.message&&err.message.includes('unsupported-code')){
@@ -325,26 +330,128 @@ document.getElementById('currency-form').addEventListener('submit', async functi
   }
 });
 
-async function refreshRates(){
-  const fromRaw=document.getElementById('currency_i').value.toUpperCase();
-  const btn=document.getElementById('refresh-btn');
-  btn.disabled=true; btn.textContent='Refreshing…';
+async function refreshRates(fromRaw){
+  fromRaw=(fromRaw||document.getElementById('currency_i').value||'USD').toUpperCase();
   try{
     const obj=await fiappGetRates(fromRaw, true);
-    const d=new Date(obj.fetched_at);
-    document.getElementById('rates-date').textContent='Rates as of: '+d.toLocaleDateString()+' '+d.toLocaleTimeString();
-    showInfo('Rates refreshed successfully.');
+    updateRatesDateBtn(new Date(obj.fetched_at));
+    showInfo('Rates refreshed.');
   }catch(e){ showError('Refresh failed: '+e.message); }
-  finally{ btn.disabled=false; btn.textContent='↻ Refresh rates'; }
 }
 
 document.addEventListener('DOMContentLoaded', function(){
   const d=fiappRatesCachedAt('USD');
-  if(d){
-    document.getElementById('rates-date').textContent='Rates as of: '+d.toLocaleDateString()+' '+d.toLocaleTimeString();
-    document.getElementById('refresh-btn').style.display='';
-  }
+  if(d) updateRatesDateBtn(d);
 });
+
+// ── Rate cache info panel ──────────────────────────────────────
+const _LS_TTL_MS=7*24*3600*1000;
+let _ratesTick=null;
+
+function updateRatesDateBtn(d){
+  const btn=document.getElementById('rates-date-btn');
+  btn.textContent='Rates as of: '+d.toLocaleDateString()+' '+d.toLocaleTimeString()+' ⓘ';
+  btn.style.display='';
+}
+
+function _getUserCurrencies(){
+  const curs=new Set(['USD']);
+  try{ Object.values(JSON.parse(localStorage.getItem('fiapp_subs_v4')||'{}').rowCurrencies||{}).forEach(c=>{if(c)curs.add(c);}); }catch(e){}
+  try{ Object.values(JSON.parse(localStorage.getItem('fiapp_income_v1')||'{}').monthRowCurrencies||{}).forEach(c=>{if(c)curs.add(c);}); }catch(e){}
+  return [...curs].sort();
+}
+
+function _getCachedBases(){
+  const bases=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k||!k.startsWith('fiapp_exchange_rates_')) continue;
+    try{
+      const obj=JSON.parse(localStorage.getItem(k));
+      if(obj&&obj.fetched_at) bases.push({base:k.replace('fiapp_exchange_rates_',''),fetched_at:obj.fetched_at});
+    }catch(e){}
+  }
+  return bases.sort((a,b)=>a.base.localeCompare(b.base));
+}
+
+function _fmtCountdown(msLeft){
+  if(msLeft<=0) return 'overdue';
+  const s=Math.floor(msLeft/1000);
+  const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  if(d>0) return d+'d '+h+'h '+m+'m';
+  if(h>0) return h+'h '+m+'m '+sec+'s';
+  return m+'m '+sec+'s';
+}
+
+function _buildRatesPanel(){
+  const panel=document.getElementById('rates-info-panel');
+  const userCurs=_getUserCurrencies();
+  const bases=_getCachedBases();
+  const now=Date.now();
+  let html='<div style="font-weight:700;margin-bottom:.45rem;color:var(--fg);">🕐 Rate Cache</div>';
+  if(userCurs.length>1)
+    html+='<div style="color:var(--muted);font-size:.77rem;margin-bottom:.5rem;">Your currencies: '+userCurs.join(', ')+'</div>';
+  if(!bases.length){
+    html+='<div style="color:var(--muted);padding:.2rem 0;">No cached rates yet — convert something first.</div>';
+  } else {
+    bases.forEach(b=>{
+      const fetched=new Date(b.fetched_at);
+      const msLeft=fetched.getTime()+_LS_TTL_MS-now;
+      html+='<div class="rates-info-row"><span class="rates-info-label">Base: '+b.base+'</span>'
+        +'<span>'+fetched.toLocaleDateString()+' '+fetched.toLocaleTimeString()+'</span></div>'
+        +'<div style="font-size:.77rem;padding-bottom:.38rem;color:var(--muted);">'
+        +'Next refresh: <span class="rates-countdown" id="rcd-'+b.base+'">'+_fmtCountdown(msLeft)+'</span></div>';
+    });
+  }
+  html+='<hr style="border:none;border-top:1px solid var(--panel-border);margin:.4rem -.1rem .45rem;">'
+    +'<div style="display:flex;gap:.5rem;">'
+    +'<button type="button" class="btn-ghost btn-sm" onclick="_refreshFromPanel()">↻ Refresh</button>'
+    +'<button type="button" class="btn-ghost btn-sm" onclick="closeRatesPanel()">✕ Close</button>'
+    +'</div>';
+  panel.innerHTML=html;
+}
+
+function _tickCountdowns(){
+  const now=Date.now();
+  _getCachedBases().forEach(b=>{
+    const el=document.getElementById('rcd-'+b.base);
+    if(el) el.textContent=_fmtCountdown(new Date(b.fetched_at).getTime()+_LS_TTL_MS-now);
+  });
+}
+
+function toggleRatesPanel(){
+  const panel=document.getElementById('rates-info-panel');
+  if(panel.style.display==='none'||panel.style.display===''){
+    _buildRatesPanel();
+    panel.style.display='block';
+    _ratesTick=setInterval(_tickCountdowns,1000);
+    setTimeout(()=>document.addEventListener('click',_closeRatesPanelOutside),0);
+  } else {
+    closeRatesPanel();
+  }
+}
+
+function closeRatesPanel(){
+  const panel=document.getElementById('rates-info-panel');
+  panel.style.display='none';
+  clearInterval(_ratesTick);
+  document.removeEventListener('click',_closeRatesPanelOutside);
+}
+
+function _closeRatesPanelOutside(e){
+  const panel=document.getElementById('rates-info-panel');
+  const btn=document.getElementById('rates-date-btn');
+  if(!panel.contains(e.target)&&!btn.contains(e.target)) closeRatesPanel();
+}
+
+async function _refreshFromPanel(){
+  const fromRaw=(document.getElementById('currency_i').value||'USD').toUpperCase();
+  const refreshBtns=document.querySelectorAll('#rates-info-panel .btn-ghost');
+  refreshBtns.forEach(b=>{b.disabled=true;});
+  await refreshRates(fromRaw);
+  refreshBtns.forEach(b=>{b.disabled=false;});
+  _buildRatesPanel();
+}
 </script>
 <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
 <nav id="side-drawer">
