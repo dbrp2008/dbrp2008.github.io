@@ -25,6 +25,7 @@
   if(_srv) localStorage.setItem('fiapp_auth_user',_srv);
 })();
 </script>
+  <script src="/static/rates-utils.js"></script>
   <link rel="stylesheet" href="/styles.css">
   <style>
     
@@ -198,6 +199,7 @@
   'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'];
 // keep in sync with head auth-clear script
 function logOut(){
+  if(!confirm('Log out and clear all local data?')) return;
   FIAPP_USER_KEYS.forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
@@ -306,7 +308,6 @@ document.getElementById('tax-form').addEventListener('submit',function(e){
 });
 
 
-const _EK  = '081a97e88979627d1194f7ee';
 const _IK  = 'fiapp_income_v1';
 const _MOS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -366,21 +367,13 @@ function _mthHas(mk,inc){
 }
 async function _loadRates(inc){
   if(_ratesOk) return;
-  
-  const rows=_salaryLeafs(inc);
-  const curs=[...new Set(rows.flatMap(r=>
-    Object.entries(inc.monthRowCurrencies||{})
-      .filter(([k])=>k.endsWith('|'+r.id)).map(([,v])=>v)
-      .filter(c=>c&&c!=='USD')
-  ))];
-  if(!curs.length) return;
   try{
-    const d=await fetch(`https://v6.exchangerate-api.com/v6/${_EK}/latest/USD`).then(r=>r.json());
-    if(d.result==='success'){
-      Object.entries(d.conversion_rates).forEach(([k,v])=>{ if(/^[A-Z]{2,5}$/.test(k)) _rates[k]=v; });
+    const obj=await fiappGetRates('USD');
+    if(obj&&obj.rates){
+      Object.entries(obj.rates).forEach(([k,v])=>{ if(/^[A-Z]{2,5}$/.test(k)) _rates[k]=v; });
       _ratesOk=true;
     }
-  }catch{}
+  }catch(e){ console.warn('tax: rate fetch failed',e.message); }
 }
 
 
