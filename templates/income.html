@@ -32,7 +32,7 @@
     body { max-width: 700px; }
     .toolbar{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
     .toolbar-row-1,.toolbar-row-2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;}
-    .toolbar-row-1{margin-bottom:.4rem;}
+    .toolbar-row-1{margin-bottom:.4rem;position:relative;}
     .toolbar-row-2{margin-bottom:.75rem;}
     .dropdown{position:relative;display:inline-block;}
     .dropdown-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:8px;padding:.3rem;min-width:150px;box-shadow:var(--shadow,0 4px 12px rgba(0,0,0,.15));}
@@ -230,7 +230,7 @@
     .share-hint{font-size:.74rem;color:var(--muted);font-style:italic;}
 
     
-    .export-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;background:var(--total-bg);border:1px solid var(--success-border);padding:.25rem .55rem;border-radius:5px;margin-left:.5rem;opacity:0;transition:opacity .25s;}
+    .export-flash{font-size:.78rem;color:var(--total-fg);font-weight:600;background:var(--total-bg);border:1px solid var(--success-border);padding:.25rem .55rem;border-radius:5px;position:absolute;top:calc(100% + 4px);left:0;white-space:nowrap;z-index:10;opacity:0;transition:opacity .25s;pointer-events:none;}
     .export-flash.show{opacity:1;}
 
     
@@ -287,6 +287,7 @@
   'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'];
 // keep in sync with head auth-clear script
 function logOut(){
+  if(!confirm('Log out and clear all local data?')) return;
   FIAPP_USER_KEYS.forEach(function(k){localStorage.removeItem(k);});
   fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
 }
@@ -320,6 +321,7 @@ function logOut(){
   <div style="margin-bottom:.5rem;">
     <button class="btn-ghost btn-sm" onclick="copyStructureFromPrevMonth()">📋 Copy rows/cols from previous month</button>
     <button class="btn-ghost btn-sm" onclick="showMonthCopyPicker()">📋 Copy from a specific month…</button>
+    <button class="btn-ghost btn-sm" onclick="showCopyToMonthsPicker()">📤 Copy to months…</button>
   </div>
 
   <div class="forecast-bar" id="forecast-bar">
@@ -648,6 +650,81 @@ function copyStructureFromMonth(sourceMk){
   save(); render();
   showToast('Copied structure from '+sourceMk);
 }
+function copyMonthToTargets(sourceMk, targetMks, overwrite){
+  snapshot();
+  const srcRows=getRows(sourceMk);
+  const srcCols=getCols(sourceMk);
+  targetMks.forEach(tMk=>{
+    if(!state.rowsByMonth) state.rowsByMonth={};
+    if(!state.colsByMonth) state.colsByMonth={};
+    state.rowsByMonth[tMk]=srcRows.map(r=>({...r}));
+    state.colsByMonth[tMk]=srcCols.map(c=>({...c}));
+    Object.keys(state.cells).forEach(k=>{
+      if(!k.startsWith(sourceMk+'|')) return;
+      const newKey=tMk+k.slice(sourceMk.length);
+      if(overwrite||!state.cells[newKey]) state.cells[newKey]=state.cells[k];
+    });
+    if(state.monthRowCurrencies){
+      Object.keys(state.monthRowCurrencies).forEach(k=>{
+        if(!k.startsWith(sourceMk+'|')) return;
+        const newKey=tMk+k.slice(sourceMk.length);
+        if(overwrite||!state.monthRowCurrencies[newKey])
+          state.monthRowCurrencies[newKey]=state.monthRowCurrencies[k];
+      });
+    }
+  });
+  save(); render();
+  showToast('Copied to '+targetMks.length+' month'+(targetMks.length>1?'s':'')+'.');
+}
+
+function showCopyToMonthsPicker(){
+  const sourceMk=currentMK();
+  const months=new Set();
+  Object.keys(state.cells||{}).forEach(k=>{const m=k.split('|')[0];if(m&&m!==sourceMk&&/^\d{4}-\d{2}$/.test(m))months.add(m);});
+  Object.keys(state.rowsByMonth||{}).forEach(m=>{if(m!==sourceMk)months.add(m);});
+  // also offer the next 12 calendar months as targets
+  let d=new Date(); d.setDate(1);
+  for(let i=0;i<12;i++){
+    d.setMonth(d.getMonth()+1);
+    const m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(m!==sourceMk) months.add(m);
+  }
+  const opts=[...months].sort();
+  const overlay=document.createElement('div');overlay.className='share-overlay';
+  const modal=document.createElement('div');modal.className='share-modal';modal.style.maxWidth='360px';
+  const h=document.createElement('h3');
+  const [sy,sm]=sourceMk.split('-');
+  h.textContent='Copy '+new Date(+sy,+sm-1,1).toLocaleString('default',{month:'long',year:'numeric'})+' to:';
+  // checkbox list
+  const list=document.createElement('div');list.className='month-picker';list.style.marginTop='.5rem';
+  opts.forEach(m=>{
+    const lbl=document.createElement('label');
+    const cb=document.createElement('input');cb.type='checkbox';cb.value=m;
+    const [y,mo]=m.split('-');
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' '+new Date(+y,+mo-1,1).toLocaleString('default',{month:'long',year:'numeric'})));
+    list.appendChild(lbl);
+  });
+  // overwrite checkbox
+  const owWrap=document.createElement('label');owWrap.style.cssText='display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--muted);margin-top:.6rem;cursor:pointer;';
+  const owCb=document.createElement('input');owCb.type='checkbox';
+  owWrap.appendChild(owCb);owWrap.appendChild(document.createTextNode(' Overwrite existing values'));
+  const actions=document.createElement('div');actions.style.cssText='display:flex;gap:.5rem;justify-content:flex-end;margin-top:.75rem;';
+  const cancelBtn=document.createElement('button');cancelBtn.className='btn btn-sm btn-ghost';cancelBtn.textContent='Cancel';
+  cancelBtn.addEventListener('click',()=>overlay.remove());
+  const copyBtn=document.createElement('button');copyBtn.className='btn btn-sm';copyBtn.textContent='Copy';
+  copyBtn.addEventListener('click',()=>{
+    const selected=[...list.querySelectorAll('input[type="checkbox"]:checked')].map(c=>c.value);
+    if(!selected.length){showToast('Select at least one month.');return;}
+    copyMonthToTargets(sourceMk,selected,owCb.checked);
+    overlay.remove();
+  });
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  actions.appendChild(cancelBtn);actions.appendChild(copyBtn);
+  modal.appendChild(h);modal.appendChild(list);modal.appendChild(owWrap);modal.appendChild(actions);
+  overlay.appendChild(modal);document.body.appendChild(overlay);
+}
+
 function showMonthCopyPicker(){
   const months=new Set();
   Object.keys(state.rowsByMonth||{}).forEach(m=>months.add(m));
