@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}Account - FiApp{% endblock %}
+
+{% block head_styles %}
+  <style>
+    body { max-width: 520px; }
+
+    .account-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 1.4rem 1.6rem;
+      margin-bottom: 1.25rem;
+    }
+    .account-card h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0 0 .9rem;
+      color: var(--fg);
+    }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-size: .9rem;
+      color: var(--fg);
+      margin-bottom: .5rem;
+    }
+    .info-label {
+      font-weight: 600;
+      color: var(--muted);
+      width: 100px;
+      flex-shrink: 0;
+    }
+
+    .change-form { display: flex; flex-direction: column; gap: .75rem; }
+    .change-form label { font-size: .85rem; font-weight: 600; color: var(--fg); margin-bottom: 2px; display: block; }
+    .change-form input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: .5rem .7rem;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--fg);
+      font-size: .9rem;
+      font-family: inherit;
+    }
+    .change-form input:focus { outline: none; border-color: var(--accent); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      padding: .6rem 1.1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: .9rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .change-feedback {
+      display: none;
+      border-radius: 6px;
+      padding: .5rem .75rem;
+      font-size: .85rem;
+    }
+    .change-feedback.error {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-fg);
+    }
+    .change-feedback.success {
+      background: var(--success-bg, #dcfce7);
+      border: 1px solid var(--success-border, #86efac);
+      color: var(--success-fg, #166534);
+    }
+
+    .danger-card {
+      border-color: var(--error-border);
+      background: var(--error-bg);
+    }
+    .danger-card h2 { color: var(--error-fg); }
+
+    .danger-warning {
+      font-size: .85rem;
+      color: var(--error-fg);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .delete-form { display: flex; flex-direction: column; gap: .75rem; }
+    .delete-form label { font-size: .85rem; font-weight: 600; color: var(--error-fg); margin-bottom: 2px; }
+    .delete-form input {
+      background: var(--input-bg);
+      border: 1px solid var(--error-border);
+      color: var(--fg);
+    }
+    .delete-form input:focus { border-color: #dc2626; }
+
+    #delete-steps { display: flex; flex-direction: column; gap: .5rem; }
+
+    .btn-danger {
+      background: #dc2626;
+      color: #fff;
+      padding: .6rem 1.1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: .9rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-danger:disabled { opacity: .5; cursor: not-allowed; }
+
+    #delete-error {
+      display: none;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-fg);
+      border-radius: 6px;
+      padding: .55rem .75rem;
+      font-size: .85rem;
+    }
+    #delete-confirm-step { display: none; }
+    #delete-confirm-step p {
+      font-size: .85rem;
+      color: var(--error-fg);
+      font-weight: 600;
+      margin: 0 0 .5rem;
+    }
+    .confirm-btns { display: flex; gap: .5rem; }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <h1>Account</h1>
+
+  <div class="account-card">
+    <h2>Account Info</h2>
+    <div class="info-row">
+      <span class="info-label">Username</span>
+      <span><strong>{{ current_user | default('') }}</strong></span>
+    </div>
+    <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+      <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+    </div>
+  </div>
+
+  <div class="account-card">
+    <h2>Change Username</h2>
+    <div class="change-feedback" id="change-feedback"></div>
+    <div class="change-form">
+      <div>
+        <label for="new-username">New username</label>
+        <input type="text" id="new-username" placeholder="At least 3 characters" minlength="3" autocomplete="username" />
+      </div>
+      <div>
+        <label for="change-pw">Current password</label>
+        <input type="password" id="change-pw" placeholder="Confirm your password" autocomplete="current-password" />
+      </div>
+      <button class="btn-primary" id="change-btn" onclick="submitChangeUsername()">Save new username</button>
+    </div>
+  </div>
+
+  <div class="account-card">
+    <h2>Change Password</h2>
+    <div class="change-feedback" id="pw-feedback"></div>
+    <div class="change-form">
+      <div>
+        <label for="cur-pw">Current password</label>
+        <input type="password" id="cur-pw" placeholder="Your current password" autocomplete="current-password" />
+      </div>
+      <div>
+        <label for="new-pw">New password</label>
+        <input type="password" id="new-pw" placeholder="At least 6 characters" minlength="6" autocomplete="new-password" />
+      </div>
+      <div>
+        <label for="confirm-pw">Confirm new password</label>
+        <input type="password" id="confirm-pw" placeholder="Repeat new password" autocomplete="new-password" />
+      </div>
+      <button class="btn-primary" id="pw-btn" onclick="submitChangePassword()">Save new password</button>
+    </div>
+  </div>
+
+  <div class="account-card">
+    <h2>📥 Export Data</h2>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem;">Download all your expenses, income, and subscription data as a single CSV file.</p>
+    <button class="btn-primary" onclick="exportAllCSV()">Export all data as CSV</button>
+  </div>
+
+  <div class="account-card danger-card">
+    <h2>⚠ Delete Account</h2>
+    <p class="danger-warning">
+      This permanently deletes your account and all saved data (expenses, subscriptions, income).
+      This action <strong>cannot be undone</strong>.
+    </p>
+
+    <div id="delete-error"></div>
+
+    <div class="delete-form">
+      <div>
+        <label for="del-pw">Confirm your password to continue</label>
+        <input type="password" id="del-pw" placeholder="Your password" autocomplete="current-password">
+      </div>
+
+      <div id="delete-steps">
+        <div id="delete-arm-step">
+          <button class="btn-danger" id="del-arm-btn" onclick="armDelete()">Delete my account</button>
+        </div>
+        <div id="delete-confirm-step">
+          <p>Are you absolutely sure? This will permanently delete everything.</p>
+          <div class="confirm-btns">
+            <button class="btn-danger" id="del-confirm-btn" onclick="confirmDelete()">Yes, delete permanently</button>
+            <button class="btn-ghost btn-sm" onclick="cancelDelete()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+window._csrfToken={{ csrf_token | default('') | tojson }};
+async function apiFetch(url,opts={}){
+  opts.headers=opts.headers||{};
+  opts.headers['Content-Type']='application/json';
+  if(window._csrfToken) opts.headers['X-CSRF-Token']=window._csrfToken;
+  const res=await fetch(url,opts);
+  if(res.status===401){window.location='/login';return null;}
+  return res;
+}
+
+function exportAllCSV(){
+  const csvEsc=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const rows=[['Tracker','Month','Row ID','Column ID','Value']];
+  const trackers=[
+    {key:'fiapp_expenses_v4', name:'Expenses'},
+    {key:'fiapp_income_v1',   name:'Income'},
+  ];
+  trackers.forEach(({key,name})=>{
+    try{
+      const s=JSON.parse(localStorage.getItem(key)||'{}');
+      Object.entries(s.cells||{}).forEach(([k,v])=>{
+        if(!v&&v!==0) return;
+        const [mk,rowId,colId]=k.split('|');
+        if(mk&&rowId&&colId) rows.push([name,mk,rowId,colId,v]);
+      });
+    }catch(e){}
+  });
+  // Subscriptions — flatten to name/cost/billing per row
+  try{
+    const s=JSON.parse(localStorage.getItem('fiapp_subs_v4')||'{}');
+    (s.rows||[]).forEach(row=>{
+      Object.entries(s.cells||{}).forEach(([k,v])=>{
+        if(!k.startsWith(row.id+'|')||(!v&&v!==0)) return;
+        const [,colId]=k.split('|');
+        rows.push(['Subscriptions','(all)',row.id,colId,v]);
+      });
+    });
+  }catch(e){}
+  const csv=rows.map(r=>r.map(csvEsc).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='fiapp-export-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function _clearAllStorage(){
+  FIAPP_USER_KEYS.forEach(function(k){ localStorage.removeItem(k); });
+}
+
+function showDeleteError(msg){
+  const el=document.getElementById('delete-error');
+  el.textContent=msg; el.style.display='block';
+}
+function hideDeleteError(){
+  const el=document.getElementById('delete-error');
+  el.style.display='none'; el.textContent='';
+}
+
+function armDelete(){
+  hideDeleteError();
+  const pw=document.getElementById('del-pw').value;
+  if(!pw){ showDeleteError('Please enter your password first.'); return; }
+  document.getElementById('delete-arm-step').style.display='none';
+  document.getElementById('delete-confirm-step').style.display='block';
+}
+
+function cancelDelete(){
+  document.getElementById('delete-arm-step').style.display='';
+  document.getElementById('delete-confirm-step').style.display='none';
+  hideDeleteError();
+}
+
+async function confirmDelete(){
+  hideDeleteError();
+  const pw=document.getElementById('del-pw').value;
+  if(!pw){ showDeleteError('Password required.'); cancelDelete(); return; }
+  const btn=document.getElementById('del-confirm-btn');
+  btn.disabled=true; btn.textContent='Deleting…';
+  try{
+    const res=await apiFetch('/auth/delete_account',{
+      method:'POST',
+      body:JSON.stringify({password:pw})
+    });
+    if(!res) return;
+    const data=await res.json();
+    if(!res.ok||!data.ok){
+      showDeleteError(data.error||'Deletion failed. Check your password and try again.');
+      cancelDelete();
+      btn.disabled=false; btn.textContent='Yes, delete permanently';
+      return;
+    }
+    _clearAllStorage();
+    window.location='/login?deleted=1';
+  }catch(e){
+    showDeleteError('Network error. Please try again.');
+    cancelDelete();
+    btn.disabled=false; btn.textContent='Yes, delete permanently';
+  }
+}
+
+function showChangeFeedback(msg, type){
+  const el=document.getElementById('change-feedback');
+  el.textContent=msg;
+  el.className='change-feedback '+type;
+  el.style.display='block';
+}
+function hideChangeFeedback(){
+  const el=document.getElementById('change-feedback');
+  el.style.display='none'; el.textContent='';
+}
+
+async function submitChangeUsername(){
+  hideChangeFeedback();
+  const newUser=document.getElementById('new-username').value.trim();
+  const pw=document.getElementById('change-pw').value;
+  if(!newUser){ showChangeFeedback('Please enter a new username.','error'); return; }
+  if(newUser.length<3){ showChangeFeedback('Username must be at least 3 characters.','error'); return; }
+  if(!pw){ showChangeFeedback('Please enter your current password.','error'); return; }
+  const btn=document.getElementById('change-btn');
+  btn.disabled=true; btn.textContent='Saving…';
+  try{
+    const res=await apiFetch('/auth/change_username',{
+      method:'POST',
+      body:JSON.stringify({new_username:newUser,password:pw})
+    });
+    if(!res) return;
+    const data=await res.json();
+    if(!res.ok||!data.ok){
+      showChangeFeedback(data.error||'Failed to change username.','error');
+    } else {
+      showChangeFeedback('✓ Username changed to "'+data.username+'". Reloading…','success');
+      document.getElementById('new-username').value='';
+      document.getElementById('change-pw').value='';
+      setTimeout(()=>window.location.reload(),1200);
+    }
+  }catch(e){
+    showChangeFeedback('Network error. Please try again.','error');
+  }finally{
+    btn.disabled=false; btn.textContent='Save new username';
+  }
+}
+function showPwFeedback(msg, type){
+  const el=document.getElementById('pw-feedback');
+  el.textContent=msg;
+  el.className='change-feedback '+type;
+  el.style.display='block';
+}
+function hidePwFeedback(){
+  const el=document.getElementById('pw-feedback');
+  el.style.display='none'; el.textContent='';
+}
+
+async function submitChangePassword(){
+  hidePwFeedback();
+  const cur=document.getElementById('cur-pw').value;
+  const np=document.getElementById('new-pw').value;
+  const cp=document.getElementById('confirm-pw').value;
+  if(!cur){ showPwFeedback('Please enter your current password.','error'); return; }
+  if(!np){ showPwFeedback('Please enter a new password.','error'); return; }
+  if(np.length<6){ showPwFeedback('New password must be at least 6 characters.','error'); return; }
+  if(np!==cp){ showPwFeedback('New passwords do not match.','error'); return; }
+  const btn=document.getElementById('pw-btn');
+  btn.disabled=true; btn.textContent='Saving…';
+  try{
+    const res=await apiFetch('/auth/change_password',{
+      method:'POST',
+      body:JSON.stringify({current_password:cur,new_password:np})
+    });
+    if(!res) return;
+    const data=await res.json();
+    if(!res.ok||!data.ok){
+      showPwFeedback(data.error||'Failed to change password.','error');
+    } else {
+      showPwFeedback('✓ Password changed successfully.','success');
+      document.getElementById('cur-pw').value='';
+      document.getElementById('new-pw').value='';
+      document.getElementById('confirm-pw').value='';
+    }
+  }catch(e){
+    showPwFeedback('Network error. Please try again.','error');
+  }finally{
+    btn.disabled=false; btn.textContent='Save new password';
+  }
+}
+</script>
+{% endblock %}

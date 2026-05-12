@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}FiApp{% endblock %}
+
+{% block nav_class %}home-nav{% endblock %}
+
+{% block nav_extra %}{% endblock %}
+
+{% block head_styles %}
+  <style>
+    body { max-width: 680px; }
+
+    .home-nav {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      margin: 0 0 .4rem;
+      background: linear-gradient(135deg, #7c3aed, #0891b2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    html.dark .hero h1 {
+      background: linear-gradient(135deg, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .85rem;
+    }
+
+    .app-card-last {
+      grid-column: 1 / -1;
+      justify-self: center;
+      width: calc(50% - .425rem);
+    }
+    @media (max-width: 520px) {
+      .cards { grid-template-columns: 1fr; }
+      .app-card-last { width: 100%; }
+    }
+
+    .app-card {
+      display: block;
+      text-decoration: none;
+      border-radius: 14px;
+      padding: 1.35rem 1.5rem;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      transition: transform .15s, box-shadow .15s, filter .15s;
+      box-shadow: 0 4px 18px rgba(0,0,0,.18);
+      border: none;
+      cursor: pointer;
+    }
+    .app-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 28px rgba(0,0,0,.28);
+      filter: brightness(1.06);
+      text-decoration: none;
+      color: #fff;
+    }
+    .app-card:active { transform: translateY(0); filter: brightness(.97); }
+
+    .app-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 60%);
+      pointer-events: none;
+    }
+
+    .card-body { display: flex; align-items: center; gap: 1.1rem; }
+    .card-icon {
+      font-size: 2.2rem;
+      flex-shrink: 0;
+      line-height: 1;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
+    }
+    .card-text { flex: 1; min-width: 0; }
+    .card-num {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      opacity: .75;
+      margin-bottom: .15rem;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin: 0 0 .25rem;
+      line-height: 1.15;
+    }
+    .card-desc {
+      font-size: .83rem;
+      opacity: .85;
+      line-height: 1.45;
+      margin: 0;
+    }
+    .card-arrow {
+      font-size: 1.4rem;
+      opacity: .7;
+      flex-shrink: 0;
+      transition: transform .15s;
+    }
+    .app-card:hover .card-arrow { transform: translateX(4px); opacity: 1; }
+
+    .card-interest   { background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%); }
+    .card-tax        { background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); }
+    .card-currency   { background: linear-gradient(135deg, #15803d 0%, #22c55e 100%); }
+    .card-expenses   { background: linear-gradient(135deg, #6d28d9 0%, #a855f7 100%); }
+    .card-subs       { background: linear-gradient(135deg, #0e7490 0%, #22d3ee 100%); }
+    .card-analytics  { background: linear-gradient(135deg, #be185d 0%, #f472b6 100%); }
+    .card-income     { background: linear-gradient(135deg, #065f46 0%, #10b981 100%); }
+
+    @media (max-width: 640px) {
+      .cards { display:block; position:relative; }
+      .app-card, .app-card-last { display:none; width:100%; box-sizing:border-box; }
+      .app-card.deck-active { display:block; }
+      .deck-nav { display:flex; align-items:center; justify-content:space-between; margin-top:.65rem; gap:.5rem; }
+      .deck-arrow { background:none; border:1.5px solid var(--panel-border); border-radius:8px; color:var(--fg); font-size:1rem; padding:.35rem .7rem; cursor:pointer; flex-shrink:0; }
+      .deck-arrow:hover { background:var(--hover-bg); border-color:var(--accent); color:var(--accent); }
+      .deck-dots { display:flex; gap:.4rem; justify-content:center; flex:1; }
+      .deck-dot { width:8px; height:8px; border-radius:50%; background:var(--panel-border); transition:background .2s; }
+      .deck-dot.active { background:var(--accent); }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="hero">
+    <h1>FiApp</h1>
+    <p>Your 7-in-1 personal finance toolkit</p>
+  </div>
+
+  <div class="cards">
+    <a class="app-card card-expenses" href="/expenses">
+      <div class="card-body">
+        <span class="card-icon">📊</span>
+        <div class="card-text">
+          <div class="card-num">01</div>
+          <div class="card-title">Expense Tracker</div>
+          <p class="card-desc">Organise your monthly expenses in a stylised spreadsheet that can be sent to others seamlessly!</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-income" href="/income">
+      <div class="card-body">
+        <span class="card-icon">💰</span>
+        <div class="card-text">
+          <div class="card-num">02</div>
+          <div class="card-title">Income Tracker</div>
+          <p class="card-desc">Track all your income sources month by month. Auto-links gross income to your Expense Tracker budget panel.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-analytics" href="/analytics">
+      <div class="card-body">
+        <span class="card-icon">📉</span>
+        <div class="card-text">
+          <div class="card-num">03</div>
+          <div class="card-title">Analytics</div>
+          <p class="card-desc">Cross-tracker insights: spending trends, category breakdowns, income vs expenses, and subscription costs over time.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-subs" href="/subscriptions">
+      <div class="card-body">
+        <span class="card-icon">🔄</span>
+        <div class="card-text">
+          <div class="card-num">04</div>
+          <div class="card-title">Subscription Tracker</div>
+          <p class="card-desc">Using too many subscriptions? Track them all in one place (integrated with Expense Tracker).</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-interest" href="/interest">
+      <div class="card-body">
+        <span class="card-icon">📈</span>
+        <div class="card-text">
+          <div class="card-num">05</div>
+          <div class="card-title">Interest Calculator</div>
+          <p class="card-desc">Compute simple, compound, or continuous interest. See how your money grows over time (and by how much).</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-tax" href="/tax">
+      <div class="card-body">
+        <span class="card-icon">🧾</span>
+        <div class="card-text">
+          <div class="card-num">06</div>
+          <div class="card-title">Income Tax Calculator</div>
+          <p class="card-desc">Estimate your US federal income tax by filing status. Auto-fills from Income Tracker and syncs with Expense Tracker.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="app-card card-currency app-card-last" href="/currency">
+      <div class="card-body">
+        <span class="card-icon">💱</span>
+        <div class="card-text">
+          <div class="card-num">07</div>
+          <div class="card-title">Currency Converter</div>
+          <p class="card-desc">Live exchange rates for the world's currencies. Preset list with the option to enter your own currency code.</p>
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+  </div>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+(function(){
+  if(window.innerWidth > 640) return;
+  const cards = [...document.querySelectorAll('.app-card')];
+  if(!cards.length) return;
+  let idx = 0, timer = null;
+
+  const wrap = document.querySelector('.cards');
+  const nav = document.createElement('div'); nav.className='deck-nav';
+  const prevBtn = document.createElement('button'); prevBtn.className='deck-arrow'; prevBtn.textContent='◀';
+  const nextBtn = document.createElement('button'); nextBtn.className='deck-arrow'; nextBtn.textContent='▶';
+  const dotsWrap = document.createElement('div'); dotsWrap.className='deck-dots';
+  cards.forEach(()=>{ const d=document.createElement('span'); d.className='deck-dot'; dotsWrap.appendChild(d); });
+  nav.appendChild(prevBtn); nav.appendChild(dotsWrap); nav.appendChild(nextBtn);
+  wrap.appendChild(nav);
+
+  function show(n){
+    idx = ((n % cards.length) + cards.length) % cards.length;
+    cards.forEach((c,i)=>c.classList.toggle('deck-active', i===idx));
+    [...dotsWrap.children].forEach((d,i)=>d.classList.toggle('active', i===idx));
+    clearInterval(timer);
+    timer = setInterval(()=>show(idx+1), 5000);
+  }
+  prevBtn.onclick = ()=>show(idx-1);
+  nextBtn.onclick = ()=>show(idx+1);
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowRight') show(idx+1);
+    else if(e.key==='ArrowLeft') show(idx-1);
+  });
+  show(0);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{% block title %}FiApp{% endblock %}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function(){
+      var t=localStorage.getItem('fiapp_theme')||'{{ theme|default("light") }}';
+      if(t==='dark') document.documentElement.classList.add('dark');
+      else if(t!=='light') document.documentElement.classList.add('theme-'+t);
+    })();
+  </script>
+  <script>
+  (function(){
+    var _srv={{ current_user|default(none)|tojson }};
+    var _stored=localStorage.getItem('fiapp_auth_user');
+    if(_stored && _stored!==_srv){
+      ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+       'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+       'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+       'fiapp_tax_result','fiapp_prefill_income'].forEach(function(k){localStorage.removeItem(k);});
+      localStorage.removeItem('fiapp_auth_user');
+    }
+    if(_srv) localStorage.setItem('fiapp_auth_user',_srv);
+  })();
+  </script>
+  <link rel="stylesheet" href="/styles.css">
+  {% block head_scripts %}{% endblock %}
+  {% block head_styles %}{% endblock %}
+  <style>
+    .hamburger-btn{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--fg);padding:.2rem .4rem;border-radius:6px;margin-right:.4rem;}
+    .hamburger-btn:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;}
+    #side-drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--panel-bg);border-right:1px solid var(--panel-border);z-index:901;transform:translateX(-100%);transition:transform .25s ease;padding:1rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto;}
+    #side-drawer.open{transform:translateX(0);}
+    .drawer-close{align-self:flex-end;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:.2rem .4rem;}
+    .drawer-close:hover{color:var(--fg);}
+    #side-drawer h2{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.5rem 0 .25rem;}
+    #side-drawer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.15rem;}
+    #side-drawer a{display:block;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--fg);font-size:.9rem;font-weight:600;}
+    #side-drawer a:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
+    #side-drawer a.drawer-link-active{font-weight:800;color:var(--accent);background:var(--hover-bg);pointer-events:none;}
+  </style>
+</head>
+<body>
+  <div class="{% block nav_class %}nav{% endblock %}">
+    <button class="hamburger-btn" onclick="openDrawer()" aria-label="Open navigation menu">☰</button>
+    {% if current_user|default(none) %}
+      <div class="acct-menu-wrap">
+        <button class="btn-ghost btn-sm" onclick="toggleAcctMenu(this)">👤 {{ current_user|default('') }}</button>
+        <div class="acct-dropdown">
+          <a href="/account" class="acct-item">⚙ Account settings</a>
+          <button onclick="logOut()" class="acct-item acct-logout">⬅ Log out</button>
+        </div>
+      </div>
+    {% else %}
+      <a class="btn-ghost btn-sm" href="/login">Log in</a>
+    {% endif %}
+    {% block nav_extra %}<a href="/">← Home</a>{% endblock %}
+    <span id="auth-badge-container" style="display:none"></span>
+    <div class="theme-menu-wrap"><button class="btn-ghost btn-sm" id="theme-btn" onclick="toggleThemeMenu(this)">☀️ Light</button><div class="theme-dropdown"><button class="theme-opt" data-theme="light" onclick="setTheme('light')">☀️ Light</button><button class="theme-opt" data-theme="dark" onclick="setTheme('dark')">🌙 Dark</button><button class="theme-opt" data-theme="ocean" onclick="setTheme('ocean')">🌊 Ocean</button><button class="theme-opt" data-theme="forest" onclick="setTheme('forest')">🌿 Forest</button><button class="theme-opt" data-theme="sunset" onclick="setTheme('sunset')">🌅 Sunset</button><button class="theme-opt" data-theme="midnight" onclick="setTheme('midnight')">🌃 Midnight</button><button class="theme-opt" data-theme="rose" onclick="setTheme('rose')">🌹 Rose</button><button class="theme-opt" data-theme="purple" onclick="setTheme('purple')">💜 Purple</button><button class="theme-opt" data-theme="indigo" onclick="setTheme('indigo')">🔷 Indigo</button></div></div><script>(function(){var t=localStorage.getItem('fiapp_theme')||'light';var L={'light':'☀️ Light','dark':'🌙 Dark','ocean':'🌊 Ocean','forest':'🌿 Forest','sunset':'🌅 Sunset','midnight':'🌃 Midnight','rose':'🌹 Rose','purple':'💜 Purple','indigo':'🔷 Indigo'};var b=document.getElementById('theme-btn');if(b)b.textContent=L[t]||t;document.querySelectorAll('.theme-opt').forEach(function(o){if(o.dataset.theme===t)o.classList.add('active');});})();</script>
+  </div>
+  <script>
+  var _CSRF='{{ csrf_token|default("") }}';
+  function setTheme(name){
+    document.documentElement.classList.remove('dark','theme-ocean','theme-forest',
+      'theme-sunset','theme-midnight','theme-rose','theme-purple','theme-indigo');
+    if(name==='dark') document.documentElement.classList.add('dark');
+    else if(name!=='light') document.documentElement.classList.add('theme-'+name);
+    localStorage.setItem('fiapp_theme',name);
+    var _tl={'light':'☀️ Light','dark':'🌙 Dark','ocean':'🌊 Ocean','forest':'🌿 Forest','sunset':'🌅 Sunset','midnight':'🌃 Midnight','rose':'🌹 Rose','purple':'💜 Purple','indigo':'🔷 Indigo'};
+    var _tb=document.getElementById('theme-btn');
+    if(_tb) _tb.textContent=_tl[name]||name;
+    var _td=document.querySelector('.theme-dropdown');
+    if(_td){ _td.classList.remove('open'); _td.querySelectorAll('.theme-opt').forEach(function(o){ o.classList.toggle('active',o.dataset.theme===name); }); }
+    if(typeof renderChart==='function') renderChart();
+    if(_CSRF){ fetch('/api/prefs',{method:'PATCH',headers:{'Content-Type':'application/json','X-CSRF-Token':_CSRF},body:JSON.stringify({theme:name})}).catch(function(){}); }
+  }
+  var toggleThemeMenu=toggleAcctMenu;
+  var FIAPP_USER_KEYS=['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
+    'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
+    'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
+    'fiapp_tax_result','fiapp_prefill_income','fiapp_auth_user'];
+  function logOut(){
+    if(!confirm('Log out and clear all local data?')) return;
+    FIAPP_USER_KEYS.forEach(function(k){localStorage.removeItem(k);});
+    fetch('/auth/logout',{method:'POST'}).then(function(){ window.location='/login'; });
+  }
+  function toggleAcctMenu(btn){
+    var drop=btn.nextElementSibling;
+    var isOpen=drop.classList.contains('open');
+    drop.classList.toggle('open');
+    if(!isOpen){
+      function handler(e){ if(!btn.parentElement.contains(e.target)){ drop.classList.remove('open'); document.removeEventListener('click',handler,true); } }
+      setTimeout(function(){ document.addEventListener('click',handler,true); },0);
+    }
+  }
+  function openDrawer(){
+    document.getElementById('side-drawer').classList.add('open');
+    document.getElementById('drawer-overlay').style.display='block';
+  }
+  function closeDrawer(){
+    document.getElementById('side-drawer').classList.remove('open');
+    document.getElementById('drawer-overlay').style.display='none';
+  }
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDrawer();});
+  </script>
+
+  {% block content %}{% endblock %}
+
+  {% block body_scripts %}{% endblock %}
+
+  <div id="drawer-overlay" style="display:none" onclick="closeDrawer()"></div>
+  <nav id="side-drawer">
+    <button class="drawer-close" onclick="closeDrawer()" aria-label="Close navigation menu">✕</button>
+    <h2>Tools</h2>
+    <ul>
+      <li><a href="/" class="drawer-link" data-path="/">🏠 Home</a></li>
+      <li><a href="/expenses" class="drawer-link" data-path="/expenses">📊 Expense Tracker</a></li>
+      <li><a href="/income" class="drawer-link" data-path="/income">💰 Income Tracker</a></li>
+      <li><a href="/analytics" class="drawer-link" data-path="/analytics">📉 Analytics</a></li>
+      <li><a href="/subscriptions" class="drawer-link" data-path="/subscriptions">🔄 Subscription Tracker</a></li>
+      <li><a href="/interest" class="drawer-link" data-path="/interest">📈 Interest Calculator</a></li>
+      <li><a href="/tax" class="drawer-link" data-path="/tax">🧾 Tax Calculator</a></li>
+      <li><a href="/currency" class="drawer-link" data-path="/currency">💱 Currency Converter</a></li>
+    </ul>
+  </nav>
+  <script>document.querySelectorAll('.drawer-link').forEach(function(a){if(a.dataset.path===window.location.pathname)a.classList.add('drawer-link-active');});</script>
+</body>
+</html>
