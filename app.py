@@ -3,8 +3,9 @@ import re
 import json
 import time
 from datetime import datetime ,timezone 
-import psycopg2 
-import psycopg2 .extras 
+import psycopg2
+import psycopg2 .extras
+from psycopg2 import pool as _pgpool
 from flask import (Flask ,render_template ,request ,flash ,
 session ,jsonify ,redirect ,url_for ,send_from_directory )
 from werkzeug .security import generate_password_hash ,check_password_hash 
@@ -45,12 +46,34 @@ else :
 
 @app .errorhandler (429 )
 def ratelimit_handler (e ):
-    return jsonify ({"error":"Too many attempts. Please wait before trying again."}),429 
+    return jsonify ({"error":"Too many attempts. Please wait before trying again."}),429
+
+@app .errorhandler (404 )
+def not_found (e ):
+    if request .path .startswith ('/api/'):
+        return jsonify ({"error":"Not found"}),404
+    return render_template ('404.html',**_ctx ()),404
+
+@app .errorhandler (500 )
+def server_error (e ):
+    if request .path .startswith ('/api/'):
+        return jsonify ({"error":"Server error"}),500
+    return render_template ('500.html',**_ctx ()),500
 
 
 
-def get_db ():
-    return psycopg2 .connect (os .environ ["DATABASE_URL"])
+_db_pool = None
+
+def init_pool():
+    global _db_pool
+    _db_pool = _pgpool.ThreadedConnectionPool(2, 10, os.environ["DATABASE_URL"])
+
+def get_db():
+    return _db_pool.getconn()
+
+def release_db(conn):
+    if conn and _db_pool:
+        _db_pool.putconn(conn)
 
 def init_db ():
     conn =get_db ()
@@ -71,6 +94,7 @@ def init_db ():
                         updated_at TIMESTAMP DEFAULT NOW()
                     );
                     ALTER TABLE user_data ADD COLUMN IF NOT EXISTS income_data JSONB;
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'light';
                     CREATE TABLE IF NOT EXISTS exchange_rates (
                         base TEXT PRIMARY KEY,
                         rates JSONB NOT NULL,
@@ -78,9 +102,10 @@ def init_db ():
                     );
                 """)
     finally :
-        conn .close ()
+        release_db (conn)
 
 with app .app_context ():
+    init_pool ()
     init_db ()
 
 
@@ -116,6 +141,7 @@ def _ctx ():
     "current_user":session .get ('username'),
     "current_user_id":session .get ('user_id'),
     "csrf_token":session .get ('csrf_token',''),
+    "theme":session .get ('theme','light'),
     }
 
 
@@ -301,8 +327,12 @@ def register ():
         return jsonify ({"error":"Username must be at least 3 characters"}),400
     if not re .match (r'^[a-zA-Z0-9_.\-]+$',username ):
         return jsonify ({"error":"Username may only contain letters, numbers, _, . or -"}),400
-    if len (password )<6 :
-        return jsonify ({"error":"Password must be at least 6 characters"}),400
+    if len (password )<8 :
+        return jsonify ({"error":"Password must be at least 8 characters"}),400
+    if not re .search (r'[A-Z]',password ):
+        return jsonify ({"error":"Password must contain at least one uppercase letter"}),400
+    if not re .search (r'[0-9]',password ):
+        return jsonify ({"error":"Password must contain at least one number"}),400
     conn =get_db ()
     try :
         with conn :
@@ -313,13 +343,14 @@ def register ():
                 )
                 user_id =cur .fetchone ()[0 ]
                 cur .execute ("INSERT INTO user_data (user_id) VALUES (%s)",(user_id ,))
-        session ['user_id']=user_id 
-        session ['username']=username 
+        session ['user_id']=user_id
+        session ['username']=username
+        session ['theme']='light'
         return jsonify ({"ok":True ,"username":username ,"csrf_token":_new_csrf ()})
     except psycopg2 .errors .UniqueViolation :
         return jsonify ({"error":"Username already taken"}),409 
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/auth/login',methods =['POST'])
 @_rl ("10 per minute","50 per hour")
@@ -330,15 +361,16 @@ def auth_login ():
     conn =get_db ()
     try :
         with conn .cursor ()as cur :
-            cur .execute ("SELECT id, password_hash FROM users WHERE username=%s",(username ,))
+            cur .execute ("SELECT id, password_hash, theme FROM users WHERE username=%s",(username ,))
             row =cur .fetchone ()
         if not row or not check_password_hash (row [1 ],password ):
-            return jsonify ({"error":"Invalid username or password"}),401 
+            return jsonify ({"error":"Invalid username or password"}),401
         session ['user_id']=row [0 ]
-        session ['username']=username 
+        session ['username']=username
+        session ['theme']=row [2 ]or 'light'
         return jsonify ({"ok":True ,"username":username ,"csrf_token":_new_csrf ()})
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/auth/logout',methods =['POST'])
 def auth_logout ():
@@ -375,7 +407,7 @@ def delete_account ():
         session .clear ()
         return jsonify ({"ok":True })
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/auth/change_username',methods =['POST'])
 @login_required
@@ -409,7 +441,7 @@ def change_username ():
     except psycopg2 .errors .UniqueViolation :
         return jsonify ({"error":"Username already taken"}),409 
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/auth/change_password',methods =['POST'])
 @login_required 
@@ -421,8 +453,12 @@ def change_password ():
     new_password =data .get ('new_password')or ''
     if not current_password or not new_password :
         return jsonify ({"error":"Both passwords are required"}),400 
-    if len (new_password )<6 :
-        return jsonify ({"error":"New password must be at least 6 characters"}),400 
+    if len (new_password )<8 :
+        return jsonify ({"error":"New password must be at least 8 characters"}),400
+    if not re .search (r'[A-Z]',new_password ):
+        return jsonify ({"error":"New password must contain at least one uppercase letter"}),400
+    if not re .search (r'[0-9]',new_password ):
+        return jsonify ({"error":"New password must contain at least one number"}),400
     user_id =session ['user_id']
     conn =get_db ()
     try :
@@ -437,7 +473,7 @@ def change_password ():
                 (generate_password_hash (new_password ),user_id ))
         return jsonify ({"ok":True })
     finally :
-        conn .close ()
+        release_db (conn)
 
 
 @app .route ('/api/save/expenses',methods =['POST'])
@@ -460,7 +496,7 @@ def save_expenses ():
                 """,(session ['user_id'],json .dumps (data )))
         return jsonify ({"ok":True })
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/api/load/expenses')
 @login_required 
@@ -475,7 +511,7 @@ def load_expenses ():
             return jsonify (row [0 ])
         return jsonify (None )
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/api/save/subs',methods =['POST'])
 @login_required 
@@ -497,7 +533,7 @@ def save_subs ():
                 """,(session ['user_id'],json .dumps (data )))
         return jsonify ({"ok":True })
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/api/load/subs')
 @login_required 
@@ -512,7 +548,7 @@ def load_subs ():
             return jsonify (row [0 ])
         return jsonify (None )
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/api/save/income',methods =['POST'])
 @login_required 
@@ -534,7 +570,7 @@ def save_income ():
                 """,(session ['user_id'],json .dumps (data )))
         return jsonify ({"ok":True })
     finally :
-        conn .close ()
+        release_db (conn)
 
 @app .route ('/api/load/income')
 @login_required 
@@ -549,7 +585,7 @@ def load_income ():
             return jsonify (row [0 ])
         return jsonify (None )
     finally :
-        conn .close ()
+        release_db (conn)
 
 
 
@@ -597,21 +633,23 @@ def fetch (currency_i :str ,force :bool =False )->tuple :
 
     if not force :
         try :
-            conn =psycopg2 .connect (os .environ ["DATABASE_URL"])
-            cur =conn .cursor ()
-            cur .execute (
-            "SELECT rates, fetched_at FROM exchange_rates WHERE base=%s AND fetched_at > NOW() - INTERVAL '7 days'",
-            (key ,)
-            )
-            row =cur .fetchone ()
-            cur .close ();conn .close ()
-            if row :
-                rates ,fetched_at =row 
-                _rates_cache [key ]=rates 
-                _rates_ts [key ]=fetched_at .timestamp ()
-                return rates ,fetched_at 
+            conn =get_db ()
+            try :
+                with conn .cursor ()as cur :
+                    cur .execute (
+                    "SELECT rates, fetched_at FROM exchange_rates WHERE base=%s AND fetched_at > NOW() - INTERVAL '7 days'",
+                    (key ,)
+                    )
+                    row =cur .fetchone ()
+                if row :
+                    rates ,fetched_at =row
+                    _rates_cache [key ]=rates
+                    _rates_ts [key ]=fetched_at .timestamp ()
+                    return rates ,fetched_at
+            finally :
+                release_db (conn )
         except Exception :
-            pass 
+            pass
 
 
     url =f"https://v6.exchangerate-api.com/v6/{EXCHANGE_API_KEY }/latest/{key }"
@@ -627,19 +665,41 @@ def fetch (currency_i :str ,force :bool =False )->tuple :
 
 
     try :
-        conn =psycopg2 .connect (os .environ ["DATABASE_URL"])
-        cur =conn .cursor ()
-        cur .execute (
-        """INSERT INTO exchange_rates (base, rates, fetched_at)
-               VALUES (%s, %s, %s)
-               ON CONFLICT (base) DO UPDATE SET rates=EXCLUDED.rates, fetched_at=EXCLUDED.fetched_at""",
-        (key ,psycopg2 .extras .Json (rates ),fetched_at )
-        )
-        conn .commit ();cur .close ();conn .close ()
+        conn =get_db ()
+        try :
+            with conn .cursor ()as cur :
+                cur .execute (
+                """INSERT INTO exchange_rates (base, rates, fetched_at)
+                       VALUES (%s, %s, %s)
+                       ON CONFLICT (base) DO UPDATE SET rates=EXCLUDED.rates, fetched_at=EXCLUDED.fetched_at""",
+                (key ,psycopg2 .extras .Json (rates ),fetched_at )
+                )
+            conn .commit ()
+        finally :
+            release_db (conn )
     except Exception :
-        pass 
+        pass
 
     return rates ,fetched_at 
+
+@app .route ('/api/prefs',methods =['PATCH'])
+@login_required
+@csrf_required
+def save_prefs ():
+    data =request .get_json (silent =True )or {}
+    theme =(data .get ('theme')or '').strip ()
+    allowed ={'light','dark','ocean','forest','sunset','midnight','rose','purple','indigo'}
+    if theme not in allowed :
+        return jsonify ({"error":"Invalid theme"}),400
+    conn =get_db ()
+    try :
+        with conn :
+            with conn .cursor ()as cur :
+                cur .execute ("UPDATE users SET theme=%s WHERE id=%s",(theme ,session ['user_id']))
+        session ['theme']=theme
+        return jsonify ({"ok":True })
+    finally :
+        release_db (conn )
 
 def convert (currency_i ,currency_a ,currency_o ):
     rates ,_ =fetch (currency_i )
