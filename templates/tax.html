@@ -249,15 +249,17 @@ const IN_87A_LIMIT = 1200000;  // taxable income ceiling for 87A rebate (AY 2026
 const IN_87A_MAX   = 60000;    // max rebate amount (AY 2026-27)
 const IN_CESS_RATE = 0.04;     // Health & Education Cess
 
-// ── HK constants (2024-25 assessment year, HKD) ───────────────────────────
+// ── HK constants (2026-27 assessment year, HKD) ───────────────────────────
 
 const HK_BRACKETS = [
   [50000,.02],[100000,.06],[150000,.10],[200000,.14],[Infinity,.17]
 ];
-const HK_STD_RATE    = 0.15;
-const HK_BASIC_ALLOW = 132000;
-const HK_MPA         = 264000;
-const HK_TAX_RELIEF  = 3000;
+const HK_STD_RATE      = 0.15;   // standard rate on net assessable income ≤ HK$5M
+const HK_STD_RATE_HIGH = 0.16;   // standard rate on portion above HK$5M (AY 2026-27)
+const HK_STD_TIER      = 5000000;
+const HK_BASIC_ALLOW   = 132000;
+const HK_MPA           = 264000;
+const HK_TAX_RELIEF    = 3000;
 
 // ── Country state ──────────────────────────────────────────────────────────
 
@@ -317,7 +319,9 @@ function calcHKTax(incomeHKD, married, rentalHKD=0){
     prog += (Math.min(assessable,lim)-prev)*rate; prev=lim;
     if(lim===Infinity) break;
   }
-  const std = incomeHKD * HK_STD_RATE;
+  const std = incomeHKD <= HK_STD_TIER
+    ? incomeHKD * HK_STD_RATE
+    : HK_STD_TIER * HK_STD_RATE + (incomeHKD - HK_STD_TIER) * HK_STD_RATE_HIGH;
   let tax   = Math.min(prog, std);
   tax      += rentalHKD * 0.80 * 0.15;       // rental: 15% on 80%
   tax       = Math.max(0, tax - HK_TAX_RELIEF);
@@ -824,7 +828,7 @@ function _openExplainer(d){
   if(d.country==='IN'){
     titleEl.textContent = 'India New Tax Regime — How it works';
     bodyEl.innerHTML =
-      '<p><strong>Slabs (FY 2024-25):</strong></p>'+
+      '<p><strong>Slabs (FY 2025-26 / AY 2026-27):</strong></p>'+
       '<table><tr><th>Income Range (₹)</th><th>Rate</th></tr>'+
       '<tr><td>0 – 4,00,000</td><td>0%</td></tr>'+
       '<tr><td>4,00,001 – 8,00,000</td><td>5%</td></tr>'+
@@ -839,7 +843,7 @@ function _openExplainer(d){
       '<p><strong>Surcharge:</strong> 10% on income ₹50L–1Cr · 15% on ₹1Cr–2Cr · 25% on ₹2Cr+ (new regime)</p>'+
       '<p><strong>Health &amp; Education Cess:</strong> 4% on (income tax + surcharge) — applies to everyone</p>'+
       '<p><strong>NRI:</strong> No standard deduction; untick foreign income categories to exclude them</p>'+
-      '<p style="font-size:.8rem;color:var(--muted);margin-top:.6rem;">Uses New Tax Regime only (default from AY 2024-25). Marginal surcharge relief not applied. Consult a CA for precise liability.</p>';
+      '<p style="font-size:.8rem;color:var(--muted);margin-top:.6rem;">Uses New Tax Regime (AY 2026-27). Marginal surcharge relief not applied. Consult a CA for precise liability.</p>';
   } else {
     titleEl.textContent = 'Hong Kong Salaries Tax — How it works';
     bodyEl.innerHTML =
@@ -850,8 +854,7 @@ function _openExplainer(d){
       '<tr><td>Next 50,000</td><td>10%</td></tr>'+
       '<tr><td>Next 50,000</td><td>14%</td></tr>'+
       '<tr><td>Remainder</td><td>17%</td></tr></table>'+
-      '<p style="margin-top:.75rem"><strong>Standard rate:</strong> 15% on total income (no allowance deducted).</p>'+
-      '<p><strong>Result:</strong> The lower of progressive vs standard rate applies.</p>'+
+      '<p style="margin-top:.75rem"><strong>Standard rate (AY 2026-27):</strong> 15% on net assessable income up to HK$5,000,000 · 16% on the remainder (no allowance deducted). The lower of progressive vs standard rate applies.</p>'+
       '<p><strong>Allowances:</strong> Basic HK$132,000 · Married Person HK$264,000</p>'+
       '<p><strong>Tax reduction:</strong> HK$3,000 relief cap applied after calculation.</p>'+
       '<p><strong>Exempt income:</strong> Dividends, Interest Income, Capital Gains are not included (HK$0 tax).</p>'+
