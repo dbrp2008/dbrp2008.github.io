@@ -198,7 +198,7 @@
       {id:'subs-months',   page:'/subscriptions', type:'modal',   text:'The <strong>month columns</strong> mark when each sub is active. Leave a month blank = always active. Great for seasonal or annual subs.',                                              actions:[{label:'Next: Analytics →',primary:true,navigate:'/analytics',next:true}]},
       {id:'ana-intro',     page:'/analytics',     type:'modal',   text:'The <strong>Analytics</strong> page 📉 pulls from all your trackers automatically — spending trends, income vs expenses, category breakdowns, and more.<br><br><span style="font-size:.8rem;color:var(--muted)">📊 Prior months shown here use randomised sample values so the charts aren\'t empty. Your real history builds as you use the app.</span>',               actions:[{label:"Let's look →",primary:true,next:true}]},
       {id:'ana-period',    page:'/analytics',     type:'tooltip', target:'[data-wt="analytics-period"]', text:'Use the <strong>Period selector</strong> to filter all charts to a specific month or range.',                                                    actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'ana-scroll',    page:'/analytics',     type:'wait',    target:null, pin:'tl', text:'📜 <strong>Scroll down</strong> to explore all the charts — there are several! I\'ll wait here.',                                                             waitFor:'scroll_near_bottom',actions:[]},
+      {id:'ana-scroll',    page:'/analytics',     type:'wait',    target:null, pin:'tl', text:'📜 <strong>Scroll down</strong> to explore all the charts — there are several! I\'ll wait here.',                                                             waitFor:'scroll_near_bottom',actions:[],allowSelectors:['.slideshow-nav-btn']},
       {id:'ana-done',      page:'/analytics',     type:'modal',   text:'You\'ve seen it all! Charts update automatically as you add more data.',                                                                                                                actions:[{label:'Back to home →',primary:true,navigate:'/',next:true}]},
       {id:'home-branch',   page:'/',              type:'modal',   text:'Almost done! Two more tools you might want:<br><br>🧾 <strong>Tax Calculator</strong> — estimates income tax for 🇺🇸 US, 🇮🇳 India, and 🇭🇰 HK.<br><br>💱 <strong>Currency Converter</strong> — live exchange rates.<br><br>Want a quick look?', actions:[{label:'Yes, show me! →',primary:true,navigate:'/tax',setWantsTour:true,next:true},{label:"I'm good to explore",end:'soft'}]},
       {id:'tax-intro',     page:'/tax',           type:'modal',   wantsCurrencyTour:true, text:'The <strong>Tax Calculator</strong> 🧾 supports three countries. Pick your country at the top, enter your annual income, and hit <strong>Compute Tax</strong>. After computing, an explainer link appears showing exactly how the number was calculated.',  actions:[{label:'Got it →',primary:true,next:true}]},
@@ -222,7 +222,8 @@
     }
     // Capture-phase click guard: allows clicks only inside targetEl or the bubble.
     // Blocks everything else (toolbar buttons, nav links, etc.) during wait steps.
-    function _startGuard(targetEl){
+    // allowSelectors: optional array of CSS selectors whose matching elements are also allowed.
+    function _startGuard(targetEl,allowSelectors){
       if(_guardOff){_guardOff();_guardOff=null;}
       function guard(e){
         var t=e.target||(e.touches&&e.touches[0]&&e.touches[0].target);
@@ -233,7 +234,8 @@
         var navLink=t.closest('a[href]');
         if(navLink&&!inBubble){e.stopPropagation();e.preventDefault();return;}
         var inTarget=targetEl&&targetEl.contains(t);
-        if(!inBubble&&!inTarget&&!inToast){e.stopPropagation();e.preventDefault();}
+        var inAllowed=allowSelectors&&allowSelectors.some(function(sel){return !!t.closest(sel);});
+        if(!inBubble&&!inTarget&&!inToast&&!inAllowed){e.stopPropagation();e.preventDefault();}
       }
       // touchend (not touchstart) blocks tap-navigation without blocking scroll.
       // Scroll starts on touchstart — if we preventDefault() there, scrolling is killed.
@@ -544,7 +546,7 @@
       if(step.type==='wait'||step.allowInteract) _overlay.classList.add('wt-allow-scroll');
       // Always run the click guard — for non-interactive steps use null so only the bubble
       // is clickable. This closes the loophole where high-z-index nav links bypass the overlay.
-      _startGuard(step.type==='wait'||step.allowInteract ? targetEl : null);
+      _startGuard(step.type==='wait'||step.allowInteract ? targetEl : null, step.allowSelectors||null);
       function _applyTarget(el){
         el.scrollIntoView({block:'center',behavior:'smooth'});
         setTimeout(function(){_setHL(el);_posBubble(el);_trackHL(el);},380);
@@ -569,7 +571,7 @@
             var el=document.querySelector(step.target);
             if(el){
               _applyTarget(el);
-              if(step.type==='wait'||step.allowInteract) _startGuard(el);
+              if(step.type==='wait'||step.allowInteract) _startGuard(el, step.allowSelectors||null);
             }
           },700);
         }
@@ -617,7 +619,7 @@
         _text.innerHTML='Hey there! 👋 I\'m <strong>Fi</strong>, your FiApp guide.<br><br>FiApp is a 7-in-1 personal finance toolkit. Want a quick guided tour? You\'ll need an account to save data.';
         _btns.innerHTML='';
         var createBtn=document.createElement('button');createBtn.className='wt-btn-primary';createBtn.textContent='Create Account →';
-        createBtn.onclick=function(){window.location.href='/register';};
+        createBtn.onclick=function(){window.location.href='/login?tab=register';};
         var noBtn=document.createElement('button');noBtn.className='wt-btn-ghost';noBtn.textContent="No thanks, I'll look around";
         noBtn.onclick=function(){
           state.loggedOutWelcome=false;_sv(state);_hideAll();
