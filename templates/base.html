@@ -19,7 +19,8 @@
       ['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4',
        'fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4',
        'fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1',
-       'fiapp_tax_result','fiapp_prefill_income'].forEach(function(k){localStorage.removeItem(k);});
+       'fiapp_tax_result','fiapp_prefill_income',
+       'fiapp_walkthrough_v1','fiapp_wt_backup_v1'].forEach(function(k){localStorage.removeItem(k);});
       localStorage.removeItem('fiapp_auth_user');
     }
     if(_srv) localStorage.setItem('fiapp_auth_user',_srv);
