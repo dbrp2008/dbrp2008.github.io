@@ -149,6 +149,13 @@
   <div class="hero">
     <h1>FiApp</h1>
     <p>Your 7-in-1 personal finance toolkit</p>
+    {% if not current_user %}
+    <button class="btn" onclick="window.location.href='/register?after=walkthrough'" style="margin-top:.75rem;font-size:.9rem;">🧭 Start Walkthrough</button>
+    {% else %}
+    <span id="wt-restart-link" style="display:none;font-size:.82rem;color:var(--muted);margin-top:.5rem;">
+      <a href="#" onclick="window.wtStart();return false;" style="color:var(--accent);">↺ Restart walkthrough</a>
+    </span>
+    {% endif %}
   </div>
 
   <div class="cards">
@@ -269,6 +276,16 @@
     else if(e.key==='ArrowLeft') show(idx-1);
   });
   show(0);
+})();
+
+// Show restart-tour link for logged-in users who've completed the walkthrough
+(function(){
+  var wt = null;
+  try{ wt = JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null'); }catch{}
+  if(wt && wt.mainCompleted){
+    var el = document.getElementById('wt-restart-link');
+    if(el) el.style.display = 'block';
+  }
 })();
 </script>
 {% endblock %}
