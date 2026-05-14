@@ -159,8 +159,13 @@
     <p>Sign in to sync your data across devices</p>
   </div>
   <script>
-  if(new URLSearchParams(window.location.search).get('deleted')==='1'){
+  var _qp=new URLSearchParams(window.location.search);
+  if(_qp.get('deleted')==='1'){
     document.getElementById('deleted-banner').style.display='block';
+    history.replaceState(null,'','/login');
+  }
+  if(_qp.get('tab')==='register'){
+    switchTab('register');
     history.replaceState(null,'','/login');
   }
   </script>
