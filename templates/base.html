@@ -586,6 +586,7 @@
           if(step.onMet==='confetti')_fireConfetti();
           setTimeout(function(){
             var st=_ld()||_def();
+            if(!st.active) return; // user skipped during the confetti delay — abort
             var vs=_vis(st);var idx=vs.findIndex(function(s){return s.id===step.id;});
             var nxt=idx>=0&&idx<vs.length-1?vs[idx+1]:null;
             if(!nxt){_endCleanup();st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
