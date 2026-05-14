@@ -126,6 +126,15 @@
     }
     .tax-no-data-note a { color: var(--accent); text-decoration: none; font-weight: 600; }
     .tax-no-data-note a:hover { text-decoration: underline; }
+
+    /* Explainer modal table */
+    #explainer-body table { border-collapse: collapse; width: 100%; }
+    #explainer-body table tr { border-bottom: 1px solid var(--panel-border); }
+    #explainer-body table th { color: var(--muted); font-size: .75rem; text-align: left; padding: 3px 6px; }
+    #explainer-body table th:last-child { text-align: right; }
+    #explainer-body table td { padding: 3px 6px; }
+    #explainer-body table td:last-child { text-align: right; }
+    #explainer-body table tr:nth-child(odd) td { background: rgba(128,128,128,.07); }
   </style>
 {% endblock %}
 
@@ -133,12 +142,26 @@
   <h1>Income Tax Calculator</h1>
   <div id="msg-area"></div>
 
+  <!-- Country toggle -->
+  <div class="tax-src-wrap" style="margin-bottom:1rem;">
+    <div class="tax-src-head">Country</div>
+    <div class="tax-mode-bar">
+      <button type="button" class="tax-mode-btn active" id="btn-us" onclick="_setCountry('US')">🇺🇸 United States</button>
+      <button type="button" class="tax-mode-btn"        id="btn-in" onclick="_setCountry('IN')">🇮🇳 India</button>
+      <button type="button" class="tax-mode-btn"        id="btn-hk" onclick="_setCountry('HK')">🇭🇰 Hong Kong</button>
+    </div>
+  </div>
+
+  <!-- Regime row: India ROR/NRI (hidden for US/HK) -->
+  <div id="regime-row" style="display:none;" class="tax-src-wrap"></div>
+
+  <!-- Income Source -->
   <div class="tax-src-wrap">
     <div class="tax-src-head">Income Source</div>
     <div id="tracker-panel"></div>
     <div class="tax-preview" id="tax-preview">
       <div>
-        <span class="tax-preview-lbl">Estimated annual salary: </span>
+        <span class="tax-preview-lbl">Estimated annual income: </span>
         <strong id="tax-preview-val"></strong>
       </div>
       <button type="button" class="tax-use-btn" id="tax-use-btn">↓ Use this value</button>
@@ -146,11 +169,7 @@
   </div>
 
   <form id="tax-form">
-    <div>
-      <label for="income">Annual Income (no $ sign) <small style="font-weight:400;color:var(--muted)">- or pick from Income Source above</small></label>
-      <input type="text" name="income" id="income" required>
-    </div>
-    <div>
+    <div id="status-row">
       <label for="status">Familial Status</label>
       <select name="status" id="status" required>
         <option value="">-- select --</option>
@@ -159,24 +178,50 @@
         <option value="head of household">Head of Household</option>
       </select>
     </div>
+    <div id="hk-married-row" style="display:none;margin-bottom:.75rem;">
+      <label style="display:flex;align-items:center;gap:.5rem;font-size:.9rem;cursor:pointer;">
+        <input type="checkbox" id="hk-married-cb"> Use Married Person's Allowance (HK$264,000)
+      </label>
+    </div>
+    <div>
+      <label for="income">Annual Income
+        <span id="income-ccy-sym" style="font-weight:700;margin-left:.25rem;">($)</span>
+        <small style="font-weight:400;color:var(--muted)"> - or pick from Income Source above</small>
+      </label>
+      <input type="text" name="income" id="income" required>
+    </div>
     <br>
     <button class="btn" type="submit" id="calc-btn">Compute Tax</button>
   </form>
 
   <div class="result" id="result-box" style="display:none;">
-    <p><strong>Income:</strong> $<span id="res-income"></span></p>
-    <p><strong>Status:</strong> <span id="res-status"></span></p>
-    <p><strong>Federal Income Tax:</strong> $<span id="res-tax"></span></p>
+    <div id="result-detail"></div>
     <div style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;">
       <button type="button" class="btn" id="apply-sel-btn" style="font-size:.85rem;">→ Apply to selected months</button>
       <button type="button" class="btn" id="apply-year-btn" style="font-size:.85rem;">Apply to whole year</button>
       <button type="button" class="btn" id="apply-pick-btn" style="font-size:.85rem;background:var(--panel-bg);color:var(--fg);border:1.5px solid var(--panel-border);">Select months…</button>
+      <button type="button" id="tax-explain-btn" style="display:none;font-size:.82rem;background:none;border:none;cursor:pointer;color:var(--accent);text-decoration:underline;">ℹ How is this calculated?</button>
     </div>
-
     <div id="month-pick-wrap" style="display:none;margin-top:.85rem;">
       <div style="font-size:.82rem;color:var(--muted);margin-bottom:.45rem;">Pick months to apply the monthly tax to:</div>
       <div id="month-pick-grid" style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem;"></div>
       <button type="button" class="btn" id="apply-pick-go" style="font-size:.85rem;">→ Apply to selected</button>
+    </div>
+  </div>
+
+  <!-- Explainer modal -->
+  <div id="tax-explainer-overlay"
+       style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;overflow-y:auto;cursor:pointer;"
+       onclick="if(event.target===this)this.style.display='none'">
+    <div id="tax-explainer-modal"
+         style="background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:14px;max-width:520px;margin:2rem auto;padding:1.5rem 1.75rem;cursor:default;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
+        <strong id="explainer-title" style="font-size:1.05rem;"></strong>
+        <button type="button"
+                onclick="document.getElementById('tax-explainer-overlay').style.display='none'"
+                style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--muted);">✕</button>
+      </div>
+      <div id="explainer-body" style="font-size:.88rem;line-height:1.6;"></div>
     </div>
   </div>
 {% endblock %}
@@ -184,58 +229,106 @@
 {% block body_scripts %}
 <script>
 
+// ── US brackets ────────────────────────────────────────────────────────────
+
 const BRACKETS = {
-  single: [[11600,.10],[47150,.12],[100525,.22],[191950,.24],[243725,.32],[609350,.35],[Infinity,.37]],
-  married: [[23200,.10],[94300,.12],[201050,.22],[383900,.24],[487450,.32],[731200,.35],[Infinity,.37]],
+  single:              [[11600,.10],[47150,.12],[100525,.22],[191950,.24],[243725,.32],[609350,.35],[Infinity,.37]],
+  married:             [[23200,.10],[94300,.12],[201050,.22],[383900,.24],[487450,.32],[731200,.35],[Infinity,.37]],
   'head of household': [[16550,.10],[63100,.12],[100500,.22],[191950,.24],[243700,.32],[609350,.35],[Infinity,.37]],
 };
+
+// ── India constants (New Regime FY 2024-25, INR) ───────────────────────────
+
+const IN_BRACKETS = [
+  [400000,0],[800000,.05],[1200000,.10],
+  [1600000,.15],[2000000,.20],[2400000,.25],[Infinity,.30]
+];
+const IN_STD_DED   = 75000;   // standard deduction for ROR
+const IN_87A_LIMIT = 700000;  // taxable income ceiling for 87A rebate
+const IN_87A_MAX   = 25000;   // max rebate amount
+
+// ── HK constants (2024-25 assessment year, HKD) ───────────────────────────
+
+const HK_BRACKETS = [
+  [50000,.02],[100000,.06],[150000,.10],[200000,.14],[Infinity,.17]
+];
+const HK_STD_RATE    = 0.15;
+const HK_BASIC_ALLOW = 132000;
+const HK_MPA         = 264000;
+const HK_TAX_RELIEF  = 3000;
+
+// ── Country state ──────────────────────────────────────────────────────────
+
+let _country     = 'US';
+let _inResidency = 'ROR';
+let _nriSourced  = null;   // Set of top-level row IDs; null = all included
+
+// ── Tax calculations ───────────────────────────────────────────────────────
+
 function calcFederalTax(income, status){
-  const brackets=BRACKETS[status]; if(!brackets) throw new Error('Unknown filing status.');
+  const brackets = BRACKETS[status];
+  if(!brackets) throw new Error('Unknown filing status.');
   let tax=0, prev=0;
   for(const [limit,rate] of brackets){
     if(income<=prev) break;
-    tax+=(Math.min(income,limit)-prev)*rate; prev=limit;
+    tax += (Math.min(income,limit)-prev)*rate; prev=limit;
     if(limit===Infinity) break;
   }
   return tax;
 }
-function showError(msg){ document.getElementById('msg-area').innerHTML='<div class="error">'+msg+'</div>'; document.getElementById('result-box').style.display='none'; }
+
+// Returns slab tax only — 87A rebate and CG tax applied by caller
+function calcIndiaTax(grossINR, residency){
+  const stdDed = residency==='ROR' ? IN_STD_DED : 0;
+  const ordinary = Math.max(0, grossINR - stdDed);
+  let tax=0, prev=0;
+  for(const [lim,rate] of IN_BRACKETS){
+    if(ordinary<=prev) break;
+    tax += (Math.min(ordinary,lim)-prev)*rate; prev=lim;
+    if(lim===Infinity) break;
+  }
+  return tax;
+}
+
+// Returns { tax, method, prog, std }
+function calcHKTax(incomeHKD, married, rentalHKD=0){
+  const allowance  = married ? HK_MPA : HK_BASIC_ALLOW;
+  const assessable = Math.max(0, incomeHKD - allowance);
+  let prog=0, prev=0;
+  for(const [lim,rate] of HK_BRACKETS){
+    if(assessable<=prev) break;
+    prog += (Math.min(assessable,lim)-prev)*rate; prev=lim;
+    if(lim===Infinity) break;
+  }
+  const std = incomeHKD * HK_STD_RATE;
+  let tax   = Math.min(prog, std);
+  tax      += rentalHKD * 0.80 * 0.15;       // rental: 15% on 80%
+  tax       = Math.max(0, tax - HK_TAX_RELIEF);
+  return { tax, method: prog<=std ? 'progressive' : 'standard rate', prog, std };
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+
+function showError(msg){
+  document.getElementById('msg-area').innerHTML='<div class="error">'+msg+'</div>';
+  document.getElementById('result-box').style.display='none';
+}
 function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
 
-let _lastTaxResult=null;
+let _lastTaxResult = null;
 
-document.getElementById('tax-form').addEventListener('submit',function(e){
-  e.preventDefault(); clearMsg();
-  const incomeRaw=document.getElementById('income').value.trim().replace(/[$,]/g,'');
-  const status=document.getElementById('status').value;
-  const income=parseFloat(incomeRaw);
-  if(isNaN(income)||income<0){ showError('Please enter a valid non-negative income amount.'); return; }
-  if(!status){ showError('Please select a filing status.'); return; }
-  let tax; try{ tax=calcFederalTax(income,status); }catch(err){ showError(err.message); return; }
-  document.getElementById('res-income').textContent=Number(income.toFixed(2)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('res-status').textContent=status.charAt(0).toUpperCase()+status.slice(1);
-  document.getElementById('res-tax').textContent=Number(tax.toFixed(2)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('result-box').style.display='block';
-  document.getElementById('month-pick-wrap').style.display='none';
-
-  let months=null;
-  if(_mode!=='manual') months=_mode==='12'?_mksForYear(_pY):[..._pSel];
-  _lastTaxResult={income:income.toFixed(2),tax:tax.toFixed(2),status,ts:Date.now(),consumed:false,months,year:_pY};
-  _updateApplyBtns();
-});
-
+// ── Income tracker data helpers ────────────────────────────────────────────
 
 const _IK  = 'fiapp_income_v1';
 const _MOS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-const _td   = new Date();
-const _mnY  = _td.getFullYear()-1, _mnM = _td.getMonth();
-const _mxY  = _td.getFullYear()+1, _mxM = _td.getMonth();
-const _cY   = _td.getFullYear();
-const _YRS  = [_mnY, _cY, _mxY];
+const _td  = new Date();
+const _mnY = _td.getFullYear()-1, _mnM = _td.getMonth();
+const _mxY = _td.getFullYear()+1, _mxM = _td.getMonth();
+const _cY  = _td.getFullYear();
+const _YRS = [_mnY, _cY, _mxY];
 
 let _rates={}, _ratesOk=false;
-
 
 function _mk(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
 function _inRng(y,m){
@@ -253,47 +346,127 @@ function _isFullYr(y){
 function _mksForYear(y){ const r=[]; for(let m=0;m<12;m++) if(_inRng(y,m)) r.push(_mk(y,m)); return r; }
 function _getInc(){ try{ return JSON.parse(localStorage.getItem(_IK))||null; }catch{ return null; } }
 
-
-
+// US: salary leaf rows only
 function _salaryLeafs(inc){
   if(!inc||!inc.rows) return [];
-  const ps=inc.rows.filter(r=>!r.parentId&&r.label.trim().toLowerCase()==='salary');
+  const ps = inc.rows.filter(r=>!r.parentId&&r.label.trim().toLowerCase()==='salary');
   function collectLeafs(id){
-    const kids=inc.rows.filter(r=>r.parentId===id);
+    const kids = inc.rows.filter(r=>r.parentId===id);
     if(!kids.length) return [inc.rows.find(r=>r.id===id)].filter(Boolean);
     return kids.flatMap(k=>collectLeafs(k.id));
   }
   return ps.flatMap(p=>collectLeafs(p.id));
 }
-function _mthTotal(mk,inc){
-  const rows=_salaryLeafs(inc); let t=0;
-  for(const row of rows) for(const col of (inc.cols||[])){
-    const v=parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0;
+
+// India / HK: categorise all leaf rows by income type
+function _incRowsByType(inc){
+  if(!inc||!inc.rows) return {ordinary:[],capitalGains:[],rental:[],exempt:[]};
+  const CG_LBLS  = ['capital gains'];
+  const RNT_LBLS = ['rental income'];
+  const EX_LBLS  = ['dividends','interest income'];
+  const res = {ordinary:[],capitalGains:[],rental:[],exempt:[]};
+  function leafs(id){
+    const kids = inc.rows.filter(r=>r.parentId===id);
+    if(!kids.length) return [inc.rows.find(r=>r.id===id)].filter(Boolean);
+    return kids.flatMap(k=>leafs(k.id));
+  }
+  for(const top of inc.rows.filter(r=>!r.parentId)){
+    for(const lf of leafs(top.id)){
+      const lb = (lf.label||'').trim().toLowerCase();
+      if(CG_LBLS.includes(lb))       res.capitalGains.push(lf);
+      else if(RNT_LBLS.includes(lb)) res.rental.push(lf);
+      else if(EX_LBLS.includes(lb))  res.exempt.push(lf);
+      else                           res.ordinary.push(lf);
+    }
+  }
+  return res;
+}
+
+function _getTopParent(rowId, inc){
+  let r = inc.rows.find(x=>x.id===rowId);
+  while(r&&r.parentId) r = inc.rows.find(x=>x.id===r.parentId);
+  return r||null;
+}
+
+// Sum a list of rows for a given month, converting to targetCcy using cached _rates
+function _rowTotal(mk, inc, rowList, targetCcy){
+  let t=0;
+  for(const row of rowList) for(const col of (inc.cols||[])){
+    const v = parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0;
     if(!v) continue;
-    const cur=(inc.monthRowCurrencies||{})[`${mk}|${row.id}`]||'USD';
-    t+= cur==='USD'?v:(_rates[cur]?v/_rates[cur]:v);
+    const cur = (inc.monthRowCurrencies||{})[`${mk}|${row.id}`]||'USD';
+    if(cur===targetCcy){
+      t += v;
+    } else if(targetCcy==='USD'){
+      t += _rates[cur] ? v/_rates[cur] : v;
+    } else {
+      t += (_rates[cur]&&_rates[targetCcy]) ? (v/_rates[cur])*_rates[targetCcy] : v;
+    }
   }
   return t;
 }
-function _mthHas(mk,inc){
+
+// US: salary total in USD
+function _mthTotal(mk, inc){
+  const rows = _salaryLeafs(inc); let t=0;
+  for(const row of rows) for(const col of (inc.cols||[])){
+    const v = parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0;
+    if(!v) continue;
+    const cur = (inc.monthRowCurrencies||{})[`${mk}|${row.id}`]||'USD';
+    t += cur==='USD' ? v : (_rates[cur] ? v/_rates[cur] : v);
+  }
+  return t;
+}
+
+// Country-aware total for annualisation (US uses salary only; India/HK use broader set)
+function _mthTotalForCountry(mk, inc){
+  if(_country==='US') return _mthTotal(mk, inc);
+  const rows = _incRowsByType(inc);
+  const tgt  = _country==='IN' ? 'INR' : 'HKD';
+  let ordRows = rows.ordinary;
+  if(_country==='IN' && _inResidency==='NRI' && _nriSourced!==null){
+    ordRows = ordRows.filter(r=>{ const top=_getTopParent(r.id,inc); return top&&_nriSourced.has(top.id); });
+  }
+  const ordinary = _rowTotal(mk, inc, ordRows, tgt);
+  const rental   = _rowTotal(mk, inc, rows.rental, tgt);
+  if(_country==='HK') return ordinary;        // HK rental handled separately
+  return ordinary + rental;                   // India: rental taxed under slabs
+}
+
+function _mthCGForCountry(mk, inc){
+  return _rowTotal(mk, inc, _incRowsByType(inc).capitalGains, 'INR');
+}
+function _mthRentalForCountry(mk, inc){
+  return _rowTotal(mk, inc, _incRowsByType(inc).rental, _country==='HK'?'HKD':'INR');
+}
+
+function _mthHas(mk, inc){
   for(const row of _salaryLeafs(inc))
     for(const col of (inc.cols||[]))
       if((parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0)>0) return true;
   return false;
 }
-async function _loadRates(inc){
-  if(_ratesOk) return;
-  try{
-    const obj=await fiappGetRates('USD');
-    if(obj&&obj.rates){
-      Object.entries(obj.rates).forEach(([k,v])=>{ if(/^[A-Z]{2,5}$/.test(k)) _rates[k]=v; });
-      _ratesOk=true;
-    }
-  }catch(e){ console.warn('tax: rate fetch failed',e.message); }
+function _mthHasForCountry(mk, inc){
+  if(_country==='US') return _mthHas(mk, inc);
+  const rows = _incRowsByType(inc);
+  const all  = [...rows.ordinary,...rows.capitalGains,...rows.rental,...rows.exempt];
+  return _rowTotal(mk, inc, all, _country==='IN'?'INR':'HKD') > 0;
 }
 
+async function _loadRates(){
+  if(_ratesOk) return;
+  try{
+    const obj = await fiappGetRates('USD');
+    if(obj&&obj.rates){
+      Object.entries(obj.rates).forEach(([k,v])=>{ if(/^[A-Z]{2,5}$/.test(k)) _rates[k]=v; });
+      _ratesOk = true;
+    }
+  }catch(e){ console.warn('tax: rate fetch failed', e.message); }
+}
 
-const _MODES=[
+// ── Annualisation modes ────────────────────────────────────────────────────
+
+const _MODES = [
   {id:'manual', label:'✏ Manual',    n:0,  mult:null},
   {id:'1',      label:'1 month ×12', n:1,  mult:12},
   {id:'2',      label:'2 months ×6', n:2,  mult:6},
@@ -304,55 +477,109 @@ const _MODES=[
 ];
 let _mode='manual', _pY=_cY, _pSel=[];
 
-function _modeAvail(n,inc){
+function _modeAvail(n, inc){
   if(!inc) return false;
-  if(n===1)  return _YRS.some(y=>_mksForYear(y).some(mk=>_mthHas(mk,inc)));
-  if(n===12) return _YRS.some(y=>_isFullYr(y)&&_mksForYear(y).some(mk=>_mthHas(mk,inc)));
-  return _YRS.some(y=>_mksForYear(y).filter(mk=>_mthHas(mk,inc)).length>=n);
+  if(n===1)  return _YRS.some(y=>_mksForYear(y).some(mk=>_mthHasForCountry(mk,inc)));
+  if(n===12) return _YRS.some(y=>_isFullYr(y)&&_mksForYear(y).some(mk=>_mthHasForCountry(mk,inc)));
+  return _YRS.some(y=>_mksForYear(y).filter(mk=>_mthHasForCountry(mk,inc)).length>=n);
 }
-
 
 function _calcAnnual(inc){
   if(_mode==='manual'||!inc) return null;
   if(_mode==='1'){
     if(_pSel.length!==1) return null;
-    return _mthTotal(_pSel[0],inc)*12;
+    return _mthTotalForCountry(_pSel[0],inc)*12;
   }
   if(_mode==='12'){
-    return _mksForYear(_pY).reduce((s,mk)=>s+_mthTotal(mk,inc),0);
+    return _mksForYear(_pY).reduce((s,mk)=>s+_mthTotalForCountry(mk,inc),0);
   }
-  const n=parseInt(_mode);
-  const mode=_MODES.find(m=>m.id===_mode);
+  const n    = parseInt(_mode);
+  const mode = _MODES.find(m=>m.id===_mode);
   if(_pSel.length!==n) return null;
-  return _pSel.reduce((s,mk)=>s+_mthTotal(mk,inc),0)*mode.mult;
+  return _pSel.reduce((s,mk)=>s+_mthTotalForCountry(mk,inc),0)*mode.mult;
 }
-
 
 function _showPreview(inc){
-  const prev=document.getElementById('tax-preview');
-  const annual=_calcAnnual(inc);
-  if(annual!==null&&annual>=0){
-    prev.style.display='flex';
-    document.getElementById('tax-preview-val').textContent=
-      '$'+annual.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const prev   = document.getElementById('tax-preview');
+  const annual = _calcAnnual(inc);
+  if(annual!==null && annual>=0){
+    prev.style.display = 'flex';
+    const sym = _country==='IN'?'₹':_country==='HK'?'HK$':'$';
+    document.getElementById('tax-preview-val').textContent =
+      sym + annual.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   } else {
-    prev.style.display='none';
+    prev.style.display = 'none';
   }
 }
 
+// ── Country UI controller ──────────────────────────────────────────────────
+
+function _setCountry(c){
+  _country = c;
+  document.querySelectorAll('.tax-mode-btn[id^="btn-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+c.toLowerCase()).classList.add('active');
+  _renderCountryUI();
+  _mode='manual'; _pSel=[];
+  const inc = _getInc();
+  _buildUI(inc);
+  _loadRates().then(()=>_buildUI(_getInc())).catch(()=>{});
+  document.getElementById('result-box').style.display = 'none';
+}
+
+function _renderCountryUI(){
+  const statusRow = document.getElementById('status-row');
+  const hkRow     = document.getElementById('hk-married-row');
+  const regimeRow = document.getElementById('regime-row');
+  const ccySym    = document.getElementById('income-ccy-sym');
+
+  if(_country==='US'){
+    statusRow.style.display = '';
+    hkRow.style.display     = 'none';
+    regimeRow.style.display = 'none'; regimeRow.innerHTML='';
+    ccySym.textContent = '($)';
+    document.getElementById('status').required = true;
+  } else if(_country==='IN'){
+    statusRow.style.display = 'none';
+    document.getElementById('status').required = false;
+    hkRow.style.display     = 'none';
+    ccySym.textContent = '(₹)';
+    regimeRow.style.display = '';
+    regimeRow.innerHTML =
+      '<div class="tax-src-head">Residency Status</div>'+
+      '<div class="tax-mode-bar">'+
+        '<button type="button" class="tax-mode-btn '+(_inResidency==='ROR'?'active':'')+'" onclick="_setResidency(\'ROR\')">ROR (Resident)</button>'+
+        '<button type="button" class="tax-mode-btn '+(_inResidency==='NRI'?'active':'')+'" onclick="_setResidency(\'NRI\')">NRI (Non-Resident)</button>'+
+      '</div>';
+  } else {
+    statusRow.style.display = 'none';
+    document.getElementById('status').required = false;
+    hkRow.style.display     = '';
+    ccySym.textContent = '(HK$)';
+    regimeRow.style.display = 'none'; regimeRow.innerHTML='';
+  }
+}
+
+function _setResidency(r){
+  _inResidency = r; _nriSourced = null;
+  _renderCountryUI();
+  const inc = _getInc(); _buildUI(inc);
+}
+
+// ── Income source panel ────────────────────────────────────────────────────
 
 function _buildUI(inc){
-  const panel=document.getElementById('tracker-panel');
+  const panel = document.getElementById('tracker-panel');
   if(!panel) return;
-  panel.innerHTML='';
+  panel.innerHTML = '';
 
-  const bar=document.createElement('div'); bar.className='tax-mode-bar';
+  const bar = document.createElement('div'); bar.className='tax-mode-bar';
   _MODES.forEach(mode=>{
-    const btn=document.createElement('button');
+    const btn = document.createElement('button');
     btn.type='button'; btn.className='tax-mode-btn'; btn.textContent=mode.label;
     if(mode.id===_mode) btn.classList.add('active');
-    if(mode.id!=='manual'){
-      if(!_modeAvail(mode.n,inc)){ btn.disabled=true; btn.title='Not enough salary data in Income Tracker'; }
+    if(mode.id!=='manual' && !_modeAvail(mode.n,inc)){
+      btn.disabled = true;
+      btn.title = 'Not enough income data in Income Tracker';
     }
     btn.addEventListener('click',()=>{
       if(btn.disabled) return;
@@ -365,32 +592,32 @@ function _buildUI(inc){
   if(_mode==='manual'){ _showPreview(inc); return; }
 
   if(!inc){
-    const note=document.createElement('p'); note.className='tax-no-data-note';
-    note.style.marginTop='.6rem';
-    note.innerHTML='No income tracker data. <a href="/income">Open Income Tracker</a> to add salary data.';
+    const note = document.createElement('p'); note.className='tax-no-data-note';
+    note.style.marginTop = '.6rem';
+    note.innerHTML = 'No income tracker data. <a href="/income">Open Income Tracker</a> to add data.';
     panel.appendChild(note); return;
   }
 
-  const picker=document.createElement('div'); picker.className='tax-picker';
+  const picker = document.createElement('div'); picker.className='tax-picker';
 
   if(_mode==='1'){
-    const hint=document.createElement('span'); hint.className='tax-hint';
-    hint.textContent='Pick a month - its salary total will be multiplied by 12:';
+    const hint = document.createElement('span'); hint.className='tax-hint';
+    hint.textContent = 'Pick a month — its total will be multiplied by 12:';
     picker.appendChild(hint);
 
-    const sel=document.createElement('select'); sel.className='tax-month-sel';
-    const def=document.createElement('option'); def.value=''; def.textContent='— select a month —';
+    const sel = document.createElement('select'); sel.className='tax-month-sel';
+    const def = document.createElement('option'); def.value=''; def.textContent='— select a month —';
     sel.appendChild(def);
 
     for(const y of _YRS){
-      const grp=document.createElement('optgroup'); grp.label=String(y); let added=0;
+      const grp = document.createElement('optgroup'); grp.label=String(y); let added=0;
       for(let m=0;m<12;m++){
         if(!_inRng(y,m)) continue;
-        const mk=_mk(y,m);
-        const opt=document.createElement('option');
-        opt.value=mk;
-        opt.textContent=_MOS[m]+' '+y+((!_mthHas(mk,inc))?' - no data':'');
-        if(!_mthHas(mk,inc)) opt.disabled=true;
+        const mk  = _mk(y,m);
+        const opt = document.createElement('option');
+        opt.value = mk;
+        opt.textContent = _MOS[m]+' '+y+(!_mthHasForCountry(mk,inc)?' - no data':'');
+        if(!_mthHasForCountry(mk,inc)) opt.disabled=true;
         grp.appendChild(opt); added++;
       }
       if(added) sel.appendChild(grp);
@@ -400,60 +627,60 @@ function _buildUI(inc){
     picker.appendChild(sel);
 
   } else if(_mode==='12'){
-    const fullYrs=_YRS.filter(y=>_isFullYr(y));
+    const fullYrs = _YRS.filter(y=>_isFullYr(y));
     if(!fullYrs.length){
-      const note=document.createElement('span'); note.className='tax-hint';
-      note.textContent='No fully-available year in the ±1 year range.';
+      const note = document.createElement('span'); note.className='tax-hint';
+      note.textContent = 'No fully-available year in the ±1 year range.';
       picker.appendChild(note);
     } else {
-      const hint=document.createElement('span'); hint.className='tax-hint';
-      hint.textContent='Select a year - all salary entries will be summed:';
+      const hint = document.createElement('span'); hint.className='tax-hint';
+      hint.textContent = 'Select a year — all income entries will be summed:';
       picker.appendChild(hint);
 
-      const ybar=document.createElement('div'); ybar.className='tax-year-bar';
+      const ybar = document.createElement('div'); ybar.className='tax-year-bar';
       fullYrs.forEach(y=>{
-        const btn=document.createElement('button');
+        const btn = document.createElement('button');
         btn.type='button'; btn.className='tax-year-btn'; btn.textContent=y;
-        const hasDat=_mksForYear(y).some(mk=>_mthHas(mk,inc));
-        if(!hasDat){ btn.disabled=true; btn.title='No salary data for '+y; }
+        const hasDat = _mksForYear(y).some(mk=>_mthHasForCountry(mk,inc));
+        if(!hasDat){ btn.disabled=true; btn.title='No income data for '+y; }
         if(y===_pY&&hasDat) btn.classList.add('active');
         btn.addEventListener('click',()=>{ _pY=y; _buildUI(inc); });
         ybar.appendChild(btn);
       });
       picker.appendChild(ybar);
 
-      if(fullYrs.includes(_pY)&&_mksForYear(_pY).some(mk=>_mthHas(mk,inc))){
-        const months=_mksForYear(_pY).filter(mk=>_mthHas(mk,inc));
+      if(fullYrs.includes(_pY)&&_mksForYear(_pY).some(mk=>_mthHasForCountry(mk,inc))){
+        const months = _mksForYear(_pY).filter(mk=>_mthHasForCountry(mk,inc));
         if(months.length){
-          const sub=document.createElement('span'); sub.className='tax-hint';
-          sub.style.marginTop='.3rem';
-          const parts=months.map(mk=>{ const m=parseInt(mk.split('-')[1])-1; return _MOS[m]; });
-          sub.textContent=`${months.length} month${months.length>1?'s':''} with data: ${parts.join(', ')}`;
+          const sub = document.createElement('span'); sub.className='tax-hint';
+          sub.style.marginTop = '.3rem';
+          const parts = months.map(mk=>{ const m=parseInt(mk.split('-')[1])-1; return _MOS[m]; });
+          sub.textContent = `${months.length} month${months.length>1?'s':''} with data: ${parts.join(', ')}`;
           picker.appendChild(sub);
         }
       }
     }
 
   } else {
-    const n=parseInt(_mode);
-    const mult=_MODES.find(m=>m.id===_mode).mult;
+    const n    = parseInt(_mode);
+    const mult = _MODES.find(m=>m.id===_mode).mult;
 
-    const validYrs=_YRS.filter(y=>{
-      const inR=_mksForYear(y);
-      return inR.length>=n && inR.filter(mk=>_mthHas(mk,inc)).length>=n;
+    const validYrs = _YRS.filter(y=>{
+      const inR = _mksForYear(y);
+      return inR.length>=n && inR.filter(mk=>_mthHasForCountry(mk,inc)).length>=n;
     });
     if(validYrs.length&&!validYrs.includes(_pY)){ _pY=validYrs[0]; _pSel=[]; }
 
-    const hint=document.createElement('span'); hint.className='tax-hint';
-    hint.textContent=`Select year, then pick exactly ${n} month${n>1?'s':''} (sum × ${mult} = annual):`;
+    const hint = document.createElement('span'); hint.className='tax-hint';
+    hint.textContent = `Select year, then pick exactly ${n} month${n>1?'s':''} (sum × ${mult} = annual):`;
     picker.appendChild(hint);
 
-    const ybar=document.createElement('div'); ybar.className='tax-year-bar';
+    const ybar = document.createElement('div'); ybar.className='tax-year-bar';
     _YRS.forEach(y=>{
-      const btn=document.createElement('button');
+      const btn = document.createElement('button');
       btn.type='button'; btn.className='tax-year-btn'; btn.textContent=y;
-      const inR=_mksForYear(y);
-      const dataMks=inR.filter(mk=>_mthHas(mk,inc));
+      const inR     = _mksForYear(y);
+      const dataMks = inR.filter(mk=>_mthHasForCountry(mk,inc));
       if(inR.length<n){
         btn.disabled=true;
         btn.title=`Only ${inR.length} month${inR.length!==1?'s':''} in range for ${y} (need ${n})`;
@@ -468,22 +695,22 @@ function _buildUI(inc){
     picker.appendChild(ybar);
 
     if(validYrs.includes(_pY)){
-      const atLimit=_pSel.length>=n;
-      const cHint=document.createElement('span'); cHint.className='tax-hint';
-      cHint.style.marginTop='.35rem';
-      cHint.textContent=`${_pY} — ${_pSel.length} of ${n} selected:`;
+      const atLimit = _pSel.length>=n;
+      const cHint   = document.createElement('span'); cHint.className='tax-hint';
+      cHint.style.marginTop = '.35rem';
+      cHint.textContent = `${_pY} — ${_pSel.length} of ${n} selected:`;
       picker.appendChild(cHint);
 
-      const chips=document.createElement('div'); chips.className='tax-chips';
+      const chips = document.createElement('div'); chips.className='tax-chips';
       _mksForYear(_pY).forEach(mk=>{
-        const m=parseInt(mk.split('-')[1])-1;
-        const hasD=_mthHas(mk,inc);
-        const isSel=_pSel.includes(mk);
-        const chip=document.createElement('button');
+        const m    = parseInt(mk.split('-')[1])-1;
+        const hasD = _mthHasForCountry(mk,inc);
+        const isSel = _pSel.includes(mk);
+        const chip = document.createElement('button');
         chip.type='button'; chip.className='tax-chip';
-        chip.textContent=_MOS[m];
+        chip.textContent = _MOS[m];
         if(isSel) chip.classList.add('selected');
-        if(!hasD){ chip.disabled=true; chip.classList.add('no-data'); chip.title='No salary data'; }
+        if(!hasD){ chip.disabled=true; chip.classList.add('no-data'); chip.title='No income data'; }
         else if(atLimit&&!isSel){ chip.classList.add('at-limit'); }
         chip.addEventListener('click',()=>{
           if(!hasD) return;
@@ -498,91 +725,237 @@ function _buildUI(inc){
   }
 
   panel.appendChild(picker);
+
+  // NRI income-source classifier (which categories are India-sourced)
+  if(_country==='IN' && _inResidency==='NRI' && inc.rows){
+    const topRows = inc.rows.filter(r=>!r.parentId);
+    if(topRows.length){
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'margin-top:.75rem;padding:.65rem .85rem;border:1px solid var(--panel-border);border-radius:8px;';
+      const lbl = document.createElement('div'); lbl.className='tax-hint';
+      lbl.style.cssText='margin:0 0 .4rem;font-weight:700;';
+      lbl.textContent='India-sourced income (NRI — untick foreign income):';
+      wrap.appendChild(lbl);
+      if(_nriSourced===null) _nriSourced=new Set(topRows.map(r=>r.id));
+      topRows.forEach(r=>{
+        const rowLbl = document.createElement('label');
+        rowLbl.style.cssText='display:flex;align-items:center;gap:.45rem;font-size:.85rem;cursor:pointer;margin:.2rem 0;';
+        const cb = document.createElement('input'); cb.type='checkbox';
+        cb.checked = _nriSourced.has(r.id);
+        cb.addEventListener('change',()=>{
+          if(cb.checked) _nriSourced.add(r.id); else _nriSourced.delete(r.id);
+          _showPreview(inc);
+        });
+        rowLbl.appendChild(cb);
+        rowLbl.appendChild(document.createTextNode(r.label||r.id));
+        wrap.appendChild(rowLbl);
+      });
+      panel.appendChild(wrap);
+    }
+  }
+
   _showPreview(inc);
 }
 
+// ── Result box ─────────────────────────────────────────────────────────────
 
-window.addEventListener('DOMContentLoaded', async ()=>{
-  const incomeInput=document.getElementById('income');
+function _updateResultBox(d){
+  const el  = document.getElementById('result-detail');
+  const fmt = (n,sym) => `<strong>${sym}${Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>`;
 
-  incomeInput.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/[^0-9.]/g, '');
-    const parts = value.split('.');
-    if (parts.length > 2) {
-      value = parts[0] + '.' + parts.slice(1).join('');
+  if(d.country==='US'){
+    el.innerHTML =
+      '<p><strong>Income:</strong> '+fmt(d.income,'$')+'</p>'+
+      '<p><strong>Status:</strong> '+d.status.charAt(0).toUpperCase()+d.status.slice(1)+'</p>'+
+      '<p><strong>Federal Income Tax:</strong> '+fmt(d.tax,'$')+'</p>';
+    document.getElementById('tax-explain-btn').style.display = 'none';
+
+  } else if(d.country==='IN'){
+    el.innerHTML =
+      '<p><strong>Gross Income:</strong> '+fmt(d.grossIncome,'₹')+'</p>'+
+      (d.residency==='ROR' ? '<p><strong>Standard Deduction:</strong> −'+fmt(d.stdDed,'₹')+'</p>' : '')+
+      '<p><strong>Taxable Ordinary Income:</strong> '+fmt(d.ordIncome,'₹')+'</p>'+
+      '<p><strong>Slab Tax:</strong> '+fmt(d.slabTax,'₹')+'</p>'+
+      (d.rebate>0 ? '<p><strong>Section 87A Rebate:</strong> −'+fmt(d.rebate,'₹')+'</p>' : '')+
+      (d.cgINR>0  ? '<p><strong>Capital Gains (LTCG @ 12.5%):</strong> '+fmt(d.cgTax,'₹')+'</p>' : '')+
+      '<p><strong>Net Tax Payable:</strong> '+fmt(d.tax,'₹')+'</p>';
+    document.getElementById('tax-explain-btn').style.display = '';
+
+  } else {
+    const sym     = 'HK$';
+    const allow   = d.married ? HK_MPA : HK_BASIC_ALLOW;
+    const allowLbl = d.married ? 'Married Person' : 'Basic';
+    el.innerHTML =
+      '<p><strong>Income:</strong> '+fmt(d.income,sym)+'</p>'+
+      '<p><strong>'+allowLbl+' Allowance:</strong> −'+fmt(allow,sym)+'</p>'+
+      '<p><strong>Method:</strong> '+d.method+
+        ' (progressive '+fmt(d.prog,sym)+' vs standard rate '+fmt(d.std,sym)+')</p>'+
+      (d.rentalHKD>0 ? '<p><strong>Rental Tax (15% on 80%):</strong> '+fmt(d.rentalHKD*.8*.15,sym)+'</p>' : '')+
+      '<p><strong>Tax Reduction:</strong> −'+fmt(Math.min(HK_TAX_RELIEF,d.tax+HK_TAX_RELIEF),sym)+'</p>'+
+      '<p><strong>Salaries Tax:</strong> '+fmt(d.tax,sym)+'</p>';
+    document.getElementById('tax-explain-btn').style.display = '';
+  }
+}
+
+// ── Explainer modal ────────────────────────────────────────────────────────
+
+function _openExplainer(d){
+  const titleEl = document.getElementById('explainer-title');
+  const bodyEl  = document.getElementById('explainer-body');
+  if(d.country==='IN'){
+    titleEl.textContent = 'India New Tax Regime — How it works';
+    bodyEl.innerHTML =
+      '<p><strong>Slabs (FY 2024-25):</strong></p>'+
+      '<table><tr><th>Income Range (₹)</th><th>Rate</th></tr>'+
+      '<tr><td>0 – 4,00,000</td><td>0%</td></tr>'+
+      '<tr><td>4,00,001 – 8,00,000</td><td>5%</td></tr>'+
+      '<tr><td>8,00,001 – 12,00,000</td><td>10%</td></tr>'+
+      '<tr><td>12,00,001 – 16,00,000</td><td>15%</td></tr>'+
+      '<tr><td>16,00,001 – 20,00,000</td><td>20%</td></tr>'+
+      '<tr><td>20,00,001 – 24,00,000</td><td>25%</td></tr>'+
+      '<tr><td>Above 24,00,000</td><td>30%</td></tr></table>'+
+      '<p style="margin-top:.75rem"><strong>Standard deduction:</strong> ₹75,000 (ROR only)</p>'+
+      '<p><strong>Section 87A rebate:</strong> Up to ₹25,000 if taxable ordinary income ≤ ₹7,00,000 (ROR only)</p>'+
+      '<p><strong>Capital Gains:</strong> All Capital Gains rows treated as LTCG at 12.5% (STCG at 20% cannot be auto-detected)</p>'+
+      '<p><strong>NRI:</strong> No standard deduction; untick foreign income categories to exclude them</p>';
+  } else {
+    titleEl.textContent = 'Hong Kong Salaries Tax — How it works';
+    bodyEl.innerHTML =
+      '<p><strong>Progressive slabs (net chargeable income after allowance):</strong></p>'+
+      '<table><tr><th>Net Chargeable Income (HK$)</th><th>Rate</th></tr>'+
+      '<tr><td>First 50,000</td><td>2%</td></tr>'+
+      '<tr><td>Next 50,000</td><td>6%</td></tr>'+
+      '<tr><td>Next 50,000</td><td>10%</td></tr>'+
+      '<tr><td>Next 50,000</td><td>14%</td></tr>'+
+      '<tr><td>Remainder</td><td>17%</td></tr></table>'+
+      '<p style="margin-top:.75rem"><strong>Standard rate:</strong> 15% on total income (no allowance deducted).</p>'+
+      '<p><strong>Result:</strong> The lower of progressive vs standard rate applies.</p>'+
+      '<p><strong>Allowances:</strong> Basic HK$132,000 · Married Person HK$264,000</p>'+
+      '<p><strong>Tax reduction:</strong> HK$3,000 relief cap applied after calculation.</p>'+
+      '<p><strong>Exempt income:</strong> Dividends, Interest Income, Capital Gains are not included (HK$0 tax).</p>'+
+      '<p><strong>Rental income:</strong> Taxed separately — 15% on 80% of rental (20% deemed expenses deduction).</p>';
+  }
+  document.getElementById('tax-explainer-overlay').style.display = '';
+}
+
+// ── Form submit ────────────────────────────────────────────────────────────
+
+document.getElementById('tax-form').addEventListener('submit', async function(e){
+  e.preventDefault(); clearMsg();
+  const incomeRaw = document.getElementById('income').value.trim()
+    .replace(/[$,₹]/g,'').replace(/HK\$/g,'');
+  const income = parseFloat(incomeRaw);
+  if(isNaN(income)||income<0){ showError('Please enter a valid non-negative income amount.'); return; }
+
+  let tax, resultData;
+
+  if(_country==='US'){
+    const status = document.getElementById('status').value;
+    if(!status){ showError('Please select a filing status.'); return; }
+    try{ tax=calcFederalTax(income,status); }catch(err){ showError(err.message); return; }
+    resultData = {country:'US', income, tax, status};
+
+  } else if(_country==='IN'){
+    const inc = _getInc();
+    let cgINR = 0;
+    if(inc && _mode!=='manual'){
+      const mks = _mode==='12' ? _mksForYear(_pY) : [..._pSel];
+      cgINR = mks.reduce((s,mk)=>s+_mthCGForCountry(mk,inc), 0);
+      if(_mode!=='12'&&_mode!=='1'){
+        cgINR *= _MODES.find(m=>m.id===_mode).mult;
+      } else if(_mode==='1'){
+        cgINR *= 12;
+      }
     }
-    value = value.replace(/^0+(?=\d)/, '');
-    value = value.replace(/^-/, '');
-    e.target.value = value;
-  });
+    const stdDed    = _inResidency==='ROR' ? IN_STD_DED : 0;
+    const ordIncome = Math.max(0, income - stdDed);
+    const slabTax   = calcIndiaTax(income, _inResidency);
+    const rebate    = (_inResidency==='ROR' && ordIncome<=IN_87A_LIMIT) ? Math.min(slabTax, IN_87A_MAX) : 0;
+    const cgTax     = cgINR * 0.125;
+    tax = Math.max(0, slabTax - rebate) + cgTax;
+    resultData = {country:'IN', income, grossIncome:income, stdDed, ordIncome, slabTax, rebate, cgINR, cgTax, tax, residency:_inResidency};
 
-  const params=new URLSearchParams(window.location.search);
-  const urlVal=params.get('annual')||params.get('gross');
-  if(urlVal){ incomeInput.value=urlVal; }
-  else{
-    const prefill=localStorage.getItem('fiapp_prefill_income');
-    if(prefill){ incomeInput.value=prefill; localStorage.removeItem('fiapp_prefill_income'); }
+  } else {
+    const married = document.getElementById('hk-married-cb').checked;
+    const inc = _getInc();
+    let rentalHKD = 0;
+    if(inc && _mode!=='manual'){
+      const mks = _mode==='12' ? _mksForYear(_pY) : [..._pSel];
+      rentalHKD = mks.reduce((s,mk)=>s+_mthRentalForCountry(mk,inc), 0);
+      if(_mode!=='12'&&_mode!=='1'){
+        rentalHKD *= _MODES.find(m=>m.id===_mode).mult;
+      } else if(_mode==='1'){
+        rentalHKD *= 12;
+      }
+    }
+    const hkResult = calcHKTax(income, married, rentalHKD);
+    tax = hkResult.tax;
+    resultData = {country:'HK', income, married, rentalHKD, ...hkResult};
   }
 
-  document.getElementById('tax-use-btn').addEventListener('click',()=>{
-    const inc=_getInc();
-    const annual=_calcAnnual(inc);
-    if(annual!==null){
-      incomeInput.value=annual.toFixed(2);
-      document.getElementById('tax-preview').style.display='none';
-    }
-  });
+  _updateResultBox(resultData);
+  document.getElementById('result-box').style.display = 'block';
+  document.getElementById('month-pick-wrap').style.display = 'none';
 
-  const inc=_getInc();
-  _buildUI(inc);
-
-  if(inc){
-    _loadRates(inc).then(()=>_buildUI(inc)).catch(()=>{});
-  }
+  let months = null;
+  if(_mode!=='manual') months = _mode==='12' ? _mksForYear(_pY) : [..._pSel];
+  _lastTaxResult = {
+    income:  income.toFixed(2),
+    tax:     tax.toFixed(2),
+    status:  _country==='US' ? resultData.status : _country,
+    ts:      Date.now(),
+    consumed: false,
+    months,
+    year:    _pY,
+    country: _country,
+    _resultData: resultData
+  };
+  _updateApplyBtns();
 });
 
+// ── Apply buttons ──────────────────────────────────────────────────────────
 
 function _fmtMkLabel(mk2){
-  const [y,m]=mk2.split('-');
+  const [y,m] = mk2.split('-');
   return _MOS[parseInt(m)-1]+' '+y;
 }
 function _updateApplyBtns(){
-  const d=_lastTaxResult; if(!d) return;
-  const selBtn=document.getElementById('apply-sel-btn');
-  const yearBtn=document.getElementById('apply-year-btn');
+  const d = _lastTaxResult; if(!d) return;
+  const selBtn  = document.getElementById('apply-sel-btn');
+  const yearBtn = document.getElementById('apply-year-btn');
   if(d.months&&d.months.length){
-    const n=d.months.length;
+    const n = d.months.length;
     selBtn.textContent = n===1
       ? '→ Apply to '+_fmtMkLabel(d.months[0])
       : '→ Apply to '+n+' months ('+d.months.map(_fmtMkLabel).join(', ')+')';
   } else {
-    selBtn.textContent='→ Apply to current month';
+    selBtn.textContent = '→ Apply to current month';
   }
-  const yr=d.year||new Date().getFullYear();
-  yearBtn.textContent='Apply to whole year '+yr;
+  const yr = d.year||new Date().getFullYear();
+  yearBtn.textContent = 'Apply to whole year '+yr;
 }
 function _saveTaxAndNavigate(months){
   if(!_lastTaxResult) return;
   try{
-    localStorage.setItem('fiapp_tax_result',JSON.stringify({..._lastTaxResult,months,consumed:false,ts:Date.now()}));
+    localStorage.setItem('fiapp_tax_result', JSON.stringify({..._lastTaxResult, months, consumed:false, ts:Date.now()}));
   }catch{}
-  window.location='/expenses';
+  window.location = '/expenses';
 }
 function _buildMonthPick(){
-  const grid=document.getElementById('month-pick-grid');
-  grid.innerHTML='';
-  const d=_lastTaxResult; if(!d) return;
-  const yr=d.year||new Date().getFullYear();
-  const sel=new Set(d.months||[]);
+  const grid = document.getElementById('month-pick-grid');
+  grid.innerHTML = '';
+  const d  = _lastTaxResult; if(!d) return;
+  const yr = d.year||new Date().getFullYear();
+  const sel = new Set(d.months||[]);
   for(let m=0;m<12;m++){
     if(!_inRng(yr,m)) continue;
-    const mk2=_mk(yr,m);
-    const btn=document.createElement('button');
+    const mk2 = _mk(yr,m);
+    const btn = document.createElement('button');
     btn.type='button';
-    btn.className='tax-chip'+(sel.has(mk2)?' selected':'');
-    btn.textContent=_MOS[m]+' '+yr;
-    btn.dataset.mk=mk2;
-    btn.onclick=function(){ this.classList.toggle('selected'); };
+    btn.className = 'tax-chip'+(sel.has(mk2)?' selected':'');
+    btn.textContent = _MOS[m]+' '+yr;
+    btn.dataset.mk  = mk2;
+    btn.onclick = function(){ this.classList.toggle('selected'); };
     grid.appendChild(btn);
   }
 }
@@ -596,15 +969,58 @@ document.getElementById('apply-year-btn').addEventListener('click',function(){
 });
 document.getElementById('apply-pick-btn').addEventListener('click',function(){
   if(!_lastTaxResult) return;
-  const wrap=document.getElementById('month-pick-wrap');
-  const show=wrap.style.display==='none';
-  wrap.style.display=show?'':'none';
+  const wrap = document.getElementById('month-pick-wrap');
+  const show = wrap.style.display==='none';
+  wrap.style.display = show?'':'none';
   if(show) _buildMonthPick();
 });
 document.getElementById('apply-pick-go').addEventListener('click',function(){
-  const months=[...document.querySelectorAll('#month-pick-grid .tax-chip.selected')].map(b=>b.dataset.mk);
-  if(!months.length){ return; }
+  const months = [...document.querySelectorAll('#month-pick-grid .tax-chip.selected')].map(b=>b.dataset.mk);
+  if(!months.length) return;
   _saveTaxAndNavigate(months);
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', async ()=>{
+  const incomeInput = document.getElementById('income');
+
+  incomeInput.addEventListener('input', function(e){
+    let value = e.target.value.replace(/[^0-9.]/g,'');
+    const parts = value.split('.');
+    if(parts.length>2) value = parts[0]+'.'+parts.slice(1).join('');
+    value = value.replace(/^0+(?=\d)/,'').replace(/^-/,'');
+    e.target.value = value;
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const urlVal = params.get('annual')||params.get('gross');
+  if(urlVal){ incomeInput.value=urlVal; }
+  else{
+    const prefill = localStorage.getItem('fiapp_prefill_income');
+    if(prefill){ incomeInput.value=prefill; localStorage.removeItem('fiapp_prefill_income'); }
+  }
+
+  document.getElementById('tax-use-btn').addEventListener('click',()=>{
+    const inc    = _getInc();
+    const annual = _calcAnnual(inc);
+    if(annual!==null){
+      incomeInput.value = annual.toFixed(2);
+      document.getElementById('tax-preview').style.display = 'none';
+    }
+  });
+
+  document.getElementById('tax-explain-btn').addEventListener('click',()=>{
+    if(_lastTaxResult&&_lastTaxResult._resultData) _openExplainer(_lastTaxResult._resultData);
+  });
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape') document.getElementById('tax-explainer-overlay').style.display='none';
+  });
+
+  const inc = _getInc();
+  _buildUI(inc);
+  _loadRates().then(()=>_buildUI(_getInc())).catch(()=>{});
 });
 </script>
 {% endblock %}
