@@ -376,6 +376,12 @@
           var singlePoint=curKeys.length===1;
           [1,2].forEach(function(n){
             var pk=prevMk(n);
+            // Copy row/col structure so analytics has explicit month data
+            // (avoids depending on the exp.rows/cols fallback)
+            if(s.rowsByMonth&&s.rowsByMonth[curMk]&&!s.rowsByMonth[pk])
+              s.rowsByMonth[pk]=s.rowsByMonth[curMk].map(function(r){return Object.assign({},r);});
+            if(s.colsByMonth&&s.colsByMonth[curMk]&&!s.colsByMonth[pk])
+              s.colsByMonth[pk]=s.colsByMonth[curMk].map(function(c){return Object.assign({},c);});
             curKeys.forEach(function(k){
               var parts=k.split('|');
               var num=parseFloat(s.cells[k]);
