@@ -91,6 +91,15 @@
   </div>
   <script>
   var _CSRF='{{ csrf_token|default("") }}';
+  // Sync localStorage theme to server on first load if they diverge
+  // (e.g. user inherited a theme from a previous account on this device)
+  (function(){
+    var _lsT=localStorage.getItem('fiapp_theme');
+    var _srvT='{{ theme|default("light") }}';
+    if(_CSRF&&_lsT&&_lsT!==_srvT){
+      fetch('/api/prefs',{method:'PATCH',headers:{'Content-Type':'application/json','X-CSRF-Token':_CSRF},body:JSON.stringify({theme:_lsT})}).catch(function(){});
+    }
+  })();
   function setTheme(name){
     document.documentElement.classList.remove('dark','theme-ocean','theme-forest',
       'theme-sunset','theme-midnight','theme-rose','theme-purple','theme-indigo');
