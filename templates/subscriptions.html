@@ -939,6 +939,7 @@ function addSubscription(){
 
 function addCol(){ snapshot(); state.cols.push({id:uid(),label:'New Column',width:120,ctype:'number'}); save(); render(); }
 function deleteRow(id){
+  try{var _wt=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wt&&_wt.active)return;}catch{}
   snapshot(); state.rows=state.rows.filter(r=>r.id!==id);
   Object.keys(state.cells).filter(k=>k.startsWith(id+'|')).forEach(k=>delete state.cells[k]);
   if(state.rowCurrencies) delete state.rowCurrencies[id];
