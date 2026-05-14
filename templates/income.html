@@ -26,6 +26,7 @@
     .month-nav button{background:var(--secondary-bg);color:var(--fg);border:none;border-radius:6px;cursor:pointer;padding:.3rem .8rem;font-size:.9rem;}
     .month-nav button:hover{background:var(--secondary-hover);}
     .month-nav button:disabled{opacity:.35;cursor:not-allowed;}
+
     
     .summary-bar{background:var(--total-soft);border:1px solid var(--success-border);border-radius:8px;padding:.9rem 1.1rem;margin-bottom:.75rem;}
     .summary-bar h3{margin:0 0 .6rem;font-size:.9rem;color:var(--total-fg);}
@@ -695,7 +696,7 @@ function setSyncStatus(msg,cls){
 }
 function syncToServer(){
   if(!window.__currentUser){setSyncStatus('Offline','');return;}
-  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active&&localStorage.getItem('fiapp_wt_backup_v1')){setSyncStatus('','');return;}}catch{} // walkthrough active — don't push to server
+  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active){setSyncStatus('','');return;}}catch{} // walkthrough active — don't push to server
   clearTimeout(_syncTimer);
   setSyncStatus('Saving…','');
   _syncTimer=setTimeout(()=>{
@@ -713,7 +714,7 @@ function syncToServer(){
 }
 async function loadFromServer(){
   if(!window.__currentUser) return;
-  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active&&localStorage.getItem('fiapp_wt_backup_v1'))return;}catch{} // walkthrough active — keep blank slate
+  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active)return;}catch{} // walkthrough active — keep blank slate
   try{
     const res=await fetch('/api/load/income');
     if(!res.ok) return;
