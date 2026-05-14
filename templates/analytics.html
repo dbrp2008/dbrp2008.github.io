@@ -1238,6 +1238,12 @@ function reRenderCharts(){
       if(expRes.ok){const d=await expRes.json();if(d&&typeof d==='object') localStorage.setItem(EXP_KEY,JSON.stringify(d));}
       if(subRes.ok){const d=await subRes.json();if(d&&typeof d==='object') localStorage.setItem(SUBS_KEY,JSON.stringify(d));}
       if(incRes.ok){const d=await incRes.json();if(d&&typeof d==='object') localStorage.setItem(INC_KEY,JSON.stringify(d));}
+      // Re-seed walkthrough history data — server load just overwrote localStorage,
+      // wiping any seeded prior-month data. Re-apply it now so charts have data to show.
+      try{
+        const _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');
+        if(_wts&&_wts.active&&typeof window._wtSeedAnalytics==='function') window._wtSeedAnalytics();
+      }catch(e){}
     }
   }catch(e){}
   await _fetchRates();
