@@ -340,16 +340,16 @@ async function confirmDelete(){
     if(!res) return;
     const data=await res.json();
     if(!res.ok||!data.ok){
-      showDeleteError(data.error||'Deletion failed. Check your password and try again.');
       cancelDelete();
+      showDeleteError(data.error||'Deletion failed. Check your password and try again.');
       btn.disabled=false; btn.textContent='Yes, delete permanently';
       return;
     }
     _clearAllStorage();
     window.location='/login?deleted=1';
   }catch(e){
-    showDeleteError('Network error. Please try again.');
     cancelDelete();
+    showDeleteError('Network error. Please try again.');
     btn.disabled=false; btn.textContent='Yes, delete permanently';
   }
 }
