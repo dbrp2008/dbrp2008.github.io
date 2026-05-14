@@ -225,8 +225,11 @@
       if(_guardOff){_guardOff();_guardOff=null;}
       function guard(e){
         var inBubble=_bubble&&_bubble.contains(e.target);
-        var inTarget=targetEl&&targetEl.contains(e.target);
         var inToast=!!e.target.closest('[data-wt-toast]');
+        // Always block navigation links — walkthrough owns all navigation
+        var navLink=e.target.closest('a[href]');
+        if(navLink&&!inBubble){e.stopPropagation();e.preventDefault();return;}
+        var inTarget=targetEl&&targetEl.contains(e.target);
         if(!inBubble&&!inTarget&&!inToast){e.stopPropagation();e.preventDefault();}
       }
       document.addEventListener('click',guard,true);
