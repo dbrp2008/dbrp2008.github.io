@@ -652,6 +652,7 @@ function renderAll(){
   if(_allMonths.length){
     const periodRow=document.createElement('div');
     periodRow.className='period-row';
+    periodRow.setAttribute('data-wt','analytics-period');
     const lbl=document.createElement('span');
     lbl.className='period-label'; lbl.textContent='Period:';
     const sel=document.createElement('select');
