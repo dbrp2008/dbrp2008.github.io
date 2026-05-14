@@ -224,19 +224,27 @@
     function _startGuard(targetEl){
       if(_guardOff){_guardOff();_guardOff=null;}
       function guard(e){
-        var inBubble=_bubble&&_bubble.contains(e.target);
-        var inToast=!!e.target.closest('[data-wt-toast]');
+        var t=e.target||(e.touches&&e.touches[0]&&e.touches[0].target);
+        if(!t) return;
+        var inBubble=_bubble&&_bubble.contains(t);
+        var inToast=!!t.closest('[data-wt-toast]');
         // Always block navigation links — walkthrough owns all navigation
-        var navLink=e.target.closest('a[href]');
+        var navLink=t.closest('a[href]');
         if(navLink&&!inBubble){e.stopPropagation();e.preventDefault();return;}
-        var inTarget=targetEl&&targetEl.contains(e.target);
+        var inTarget=targetEl&&targetEl.contains(t);
         if(!inBubble&&!inTarget&&!inToast){e.stopPropagation();e.preventDefault();}
       }
+      // passive:false required so preventDefault() is honoured on iOS touch events
+      var touchOpts={capture:true,passive:false};
       document.addEventListener('click',guard,true);
       document.addEventListener('mousedown',guard,true);
+      document.addEventListener('touchstart',guard,touchOpts);
+      document.addEventListener('touchend',guard,touchOpts);
       _guardOff=function(){
         document.removeEventListener('click',guard,true);
         document.removeEventListener('mousedown',guard,true);
+        document.removeEventListener('touchstart',guard,touchOpts);
+        document.removeEventListener('touchend',guard,touchOpts);
       };
     }
     function _stopGuard(){if(_guardOff){_guardOff();_guardOff=null;}}
@@ -438,7 +446,8 @@
     }
 
     function _setupWait(cond,cb){
-      _clearWait();
+      // Clear only the wait listeners — do NOT stop the guard (it stays active for wait steps)
+      _waitOff.forEach(function(f){f();});_waitOff=[];
       if(cond==='income_input'||cond==='any_expense_entered'){
         var h=function(){if([].slice.call(document.querySelectorAll('.sheet td input,.cell input')).some(function(i){return parseFloat(i.value||'0')!==0;})){_clearWait();cb();}};
         document.addEventListener('input',h);_waitOff.push(function(){document.removeEventListener('input',h);});
