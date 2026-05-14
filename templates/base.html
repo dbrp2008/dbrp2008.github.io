@@ -703,7 +703,7 @@
     var ENHANCED_STEPS={
       expenses:[
         {id:'enh-exp-tax',   text:'Did you know? Your gross income from the <strong>Income Tracker</strong> can auto-fill into the Tax Calculator. Use the <a href="/tax" style="color:var(--accent)">🧾 Tax Calculator</a> to estimate your tax — it pre-fills from income data.',           target:'[data-wt="expenses-tax-link"]', emoji:'💡'},
-        {id:'enh-exp-fore',  text:'<strong>Forecast mode</strong> projects future months based on your spending patterns. Look for the forecast option in the month navigation — great for planning ahead.',                                                                                  target:'[data-wt="expenses-forecast"]', emoji:'📋'},
+        {id:'enh-exp-fore',  text:'<strong>Forecast mode</strong> — when you navigate to a future month, FiApp shows this banner. You can seed it with your spending history or copy last month\'s values — great for planning ahead.',                                                     target:'[data-wt="expenses-forecast"]', emoji:'📋', beforeShow:function(){if(typeof window.isForecastMonth==='function'&&!window.isForecastMonth()&&typeof window.shiftMonth==='function')window.shiftMonth(1);}},
         {id:'enh-exp-share', text:'You can <strong>share your expense sheet</strong> with others. Use the Share button in the toolbar — it generates a clean view without requiring a login, and you can export to CSV.',                                                                   target:'[data-wt="expenses-share"]',    emoji:'📤'}
       ],
       income:[
@@ -719,15 +719,29 @@
     function _runEnhanced(page){
       var steps=ENHANCED_STEPS[page];if(!steps||!steps.length) return;
       var eIdx=0;
+      // Remember starting month so we can restore it if a step navigated away
+      var _origMK=typeof window.currentMK==='function'?window.currentMK():null;
+      function _cleanup(){
+        if(_origMK&&typeof window.jumpToMonth==='function'&&typeof window.currentMK==='function'&&window.currentMK()!==_origMK)
+          window.jumpToMonth(_origMK);
+      }
+      function _eSkipBtn(){
+        var b=document.createElement('button');b.className='wt-btn-ghost';b.textContent='Close guide';
+        b.style.cssText='width:100%;margin-top:.3rem;opacity:.7;font-size:.8rem;';
+        b.onclick=function(){_cleanup();_hideAll();};
+        return b;
+      }
       function showE(){
         if(eIdx>=steps.length){
+          _cleanup();
           _transition(function(){
             _avatar.textContent='✅';_text.innerHTML='That\'s everything! You now know the advanced features.';_btns.innerHTML='';_progress.innerHTML='';
-            var b=document.createElement('button');b.className='wt-btn-primary';b.textContent='Done';b.onclick=_hideAll;_btns.appendChild(b);
+            var b=document.createElement('button');b.className='wt-btn-primary';b.textContent='Done';b.onclick=function(){_cleanup();_hideAll();};_btns.appendChild(b);
           });
           _setHL(null);_posBubble(null);return;
         }
         var s=steps[eIdx];
+        if(s.beforeShow) s.beforeShow();
         var targetEl=s.target?document.querySelector(s.target):null;
         _transition(function(){
           _avatar.textContent=s.emoji||'💡';
@@ -737,7 +751,7 @@
           nextBtn.textContent=eIdx===steps.length-1?'Done':'Next →';
           nextBtn.onclick=function(){eIdx++;showE();};
           _btns.appendChild(nextBtn);
-          _btns.appendChild(_skipBtn());
+          _btns.appendChild(_eSkipBtn());
         });
         _overlay.style.display='block';
         if(targetEl){targetEl.scrollIntoView({block:'center',behavior:'smooth'});setTimeout(function(){_setHL(targetEl);_posBubble(targetEl);},380);}
