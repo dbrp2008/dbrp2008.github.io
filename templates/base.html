@@ -661,6 +661,7 @@
     });
 
     // Public API
+    window._wtSeedAnalytics=_seedHistoryForAnalytics;  // called by analytics.html after server load
     window.wtStart=function(){
       var s=_def();
       var hasData=WT_TRACKER_KEYS.some(function(k){var v=localStorage.getItem(k);return v&&v!=='{}';});
