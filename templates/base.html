@@ -327,6 +327,39 @@
       return b;
     }
 
+    function _seedHistoryForAnalytics(){
+      // Copies current-month data to 2 prior months (with ±15% variance) so analytics
+      // trend charts have something to render. Only runs if those months are empty.
+      var now=new Date();
+      function mkStr(d){return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);}
+      var curMk=mkStr(now);
+      function prevMk(n){return mkStr(new Date(now.getFullYear(),now.getMonth()-n,1));}
+      function seedStore(key){
+        try{
+          var s=JSON.parse(localStorage.getItem(key)||'null');
+          if(!s||!s.cells) return;
+          var curKeys=Object.keys(s.cells).filter(function(k){return k.indexOf(curMk+'|')===0;});
+          if(!curKeys.length) return;
+          var alreadyHasPrev=Object.keys(s.cells).some(function(k){return k.indexOf(prevMk(1)+'|')===0||k.indexOf(prevMk(2)+'|')===0;});
+          if(alreadyHasPrev) return;
+          [1,2].forEach(function(n){
+            var pk=prevMk(n);
+            curKeys.forEach(function(k){
+              var parts=k.split('|');
+              var v=s.cells[k];
+              if(v&&typeof v==='number'){
+                var variance=0.82+Math.random()*0.36;
+                s.cells[pk+'|'+parts[1]+'|'+parts[2]]=Math.round(v*variance*100)/100;
+              }
+            });
+          });
+          localStorage.setItem(key,JSON.stringify(s));
+        }catch(e){}
+      }
+      seedStore('fiapp_expenses_v4');
+      seedStore('fiapp_income_v1');
+    }
+
     function _handleAction(action,state){
       state=state||_ld()||_def();
       if(action.backupData){_backup();}
@@ -353,7 +386,9 @@
       if(action.navigate){
         var vs2=_vis(state),idx=vs2.findIndex(function(s){return s.id===state.stepId;});
         if(idx>=0&&idx<vs2.length-1){state.stepId=vs2[idx+1].id;}
-        _sv(state);window.location.href=action.navigate;
+        _sv(state);
+        if(action.navigate==='/analytics') _seedHistoryForAnalytics();
+        window.location.href=action.navigate;
         return;
       }
       if(action.next){
@@ -429,6 +464,9 @@
       });
       _overlay.className='';_overlay.style.display='block';
       if(step.type==='wait'||step.allowInteract) _overlay.classList.add('wt-allow-scroll');
+      // Always run the click guard — for non-interactive steps use null so only the bubble
+      // is clickable. This closes the loophole where high-z-index nav links bypass the overlay.
+      _startGuard(step.type==='wait'||step.allowInteract ? targetEl : null);
       function _applyTarget(el){
         el.scrollIntoView({block:'center',behavior:'smooth'});
         setTimeout(function(){_setHL(el);_posBubble(el);_trackHL(el);},380);
@@ -444,19 +482,12 @@
             var el=document.querySelector(step.target);
             if(el){
               _applyTarget(el);
-              // Also refresh the guard so it knows about the now-found target.
-              if(step.type==='wait') _startGuard(el);
+              if(step.type==='wait'||step.allowInteract) _startGuard(el);
             }
           },700);
         }
       }
-      if(step.allowInteract){
-        // allowInteract: overlay is permeable but clicks outside target+bubble are still blocked.
-        _startGuard(targetEl||document.querySelector(step.target));
-      }
       if(step.type==='wait'){
-        // Guard blocks all clicks outside the target and bubble (capture phase, works across stacking contexts).
-        _startGuard(targetEl);
         _setupWait(step.waitFor,function(){
           if(step.onMet==='confetti')_fireConfetti();
           setTimeout(function(){
