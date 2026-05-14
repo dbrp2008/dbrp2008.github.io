@@ -230,7 +230,7 @@
 </style>
 {% endblock %}
 {% block content %}
-  <h1>Income Tracker <button class="help-btn" onclick="openHelp()">?</button></h1>
+  <h1>Income Tracker <button class="help-btn" onclick="openHelp()">?</button> <button class="wt-enhanced-btn" onclick="wtStartEnhanced('income')" title="Feature guide">📖 Guide</button></h1>
 
   <div class="month-nav">
     <button id="prev-btn" onclick="shiftMonth(-1)">◀ Prev</button>
@@ -267,13 +267,13 @@
       </div>
       <div class="summary-item" style="display:flex;flex-direction:column;gap:4px;">
         <a class="summary-link" href="/expenses">→ Expense Tracker</a>
-        <a class="summary-link" id="tax-calc-link" href="/tax" style="color:#d97706;">🧾 Calculate Income Tax</a>
+        <a class="summary-link" id="tax-calc-link" data-wt="income-tax-link" href="/tax" style="color:#d97706;">🧾 Calculate Income Tax</a>
       </div>
     </div>
     
     <div class="curr-row" style="margin-top:.6rem;">
       <label style="font-size:.78rem;font-weight:600;color:var(--muted);margin-right:.4rem;">Display currency:</label>
-      <select id="curr-sel" onchange="onCurrencyChange()" style="padding:.25rem .5rem;border:1px solid var(--input-border);border-radius:5px;font-size:.82rem;background:var(--input-bg);color:var(--fg);">
+      <select id="curr-sel" data-wt="income-currency" onchange="onCurrencyChange()" style="padding:.25rem .5rem;border:1px solid var(--input-border);border-radius:5px;font-size:.82rem;background:var(--input-bg);color:var(--fg);">
         <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
         <option value="CAD">CAD</option><option value="AUD">AUD</option><option value="JPY">JPY</option>
         <option value="CNY">CNY</option><option value="INR">INR</option><option value="MXN">MXN</option>
