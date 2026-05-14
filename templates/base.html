@@ -197,7 +197,7 @@
       {id:'subs-months',   page:'/subscriptions', type:'modal',   text:'The <strong>month columns</strong> mark when each sub is active. Leave a month blank = always active. Great for seasonal or annual subs.',                                              actions:[{label:'Next: Analytics →',primary:true,navigate:'/analytics',next:true}]},
       {id:'ana-intro',     page:'/analytics',     type:'modal',   text:'The <strong>Analytics</strong> page 📉 pulls from all your trackers automatically — spending trends, income vs expenses, category breakdowns, and more.<br><br><span style="font-size:.8rem;color:var(--muted)">📊 Prior months shown here use randomised sample values so the charts aren\'t empty. Your real history builds as you use the app.</span>',               actions:[{label:"Let's look →",primary:true,next:true}]},
       {id:'ana-period',    page:'/analytics',     type:'tooltip', target:'[data-wt="analytics-period"]', text:'Use the <strong>Period selector</strong> to filter all charts to a specific month or range.',                                                    actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'ana-scroll',    page:'/analytics',     type:'wait',    target:null, text:'📜 <strong>Scroll down</strong> to explore all the charts — there are several! I\'ll wait here.',                                                                         waitFor:'scroll_near_bottom',actions:[]},
+      {id:'ana-scroll',    page:'/analytics',     type:'wait',    target:null, pin:'tl', text:'📜 <strong>Scroll down</strong> to explore all the charts — there are several! I\'ll wait here.',                                                             waitFor:'scroll_near_bottom',actions:[]},
       {id:'ana-done',      page:'/analytics',     type:'modal',   text:'You\'ve seen it all! Charts update automatically as you add more data.',                                                                                                                actions:[{label:'Back to home →',primary:true,navigate:'/',next:true}]},
       {id:'home-branch',   page:'/',              type:'modal',   text:'Almost done! Two more tools you might want:<br><br>🧾 <strong>Tax Calculator</strong> — estimates income tax for 🇺🇸 US, 🇮🇳 India, and 🇭🇰 HK.<br><br>💱 <strong>Currency Converter</strong> — live exchange rates.<br><br>Want a quick look?', actions:[{label:'Yes, show me! →',primary:true,navigate:'/tax',setWantsTour:true,next:true},{label:"I'm good to explore",end:'soft'}]},
       {id:'tax-intro',     page:'/tax',           type:'modal',   wantsCurrencyTour:true, text:'The <strong>Tax Calculator</strong> 🧾 supports three countries. Pick your country at the top, enter your annual income, and hit <strong>Compute Tax</strong>. After computing, an explainer link appears showing exactly how the number was calculated.',  actions:[{label:'Got it →',primary:true,next:true}]},
@@ -234,17 +234,18 @@
         var inTarget=targetEl&&targetEl.contains(t);
         if(!inBubble&&!inTarget&&!inToast){e.stopPropagation();e.preventDefault();}
       }
-      // passive:false required so preventDefault() is honoured on iOS touch events
-      var touchOpts={capture:true,passive:false};
+      // touchend (not touchstart) blocks tap-navigation without blocking scroll.
+      // Scroll starts on touchstart — if we preventDefault() there, scrolling is killed.
+      // preventDefault() on touchend stops the follow-up click event, so nav taps are
+      // still blocked while the user can freely scroll through pages like analytics.
+      var touchEndOpts={capture:true,passive:false};
       document.addEventListener('click',guard,true);
       document.addEventListener('mousedown',guard,true);
-      document.addEventListener('touchstart',guard,touchOpts);
-      document.addEventListener('touchend',guard,touchOpts);
+      document.addEventListener('touchend',guard,touchEndOpts);
       _guardOff=function(){
         document.removeEventListener('click',guard,true);
         document.removeEventListener('mousedown',guard,true);
-        document.removeEventListener('touchstart',guard,touchOpts);
-        document.removeEventListener('touchend',guard,touchOpts);
+        document.removeEventListener('touchend',guard,touchEndOpts);
       };
     }
     function _stopGuard(){if(_guardOff){_guardOff();_guardOff=null;}}
@@ -402,18 +403,30 @@
       seedStore('fiapp_expenses_v4');
       seedStore('fiapp_income_v1');
 
-      // Always seed a few subscriptions so analytics sub charts show something
+      // Seed fake subscriptions so analytics sub charts show something.
+      // Runs whenever user has fewer than 3 subs (so 1 real sub still gets companions).
+      // Seeded subs include a start date so the analytics trend chart picks them up.
       try{
         var ss=JSON.parse(localStorage.getItem('fiapp_subs_v4')||'null');
-        if(ss&&ss.cols&&ss.cols.length&&(ss.rows||[]).length===0){
+        if(ss&&ss.cols&&ss.cols.length&&(ss.rows||[]).length<3){
           var costCol=ss.cols.find(function(c){return c.ctype==='number';});
+          var startCol=ss.cols.find(function(c){return c.ctype==='date';});
           if(costCol){
             var services=[['Netflix',15.99],['Spotify',9.99],['Adobe CC',Math.round((30+Math.random()*40)*100)/100]];
             if(!ss.cells) ss.cells={};
+            // Only add the fake subs that aren't already present
+            var existingLabels=(ss.rows||[]).map(function(r){return (r.label||'').toLowerCase();});
             services.forEach(function(pair,i){
+              if(existingLabels.indexOf(pair[0].toLowerCase())>=0) return; // skip if already added
               var rid='wt-seed-sub-'+i;
+              if((ss.rows||[]).find(function(r){return r.id===rid;})) return; // already seeded
               ss.rows.push({id:rid,label:pair[0]});
               ss.cells[rid+'|'+costCol.id]=pair[1];
+              // Start date: i+1 months ago so analytics trend spans multiple months
+              if(startCol){
+                var sd=new Date(now.getFullYear(),now.getMonth()-(i+1),1);
+                ss.cells[rid+'|'+startCol.id]=sd.getFullYear()+'-'+('0'+(sd.getMonth()+1)).slice(-2)+'-01';
+              }
             });
             localStorage.setItem('fiapp_subs_v4',JSON.stringify(ss));
           }
@@ -535,7 +548,16 @@
         el.scrollIntoView({block:'center',behavior:'smooth'});
         setTimeout(function(){_setHL(el);_posBubble(el);_trackHL(el);},380);
       }
-      if(targetEl){
+      if(step.pin==='tl'){
+        // Pin bubble to top-left so it doesn't block page content (e.g. analytics scroll step)
+        _setHL(null);_trackHL(null);
+        requestAnimationFrame(function(){
+          var margin=14;
+          _bubble.style.top='4.5rem'; // below nav bar
+          _bubble.style.left=margin+'px';
+          _bubble.style.bottom=''; _bubble.style.right=''; _bubble.style.transform='';
+        });
+      } else if(targetEl){
         _applyTarget(targetEl);
       } else {
         _setHL(null);_posBubble(null);_trackHL(null);
