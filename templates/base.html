@@ -185,11 +185,11 @@
       {id:'home-welcome',  page:'/',             type:'modal',   text:'Hey there! 👋 I\'m <strong>Fi</strong>, your FiApp guide.<br><br>FiApp is a 7-in-1 personal finance toolkit. Let me walk you through the key tools — you can skip at any time.',    actions:[{label:"Let's go! →",primary:true,navigate:'/income',next:true}]},
       {id:'inc-intro',     page:'/income',        type:'modal',   text:'First stop: the <strong>Income Tracker</strong>. 💰<br><br>This is where you record all your income sources — salary, freelance, rental, anything.',                                 actions:[{label:'Show me →',primary:true,next:true}]},
       {id:'inc-currency',  page:'/income',        type:'tooltip', target:'[data-wt="income-currency"]', text:'Each row can have its <strong>own currency</strong>. Pick it from the selector next to each cell. Great for multi-currency earners.',             actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'inc-enter',     page:'/income',        type:'wait',    target:null, text:'Now <strong>type in your monthly income</strong> — click any cell in the table below and enter a number. Go on, Fi won\'t judge! 😄',                                    waitFor:'income_input',onMet:'confetti',actions:[]},
+      {id:'inc-enter',     page:'/income',        type:'wait',    target:'.sheet-wrap', text:'Now <strong>type in your monthly income</strong> — click any cell in the table below and enter a number. Go on, Fi won\'t judge! 😄',                      waitFor:'income_input',onMet:'confetti',actions:[]},
       {id:'inc-done',      page:'/income',        type:'modal',   text:'✨ Your first income entry! You can add more rows for different sources.<br><br>Next up: log your expenses.',                                                                           actions:[{label:'Next: Expenses →',primary:true,navigate:'/expenses',next:true}]},
       {id:'exp-intro',     page:'/expenses',      type:'modal',   text:'Welcome to the <strong>Expense Tracker</strong>. 📊<br><br>Log everything you spend each month — rent, food, transport, etc. We\'ll do subscriptions separately.',                     actions:[{label:'Show me →',primary:true,next:true}]},
       {id:'exp-col',       page:'/expenses',      type:'tooltip', target:'[data-wt="expense-month-col"]', text:'Each column is a <strong>month</strong>. Add or remove months using the Table menu in the toolbar.',                                            actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'exp-enter',     page:'/expenses',      type:'wait',    target:null, text:'Try entering some expenses — any category, any month. Fill in a few numbers to continue!',                                                                                 waitFor:'any_expense_entered',actions:[]},
+      {id:'exp-enter',     page:'/expenses',      type:'wait',    target:'.sheet-wrap', text:'Try entering some expenses — any category, any month. Fill in a few numbers to continue!',                                                                     waitFor:'any_expense_entered',actions:[]},
       {id:'exp-subs',      page:'/expenses',      type:'tooltip', target:'[data-wt="subs-link"]', text:'Subscriptions deserve their own tracker! Let\'s head there — they auto-sync back here so no double entry.',                                             actions:[{label:'Go to Subscriptions →',primary:true,navigate:'/subscriptions',next:true},{label:'Skip',gotoId:'ana-intro'}]},
       {id:'subs-intro',    page:'/subscriptions', type:'modal',   text:'The <strong>Subscription Tracker</strong> 🔄 keeps all recurring payments in one place — and they sync to the Expense Tracker automatically.',                                         actions:[{label:'Show me →',primary:true,next:true}]},
       {id:'subs-add',      page:'/subscriptions', type:'tooltip', target:'[data-wt="subs-add"]', text:'Add a subscription from the preset list or type a custom name. It defaults to monthly billing — you can change it anytime.',                             actions:[{label:'Got it →',primary:true,next:true}]},
@@ -210,13 +210,31 @@
     var _overlay,_highlight,_bubble,_avatar,_text,_progress,_btns,_confCvs;
     var _waitOff=[];
     var _elevatedEl=null;
+    var _guardOff=null;
 
     function _elevate(el){
       if(_elevatedEl){_elevatedEl.style.position='';_elevatedEl.style.zIndex='';}
       _elevatedEl=el;
       if(el){el.style.position='relative';el.style.zIndex='9502';}
     }
-    function _clearWait(){_waitOff.forEach(function(f){f();});_waitOff=[];}
+    // Capture-phase click guard: allows clicks only inside targetEl or the bubble.
+    // Blocks everything else (toolbar buttons, nav links, etc.) during wait steps.
+    function _startGuard(targetEl){
+      if(_guardOff){_guardOff();_guardOff=null;}
+      function guard(e){
+        var inBubble=_bubble&&_bubble.contains(e.target);
+        var inTarget=targetEl&&targetEl.contains(e.target);
+        if(!inBubble&&!inTarget){e.stopPropagation();e.preventDefault();}
+      }
+      document.addEventListener('click',guard,true);
+      document.addEventListener('mousedown',guard,true);
+      _guardOff=function(){
+        document.removeEventListener('click',guard,true);
+        document.removeEventListener('mousedown',guard,true);
+      };
+    }
+    function _stopGuard(){if(_guardOff){_guardOff();_guardOff=null;}}
+    function _clearWait(){_waitOff.forEach(function(f){f();});_waitOff=[];_stopGuard();}
     function _hideAll(){if(_overlay)_overlay.style.display='none';if(_highlight)_highlight.style.display='none';if(_bubble)_bubble.style.display='none';_elevate(null);_clearWait();}
     function _toast(msg,dur){var el=document.createElement('div');el.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--panel-bg);border:1.5px solid var(--panel-border);border-radius:8px;padding:.5rem 1rem;font-size:.85rem;color:var(--fg);z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:calc(100vw - 2rem);text-align:center;pointer-events:none;';el.textContent=msg;document.body.appendChild(el);setTimeout(function(){el.remove();},dur||3000);}
 
@@ -379,13 +397,31 @@
         _dots(dotIdx,total);
       });
       _overlay.className='';_overlay.style.display='block';
-      if(step.type==='wait'&&step.waitFor==='scroll_near_bottom') _overlay.classList.add('wt-allow-scroll');
+      if(step.type==='wait') _overlay.classList.add('wt-allow-scroll');
+      function _applyTarget(el){
+        el.scrollIntoView({block:'center',behavior:'smooth'});
+        setTimeout(function(){_setHL(el);_posBubble(el);},380);
+      }
       if(targetEl){
-        targetEl.scrollIntoView({block:'center',behavior:'smooth'});
-        setTimeout(function(){_setHL(targetEl);_posBubble(targetEl);},380);
-      } else {_setHL(null);_posBubble(null);}
+        _applyTarget(targetEl);
+      } else {
+        _setHL(null);_posBubble(null);
+        // Retry: JS-rendered tracker elements (table headers, dynamic buttons) may not
+        // exist yet at step show time because loadFromServer() is still in flight.
+        if(step.target){
+          setTimeout(function(){
+            var el=document.querySelector(step.target);
+            if(el){
+              _applyTarget(el);
+              // Also refresh the guard so it knows about the now-found target.
+              if(step.type==='wait') _startGuard(el);
+            }
+          },700);
+        }
+      }
       if(step.type==='wait'){
-        if(targetEl) _elevate(targetEl);
+        // Guard blocks all clicks outside the target and bubble (capture phase, works across stacking contexts).
+        _startGuard(targetEl);
         _setupWait(step.waitFor,function(){
           if(step.onMet==='confetti')_fireConfetti();
           setTimeout(function(){
@@ -487,7 +523,7 @@
       var step=vs.find(function(s){return s.id===state.stepId&&s.page===_page;});
       if(step){
         var dotIdx=vs.findIndex(function(s){return s.id===step.id;});
-        setTimeout(function(){_showStep(step,vs.length,dotIdx);},350);
+        setTimeout(function(){_showStep(step,vs.length,dotIdx);},600);
       }
     });
 
