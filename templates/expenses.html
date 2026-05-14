@@ -147,7 +147,12 @@
 
     
     .th-total{background:var(--total-bg);color:var(--total-fg);}
-    .total-val{display:block;padding:4px 7px;font-weight:700;text-align:right;color:var(--total-fg);font-size:.85rem;min-height:32px;line-height:24px;background:var(--total-soft);}
+    .total-val{display:block;padding:4px 7px;font-weight:700;text-align:right;color:var(--total-fg);font-size:.85rem;min-height:32px;line-height:24px;background:var(--total-soft);flex:1;}
+    .goal-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:0 3px;color:var(--muted);flex-shrink:0;opacity:.55;line-height:1;vertical-align:middle;}
+    .goal-btn:hover{opacity:1;color:var(--accent);}
+    .goal-bar-wrap{height:4px;border-radius:2px;background:var(--panel-border);margin:2px 7px 0;overflow:hidden;}
+    .goal-bar{height:4px;border-radius:2px;transition:width .3s,background .3s;}
+    .goal-label{font-size:.67rem;color:var(--muted);text-align:right;padding:1px 7px 2px;}
 
     
     table.sheet tfoot td{background:var(--panel-bg);font-weight:700;border-top:2px solid var(--muted);color:var(--fg);}
@@ -385,6 +390,7 @@ function freshState(){
     currentYear:y, currentMonth:m,
     lastTaxTs:0,
     rowsByMonth:{}, colsByMonth:{},
+    goals:{},
   };
 }
 function loadState(){
@@ -399,6 +405,7 @@ function loadState(){
       if(!Array.isArray(s.cols)) s.cols=freshState().cols;
       if(!s.rowsByMonth) s.rowsByMonth={};
       if(!s.colsByMonth) s.colsByMonth={};
+      if(!s.goals) s.goals={};
       delete s.cellCurrencies; delete s.displayCurrency;
 
       if(!s.rows.some(row=>row.linked==='subscriptions')){
@@ -568,8 +575,8 @@ function saveHistory(){
   }catch{}
 }
 function snapshot(){ undoStack.push(JSON.stringify(state)); redoStack.length=0; if(undoStack.length>60) undoStack.shift(); saveHistory(); updateHistBtns(); }
-function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(state)); state=JSON.parse(undoStack.pop()); save(); saveHistory(); render(); syncIncomeInputs(); updateHistBtns(); }
-function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(state)); state=JSON.parse(redoStack.pop()); save(); saveHistory(); render(); syncIncomeInputs(); updateHistBtns(); }
+function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(state)); state=JSON.parse(undoStack.pop()); save(); saveHistory(); render(); syncIncomeInputs(); updateHistBtns(); showToast('↩ Undone.', false, 1800); }
+function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(state)); state=JSON.parse(redoStack.pop()); save(); saveHistory(); render(); syncIncomeInputs(); updateHistBtns(); showToast('↪ Redone.', false, 1800); }
 function updateHistBtns(){ const u=document.getElementById('undo-btn'),r=document.getElementById('redo-btn'); if(u)u.disabled=!undoStack.length; if(r)r.disabled=!redoStack.length; }
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}
@@ -732,8 +739,58 @@ function colTotal(cId){
 }
 function fmt(n){ return '$'+Math.max(0,n).toFixed(2); }
 
+function _renderGoalBar(rId, totTd){
+  totTd.querySelectorAll('.goal-bar-wrap,.goal-label').forEach(el=>el.remove());
+  const goal=state.goals&&state.goals[rId];
+  if(!goal||isNaN(goal)) return;
+  const spent=rowTotal(rId);
+  const pct=Math.min(100,Math.round(spent/goal*100));
+  const color=pct>=100?'#ef4444':pct>=75?'#f59e0b':'#22c55e';
+  const wrap=document.createElement('div');wrap.className='goal-bar-wrap';
+  const bar=document.createElement('div');bar.className='goal-bar';
+  bar.style.width=pct+'%';bar.style.background=color;
+  wrap.appendChild(bar);totTd.appendChild(wrap);
+  const lbl=document.createElement('div');lbl.className='goal-label';
+  lbl.textContent=fmt(spent)+' / '+fmt(goal);totTd.appendChild(lbl);
+}
+function _openGoalInput(rId, totTd){
+  const cur=(state.goals&&state.goals[rId])||'';
+  const form=document.createElement('div');
+  form.style.cssText='display:flex;align-items:center;gap:3px;padding:3px 4px;flex-wrap:wrap;';
+  const inp=document.createElement('input');
+  inp.type='number';inp.min='0';inp.step='any';inp.placeholder='Goal…';inp.value=cur;
+  inp.style.cssText='width:72px;padding:2px 4px;font-size:.8rem;border:1px solid var(--input-border);border-radius:4px;background:var(--input-bg);color:var(--fg);';
+  const applyGoal=()=>{
+    const v=parseFloat(inp.value);
+    if(!state.goals) state.goals={};
+    if(!isNaN(v)&&v>0) state.goals[rId]=v; else delete state.goals[rId];
+    save();
+    _rebuildTotTd(rId,totTd);
+  };
+  const okBtn=document.createElement('button');okBtn.textContent='✓';
+  okBtn.style.cssText='background:var(--accent);color:#fff;border:none;border-radius:3px;padding:2px 5px;font-size:.78rem;cursor:pointer;';
+  okBtn.onclick=applyGoal;
+  const clrBtn=document.createElement('button');clrBtn.textContent='✕';
+  clrBtn.style.cssText='background:none;border:1px solid var(--panel-border);border-radius:3px;padding:2px 5px;font-size:.78rem;cursor:pointer;color:var(--muted);';
+  clrBtn.onclick=()=>{inp.value='';applyGoal();};
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyGoal();}else if(e.key==='Escape')_rebuildTotTd(rId,totTd);});
+  form.appendChild(inp);form.appendChild(okBtn);form.appendChild(clrBtn);
+  totTd.innerHTML='';totTd.appendChild(form);inp.focus();inp.select();
+}
+function _rebuildTotTd(rId, totTd){
+  totTd.innerHTML='';
+  const inner=document.createElement('div');inner.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:2px;';
+  const span=document.createElement('span');span.className='total-val';span.id='rt-'+rId;
+  span.textContent=fmt(rowTotal(rId));inner.appendChild(span);
+  const gBtn=document.createElement('button');gBtn.className='goal-btn';gBtn.title='Set spending goal';gBtn.textContent='🎯';
+  gBtn.addEventListener('click',e=>{e.stopPropagation();_openGoalInput(rId,totTd);});
+  inner.appendChild(gBtn);totTd.appendChild(inner);
+  _renderGoalBar(rId,totTd);
+}
+
 function updateRowTotal(rId){
   const el=document.getElementById('rt-'+rId); if(el) el.textContent=fmt(rowTotal(rId));
+  const totTd=el&&el.closest('td'); if(totTd) _renderGoalBar(rId,totTd);
   const row=getRows().find(r=>r.id===rId);
   if(row&&row.parentId){ updateRowTotal(row.parentId); updateParentSumCells(row.parentId); }
 }
@@ -1536,8 +1593,17 @@ function renderTableBody(table){
       tr.appendChild(td);
     });
     const totTd=document.createElement('td');totTd.className='th-total';
+    const totInner=document.createElement('div');totInner.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:2px;';
     const totSpan=document.createElement('span');totSpan.className='total-val';totSpan.id='rt-'+row.id;
-    totSpan.textContent=fmt(rowTotal(row.id));totTd.appendChild(totSpan);tr.appendChild(totTd);
+    totSpan.textContent=fmt(rowTotal(row.id));totInner.appendChild(totSpan);
+    if(!isChild){
+      const gBtn=document.createElement('button');gBtn.className='goal-btn';gBtn.title='Set spending goal';gBtn.textContent='🎯';
+      gBtn.addEventListener('click',e=>{e.stopPropagation();_openGoalInput(row.id,totTd);});
+      totInner.appendChild(gBtn);
+    }
+    totTd.appendChild(totInner);
+    if(!isChild) _renderGoalBar(row.id,totTd);
+    tr.appendChild(totTd);
     const delTd=document.createElement('td');delTd.className='del-td';
     const delBtn=document.createElement('button');delBtn.className='row-del';delBtn.title='Delete row';delBtn.textContent='🗑';
     delBtn.addEventListener('click',()=>deleteRow(row.id));delTd.appendChild(delBtn);tr.appendChild(delTd);
