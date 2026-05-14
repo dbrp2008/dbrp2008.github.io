@@ -261,20 +261,30 @@
           left=Math.max(margin,(window.innerWidth-pw)/2);
           if(window.innerWidth<480){_bubble.style.cssText=_bubble.style.cssText+'bottom:1rem;top:auto;left:50%;transform:translateX(-50%);';return;}
         } else {
-          var r=targetEl.getBoundingClientRect();
-          top=r.bottom+8;
-          if(top+ph>window.innerHeight-margin) top=r.top-ph-8;
-          left=r.left;
+          var r=targetEl.getBoundingClientRect(),vv=_vvOffset();
+          top=r.bottom+vv.top+8;
+          if(top+ph>window.innerHeight-margin) top=r.top+vv.top-ph-8;
+          left=r.left+vv.left;
         }
         top=Math.max(margin,Math.min(top,window.innerHeight-ph-margin));
         left=Math.max(margin,Math.min(left,window.innerWidth-pw-margin));
         _bubble.style.top=top+'px';_bubble.style.left=left+'px';_bubble.style.bottom='';_bubble.style.transform='';
       });
     }
+    function _vvOffset(){
+      // On iOS, position:fixed is relative to the layout viewport, but
+      // getBoundingClientRect() is relative to the visual viewport.
+      // When the software keyboard opens, visualViewport.offsetTop > 0,
+      // causing a mismatch. Correct for it here.
+      return {
+        top:  window.visualViewport ? window.visualViewport.offsetTop  : 0,
+        left: window.visualViewport ? window.visualViewport.offsetLeft : 0
+      };
+    }
     function _setHL(el){
       if(!el){_highlight.style.display='none';if(_hlTrackOff){_hlTrackOff();_hlTrackOff=null;}return;}
-      var pad=6,r=el.getBoundingClientRect();
-      _highlight.style.cssText='display:block;position:fixed;z-index:9501;border-radius:10px;pointer-events:none;transition:top .12s ease,left .12s ease,width .12s ease,height .12s ease;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.42);top:'+(r.top-pad)+'px;left:'+(r.left-pad)+'px;width:'+(r.width+pad*2)+'px;height:'+(r.height+pad*2)+'px;';
+      var pad=6,r=el.getBoundingClientRect(),vv=_vvOffset();
+      _highlight.style.cssText='display:block;position:fixed;z-index:9501;border-radius:10px;pointer-events:none;transition:top .12s ease,left .12s ease,width .12s ease,height .12s ease;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.42);top:'+(r.top+vv.top-pad)+'px;left:'+(r.left+vv.left-pad)+'px;width:'+(r.width+pad*2)+'px;height:'+(r.height+pad*2)+'px;';
     }
     function _trackHL(el){
       if(_hlTrackOff){_hlTrackOff();_hlTrackOff=null;}
@@ -368,14 +378,15 @@
             var pk=prevMk(n);
             curKeys.forEach(function(k){
               var parts=k.split('|');
-              var v=s.cells[k];
-              if(v&&typeof v==='number'){
+              var num=parseFloat(s.cells[k]);
+              if(!isNaN(num)&&num!==0){
                 var val=singlePoint
                   // Only 1 cell entered — pure random so chart bars look varied
                   ? Math.round((80+Math.random()*720)*100)/100
                   // Multiple cells — copy with wide variance
-                  : Math.round(v*(0.45+Math.random()*1.1)*100)/100;
-                s.cells[pk+'|'+parts[1]+'|'+parts[2]]=val;
+                  : Math.round(num*(0.45+Math.random()*1.1)*100)/100;
+                // Store as string to match how trackers save cell values
+                s.cells[pk+'|'+parts[1]+'|'+parts[2]]=String(val);
               }
             });
           });
@@ -449,7 +460,7 @@
       // Clear only the wait listeners — do NOT stop the guard (it stays active for wait steps)
       _waitOff.forEach(function(f){f();});_waitOff=[];
       if(cond==='income_input'||cond==='any_expense_entered'){
-        var h=function(){if([].slice.call(document.querySelectorAll('.sheet td input,.cell input')).some(function(i){return parseFloat(i.value||'0')!==0;})){_clearWait();cb();}};
+        var h=function(){if([].slice.call(document.querySelectorAll('.sheet td input,.cell input')).some(function(i){var v=parseFloat(i.value||'0');return !isNaN(v)&&v!==0;})){_clearWait();cb();}};
         document.addEventListener('input',h);_waitOff.push(function(){document.removeEventListener('input',h);});
       } else if(cond==='scroll_near_bottom'){
         var sh=function(){var sc=window.scrollY||document.documentElement.scrollTop;var tot=document.documentElement.scrollHeight-window.innerHeight;if(tot<=0||sc/tot>0.72){_clearWait();cb();}};
