@@ -152,7 +152,6 @@
     .goal-btn:hover{opacity:1;color:var(--accent);}
     .goal-bar-wrap{height:4px;border-radius:2px;background:var(--panel-border);margin:2px 7px 0;overflow:hidden;}
     .goal-bar{height:4px;border-radius:2px;transition:width .3s,background .3s;}
-    .goal-label{font-size:.67rem;color:var(--muted);text-align:right;padding:1px 7px 2px;}
 
     
     table.sheet tfoot td{background:var(--panel-bg);font-weight:700;border-top:2px solid var(--muted);color:var(--fg);}
@@ -748,11 +747,10 @@ function _renderGoalBar(rId, totTd){
   const pct=Math.min(100,Math.round(spent/goal*100));
   const color=pct>=100?'#ef4444':pct>=75?'#f59e0b':'#22c55e';
   const wrap=document.createElement('div');wrap.className='goal-bar-wrap';
+  wrap.title='Budget: '+fmt(spent)+' / '+fmt(goal)+' ('+pct+'%)';
   const bar=document.createElement('div');bar.className='goal-bar';
   bar.style.width=pct+'%';bar.style.background=color;
   wrap.appendChild(bar);totTd.appendChild(wrap);
-  const lbl=document.createElement('div');lbl.className='goal-label';
-  lbl.textContent='Budget: '+fmt(spent)+' / '+fmt(goal);totTd.appendChild(lbl);
 }
 function _openGoalInput(rId, totTd){
   const cur=(state.goals&&state.goals[rId])||'';
