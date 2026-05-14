@@ -1643,6 +1643,7 @@ function renderTableBody(table){
         inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^0-9.]/g,''); });
         inp.addEventListener('focus',()=>snapshot());
         inp.addEventListener('change',()=>{
+          if(inp.value===''||isNaN(parseFloat(inp.value))) return;
           if(parseFloat(inp.value)<0) inp.value='0';
           setCell(row.id,col.id,inp.value);
           updateAll(row.id);
