@@ -150,7 +150,7 @@
     <h1>FiApp</h1>
     <p>Your 7-in-1 personal finance toolkit</p>
     {% if not current_user %}
-    <button class="btn" onclick="window.location.href='/register?after=walkthrough'" style="margin-top:.75rem;font-size:.9rem;">🧭 Start Walkthrough</button>
+    <button class="btn" onclick="window.location.href='/login?tab=register'" style="margin-top:.75rem;font-size:.9rem;">🧭 Start Walkthrough</button>
     {% else %}
     <span id="wt-restart-link" style="display:none;font-size:.82rem;color:var(--muted);margin-top:.5rem;">
       <a href="#" onclick="window.wtStart();return false;" style="color:var(--accent);">↺ Restart walkthrough</a>
