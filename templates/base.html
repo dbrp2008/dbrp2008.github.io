@@ -190,10 +190,10 @@
       {id:'inc-done',      page:'/income',        type:'modal',   text:'✨ Your first income entry! You can add more rows for different sources.<br><br>Next up: log your expenses.',                                                                           actions:[{label:'Next: Expenses →',primary:true,navigate:'/expenses',next:true}]},
       {id:'exp-intro',     page:'/expenses',      type:'modal',   text:'Welcome to the <strong>Expense Tracker</strong>. 📊<br><br>Log everything you spend each month — rent, food, transport, etc. We\'ll do subscriptions separately.',                     actions:[{label:'Show me →',primary:true,next:true}]},
       {id:'exp-col',       page:'/expenses',      type:'tooltip', target:'[data-wt="expense-month-col"]', text:'Each column is a <strong>week</strong> by default — but you can rename, add, or remove columns from the Table menu in the toolbar.',                              actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'exp-enter',     page:'/expenses',      type:'tooltip', target:'.sheet-wrap', allowInteract:true, text:'Fill in some expenses across a few categories — rent, groceries, transport, whatever fits your life. Take your time, then hit <strong>I\'m done</strong> when ready!', actions:[{label:"I'm done →",primary:true,next:true}]},
+      {id:'exp-enter',     page:'/expenses',      type:'tooltip', target:'.sheet-wrap', allowInteract:true, text:'Fill in some expenses across a few categories — rent, groceries, transport, whatever fits your life. Take your time, then hit <strong>I\'m done</strong> when ready!', actions:[{label:"I'm done →",primary:true,next:true,validate:'hasExpenseData'}]},
       {id:'exp-subs',      page:'/expenses',      type:'tooltip', target:'[data-wt="subs-link"]', text:'Subscriptions deserve their own tracker! Let\'s head there — they auto-sync back here so no double entry.',                                             actions:[{label:'Go to Subscriptions →',primary:true,navigate:'/subscriptions',next:true},{label:'Skip',gotoId:'ana-intro'}]},
       {id:'subs-intro',    page:'/subscriptions', type:'modal',   text:'The <strong>Subscription Tracker</strong> 🔄 keeps all recurring payments in one place — and they sync to the Expense Tracker automatically.',                                         actions:[{label:'Show me →',primary:true,next:true}]},
-      {id:'subs-add',      page:'/subscriptions', type:'tooltip', target:'[data-wt="subs-add"]', allowInteract:true, text:'Pick a service from the dropdown (or type a custom name) and hit <strong>Add</strong>. It defaults to monthly billing — you can change any detail after adding.',  actions:[{label:"Added one →",primary:true,next:true}]},
+      {id:'subs-add',      page:'/subscriptions', type:'tooltip', target:'[data-wt="subs-add"]', allowInteract:true, text:'Pick a service from the dropdown (or type a custom name) and hit <strong>Add</strong>. It defaults to monthly billing — you can change any detail after adding.',  actions:[{label:"Added one →",primary:true,next:true,validate:'hasSubData'}]},
       {id:'subs-months',   page:'/subscriptions', type:'modal',   text:'The <strong>month columns</strong> mark when each sub is active. Leave a month blank = always active. Great for seasonal or annual subs.',                                              actions:[{label:'Next: Analytics →',primary:true,navigate:'/analytics',next:true}]},
       {id:'ana-intro',     page:'/analytics',     type:'modal',   text:'The <strong>Analytics</strong> page 📉 pulls from all your trackers automatically — spending trends, income vs expenses, category breakdowns, and more.',                               actions:[{label:"Let's look →",primary:true,next:true}]},
       {id:'ana-period',    page:'/analytics',     type:'tooltip', target:'[data-wt="analytics-period"]', text:'Use the <strong>Period selector</strong> to filter all charts to a specific month or range.',                                                    actions:[{label:'Got it →',primary:true,next:true}]},
@@ -203,7 +203,7 @@
       {id:'tax-intro',     page:'/tax',           type:'modal',   wantsCurrencyTour:true, text:'The <strong>Tax Calculator</strong> 🧾 supports three countries. Pick your country at the top, enter your annual income, and hit <strong>Compute Tax</strong>. After computing, an explainer link appears showing exactly how the number was calculated.',  actions:[{label:'Got it →',primary:true,next:true}]},
       {id:'tax-toggle',    page:'/tax',           type:'tooltip', wantsCurrencyTour:true, target:'[data-wt="tax-country"]', text:'Switch between 🇺🇸 US, 🇮🇳 India, and 🇭🇰 HK here. Each uses up-to-date tax rules for the current year.',                   actions:[{label:'Next: Currency →',primary:true,navigate:'/currency',next:true}]},
       {id:'curr-intro',    page:'/currency',      type:'modal',   wantsCurrencyTour:true, text:'The <strong>Currency Converter</strong> 💱 uses live exchange rates. Rates are cached to stay within free-tier limits — refresh if you need the very latest.',  actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'curr-from',     page:'/currency',      type:'tooltip', wantsCurrencyTour:true, target:'[data-wt="currency-from"]', text:'Pick any two currencies, or type any ISO code (like <strong>AED</strong> or <strong>SGD</strong>) if it\'s not in the preset list.', actions:[{label:'Finish tour 🎉',primary:true,end:true}]}
+      {id:'curr-from',     page:'/currency',      type:'tooltip', wantsCurrencyTour:true, target:'[data-wt="currency-from"]', text:'Pick any two currencies, or type any ISO code (like <strong>HKD</strong> or <strong>AED</strong>) if it\'s not in the preset list.', actions:[{label:'Finish tour 🎉',primary:true,end:true}]}
     ];
 
     function _vis(state){return WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===state.wantsCurrencyTour;});}
@@ -212,6 +212,7 @@
     var _waitOff=[];
     var _elevatedEl=null;
     var _guardOff=null;
+    var _hlTrackOff=null;
 
     function _elevate(el){
       if(_elevatedEl){_elevatedEl.style.position='';_elevatedEl.style.zIndex='';}
@@ -225,7 +226,8 @@
       function guard(e){
         var inBubble=_bubble&&_bubble.contains(e.target);
         var inTarget=targetEl&&targetEl.contains(e.target);
-        if(!inBubble&&!inTarget){e.stopPropagation();e.preventDefault();}
+        var inToast=!!e.target.closest('[data-wt-toast]');
+        if(!inBubble&&!inTarget&&!inToast){e.stopPropagation();e.preventDefault();}
       }
       document.addEventListener('click',guard,true);
       document.addEventListener('mousedown',guard,true);
@@ -236,7 +238,7 @@
     }
     function _stopGuard(){if(_guardOff){_guardOff();_guardOff=null;}}
     function _clearWait(){_waitOff.forEach(function(f){f();});_waitOff=[];_stopGuard();}
-    function _hideAll(){if(_overlay)_overlay.style.display='none';if(_highlight)_highlight.style.display='none';if(_bubble)_bubble.style.display='none';_elevate(null);_clearWait();}
+    function _hideAll(){if(_overlay)_overlay.style.display='none';if(_highlight)_highlight.style.display='none';if(_bubble)_bubble.style.display='none';_elevate(null);_clearWait();if(_hlTrackOff){_hlTrackOff();_hlTrackOff=null;}}
     function _toast(msg,dur){var el=document.createElement('div');el.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--panel-bg);border:1.5px solid var(--panel-border);border-radius:8px;padding:.5rem 1rem;font-size:.85rem;color:var(--fg);z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:calc(100vw - 2rem);text-align:center;pointer-events:none;';el.textContent=msg;document.body.appendChild(el);setTimeout(function(){el.remove();},dur||3000);}
 
     function _posBubble(targetEl){
@@ -259,9 +261,17 @@
       });
     }
     function _setHL(el){
-      if(!el){_highlight.style.display='none';return;}
+      if(!el){_highlight.style.display='none';if(_hlTrackOff){_hlTrackOff();_hlTrackOff=null;}return;}
       var pad=6,r=el.getBoundingClientRect();
-      _highlight.style.cssText='display:block;position:fixed;z-index:9501;border-radius:10px;pointer-events:none;transition:top .25s ease,left .25s ease,width .25s ease,height .25s ease;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.42);top:'+(r.top-pad)+'px;left:'+(r.left-pad)+'px;width:'+(r.width+pad*2)+'px;height:'+(r.height+pad*2)+'px;';
+      _highlight.style.cssText='display:block;position:fixed;z-index:9501;border-radius:10px;pointer-events:none;transition:top .12s ease,left .12s ease,width .12s ease,height .12s ease;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.42);top:'+(r.top-pad)+'px;left:'+(r.left-pad)+'px;width:'+(r.width+pad*2)+'px;height:'+(r.height+pad*2)+'px;';
+    }
+    function _trackHL(el){
+      if(_hlTrackOff){_hlTrackOff();_hlTrackOff=null;}
+      if(!el) return;
+      var h=function(){_setHL(el);_posBubble(el);};
+      window.addEventListener('scroll',h,{passive:true});
+      window.addEventListener('resize',h,{passive:true});
+      _hlTrackOff=function(){window.removeEventListener('scroll',h);window.removeEventListener('resize',h);};
     }
     function _dots(idx,total){
       _progress.innerHTML='';
@@ -293,6 +303,16 @@
       void _avatar.offsetWidth;
       _avatar.classList.add('wt-avatar-pop');
       setTimeout(function(){_avatar.classList.remove('wt-avatar-pop');},400);
+    }
+
+    function _wtValidate(key){
+      if(key==='hasExpenseData'){
+        return [].slice.call(document.querySelectorAll('.sheet td input')).some(function(i){return !!(parseFloat(i.value)||0);});
+      }
+      if(key==='hasSubData'){
+        try{var s=JSON.parse(localStorage.getItem('fiapp_subs_v4')||'{}');return (s.rows||[]).length>0;}catch(e){return false;}
+      }
+      return true;
     }
 
     function _skipBtn(){
@@ -391,7 +411,17 @@
           var btn=document.createElement('button');
           btn.className=a.primary?'wt-btn-primary':'wt-btn-ghost';
           btn.textContent=a.label;
-          btn.onclick=function(){_handleAction(a,state);};
+          btn.onclick=function(){
+            if(a.validate&&!_wtValidate(a.validate)){
+              btn.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(-4px)'},{transform:'translateX(4px)'},{transform:'translateX(0)'}],{duration:350,easing:'ease'});
+              var hint=_btns.querySelector('.wt-val-hint');
+              if(!hint){hint=document.createElement('div');hint.className='wt-val-hint';hint.style.cssText='font-size:.78rem;color:#ef4444;margin-top:.3rem;text-align:center;';_btns.appendChild(hint);}
+              hint.textContent='Add something first!';
+              setTimeout(function(){if(hint.parentNode)hint.textContent='';},2200);
+              return;
+            }
+            _handleAction(a,state);
+          };
           _btns.appendChild(btn);
         });
         _btns.appendChild(_skipBtn());
@@ -401,12 +431,12 @@
       if(step.type==='wait'||step.allowInteract) _overlay.classList.add('wt-allow-scroll');
       function _applyTarget(el){
         el.scrollIntoView({block:'center',behavior:'smooth'});
-        setTimeout(function(){_setHL(el);_posBubble(el);},380);
+        setTimeout(function(){_setHL(el);_posBubble(el);_trackHL(el);},380);
       }
       if(targetEl){
         _applyTarget(targetEl);
       } else {
-        _setHL(null);_posBubble(null);
+        _setHL(null);_posBubble(null);_trackHL(null);
         // Retry: JS-rendered tracker elements (table headers, dynamic buttons) may not
         // exist yet at step show time because loadFromServer() is still in flight.
         if(step.target){
