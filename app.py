@@ -399,7 +399,7 @@ def delete_account ():
             cur .execute ("SELECT password_hash FROM users WHERE id=%s",(user_id ,))
             row =cur .fetchone ()
         if not row or not check_password_hash (row [0 ],password ):
-            return jsonify ({"error":"Incorrect password"}),401 
+            return jsonify ({"error":"Incorrect password"}),403
         with conn :
             with conn .cursor ()as cur :
                 cur .execute ("DELETE FROM user_data WHERE user_id=%s",(user_id ,))
@@ -432,7 +432,7 @@ def change_username ():
             cur .execute ("SELECT password_hash FROM users WHERE id=%s",(user_id ,))
             row =cur .fetchone ()
         if not row or not check_password_hash (row [0 ],password ):
-            return jsonify ({"error":"Incorrect password"}),401 
+            return jsonify ({"error":"Incorrect password"}),403
         with conn :
             with conn .cursor ()as cur :
                 cur .execute ("UPDATE users SET username=%s WHERE id=%s",(new_username ,user_id ))
@@ -466,7 +466,7 @@ def change_password ():
             cur .execute ("SELECT password_hash FROM users WHERE id=%s",(user_id ,))
             row =cur .fetchone ()
         if not row or not check_password_hash (row [0 ],current_password ):
-            return jsonify ({"error":"Incorrect current password"}),401 
+            return jsonify ({"error":"Incorrect current password"}),403
         with conn :
             with conn .cursor ()as cur :
                 cur .execute ("UPDATE users SET password_hash=%s WHERE id=%s",
