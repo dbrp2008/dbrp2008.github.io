@@ -41,8 +41,8 @@
     }
     .chart-card-header h2 { font-size:1rem; font-weight:700; margin:0; color:var(--fg); }
     .chart-controls { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
-    .chart-canvas-wrap { position:relative; }
-    .chart-canvas-wrap canvas { max-height:320px; }
+    .chart-canvas-wrap { position:relative; height:300px; }
+    .chart-canvas-wrap canvas { height:100% !important; max-height:300px; }
 
     
     .btn-toggle {
@@ -1001,7 +1001,7 @@ function renderTrendChart(){
   charts['trend']=new Chart(trendCanvas,{
     type:trendType==='bar'?'bar':'line',
     data:{labels,datasets},
-    options:{responsive:true,plugins:{
+    options:{responsive:true,maintainAspectRatio:false,plugins:{
       legend:{display:_cHasForecast||(maData!=null),labels:{color:_cTc.fg,boxWidth:14,padding:10}},
       tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
     },scales:{
@@ -1037,12 +1037,12 @@ function renderBreakdownChart(){
     const total =vals.reduce((a,b)=>a+b,0);
     const cfg=catBreakType==='doughnut'
       ? {type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:_cTc.panel,hoverOffset:8}]},
-          options:{responsive:true,plugins:{
+          options:{responsive:true,maintainAspectRatio:false,plugins:{
             legend:{display:true,position:'right',labels:{color:_cTc.fg,boxWidth:14,padding:10,font:{size:12}}},
             tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+' ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
           }}}
       : {type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4}]},
-          options:{responsive:true,plugins:{
+          options:{responsive:true,maintainAspectRatio:false,plugins:{
             legend:{display:false},
             tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.y)+' ('+(ctx.parsed.y/total*100).toFixed(1)+'%)'}}
           },scales:{
@@ -1086,7 +1086,7 @@ function renderCatTrendsChart(){
         backgroundColor:'transparent',borderWidth:2,fill:false,
         tension:0.3,pointRadius:3,pointBackgroundColor:e.color,
       }))},
-      options:{responsive:true,plugins:{
+      options:{responsive:true,maintainAspectRatio:false,plugins:{
         legend:{display:true,position:'bottom',labels:{color:_cTc.fg,boxWidth:12,padding:10,font:{size:11}}},
         tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
       },scales:{
@@ -1113,7 +1113,7 @@ function renderSavingsChart(){
         {label:'Expenses',data:incMonths.map(m=>parseFloat((_monthTotals[m]||0).toFixed(2))),
           backgroundColor:'rgba(220,38,38,.55)',borderColor:'#dc2626',borderWidth:1,borderRadius:4},
       ]},
-      options:{responsive:true,plugins:{
+      options:{responsive:true,maintainAspectRatio:false,plugins:{
         legend:{display:true,labels:{color:_cTc.fg,boxWidth:14,padding:10}},
         tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)}}
       },scales:{
@@ -1145,12 +1145,12 @@ function renderSubBreakChart(){
   const total =vals.reduce((a,b)=>a+b,0);
   const subCfg=subBreakType==='doughnut'
     ? {type:'doughnut',data:{labels:names,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:_cTc.panel,hoverOffset:8}]},
-        options:{responsive:true,plugins:{
+        options:{responsive:true,maintainAspectRatio:false,plugins:{
           legend:{display:true,position:'right',labels:{color:_cTc.fg,boxWidth:14,padding:10,font:{size:12}}},
           tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtMoney(ctx.parsed)+'/mo ('+(ctx.parsed/total*100).toFixed(1)+'%)'}}
         }}}
     : {type:'bar',data:{labels:names,datasets:[{label:'Monthly Cost',data:vals,backgroundColor:colors,borderRadius:4}]},
-        options:{indexAxis:'y',responsive:true,plugins:{
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{
           legend:{display:false},
           tooltip:{callbacks:{label:ctx=>' '+fmtMoney(ctx.parsed.x)+'/mo  ('+fmtMoney(ctx.parsed.x*12)+'/yr)'}}
         },scales:{
@@ -1198,7 +1198,7 @@ function renderSubTrendChart(){
   });
   charts['subtrend']=new Chart(subTrendCanvas,{
     type:'line',data:{labels,datasets},
-    options:{responsive:true,plugins:{
+    options:{responsive:true,maintainAspectRatio:false,plugins:{
       legend:{display:hasSubForecast,labels:{color:_cTc.fg,boxWidth:14,padding:10}},
       tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtMoney(ctx.parsed.y)+'/mo'}}
     },scales:{
