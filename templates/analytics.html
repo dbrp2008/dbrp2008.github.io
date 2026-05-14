@@ -1242,6 +1242,8 @@ function reRenderCharts(){
       if(subRes.ok){const d=await subRes.json();if(d&&typeof d==='object') localStorage.setItem(SUBS_KEY,JSON.stringify(d));}
       if(incRes.ok){const d=await incRes.json();if(d&&typeof d==='object') localStorage.setItem(INC_KEY,JSON.stringify(d));}
     }
+    // Seed prior-month history when walkthrough is active so charts aren't empty
+    if(_wtActive && typeof window._wtSeedAnalytics==='function') window._wtSeedAnalytics();
   }catch(e){}
   await _fetchRates();
   renderAll();
