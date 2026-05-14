@@ -274,7 +274,19 @@
       var h=function(){_setHL(el);_posBubble(el);};
       window.addEventListener('scroll',h,{passive:true});
       window.addEventListener('resize',h,{passive:true});
-      _hlTrackOff=function(){window.removeEventListener('scroll',h);window.removeEventListener('resize',h);};
+      // iOS/iPadOS: visualViewport fires when software keyboard appears/disappears
+      if(window.visualViewport){
+        window.visualViewport.addEventListener('resize',h);
+        window.visualViewport.addEventListener('scroll',h);
+      }
+      _hlTrackOff=function(){
+        window.removeEventListener('scroll',h);
+        window.removeEventListener('resize',h);
+        if(window.visualViewport){
+          window.visualViewport.removeEventListener('resize',h);
+          window.visualViewport.removeEventListener('scroll',h);
+        }
+      };
     }
     function _dots(idx,total){
       _progress.innerHTML='';
@@ -343,15 +355,19 @@
           if(!s||!s.cells) return;
           var curKeys=Object.keys(s.cells).filter(function(k){return k.indexOf(curMk+'|')===0;});
           if(!curKeys.length) return;
+          var singlePoint=curKeys.length===1;
           [1,2].forEach(function(n){
             var pk=prevMk(n);
             curKeys.forEach(function(k){
               var parts=k.split('|');
               var v=s.cells[k];
               if(v&&typeof v==='number'){
-                // Wide randomisation so the trend chart looks varied, not just flat copies
-                var variance=0.45+Math.random()*1.1;
-                s.cells[pk+'|'+parts[1]+'|'+parts[2]]=Math.round(v*variance*100)/100;
+                var val=singlePoint
+                  // Only 1 cell entered — pure random so chart bars look varied
+                  ? Math.round((80+Math.random()*720)*100)/100
+                  // Multiple cells — copy with wide variance
+                  : Math.round(v*(0.45+Math.random()*1.1)*100)/100;
+                s.cells[pk+'|'+parts[1]+'|'+parts[2]]=val;
               }
             });
           });
@@ -360,6 +376,24 @@
       }
       seedStore('fiapp_expenses_v4');
       seedStore('fiapp_income_v1');
+
+      // Always seed a few subscriptions so analytics sub charts show something
+      try{
+        var ss=JSON.parse(localStorage.getItem('fiapp_subs_v4')||'null');
+        if(ss&&ss.cols&&ss.cols.length&&(ss.rows||[]).length===0){
+          var costCol=ss.cols.find(function(c){return c.ctype==='number';});
+          if(costCol){
+            var services=[['Netflix',15.99],['Spotify',9.99],['Adobe CC',Math.round((30+Math.random()*40)*100)/100]];
+            if(!ss.cells) ss.cells={};
+            services.forEach(function(pair,i){
+              var rid='wt-seed-sub-'+i;
+              ss.rows.push({id:rid,label:pair[0]});
+              ss.cells[rid+'|'+costCol.id]=pair[1];
+            });
+            localStorage.setItem('fiapp_subs_v4',JSON.stringify(ss));
+          }
+        }
+      }catch(e){}
     }
 
     function _handleAction(action,state){
@@ -409,7 +443,9 @@
         var h=function(){if([].slice.call(document.querySelectorAll('.sheet td input,.cell input')).some(function(i){return parseFloat(i.value||'0')!==0;})){_clearWait();cb();}};
         document.addEventListener('input',h);_waitOff.push(function(){document.removeEventListener('input',h);});
       } else if(cond==='scroll_near_bottom'){
-        var sh=function(){var sc=window.scrollY||document.documentElement.scrollTop;var tot=document.documentElement.scrollHeight-window.innerHeight;if(tot>0&&sc/tot>0.72){_clearWait();cb();}};
+        var sh=function(){var sc=window.scrollY||document.documentElement.scrollTop;var tot=document.documentElement.scrollHeight-window.innerHeight;if(tot<=0||sc/tot>0.72){_clearWait();cb();}};
+        // Check immediately in case page is already short enough
+        setTimeout(sh,400);
         window.addEventListener('scroll',sh,{passive:true});_waitOff.push(function(){window.removeEventListener('scroll',sh);});
         // IntersectionObserver on last canvas
         var canvases=[].slice.call(document.querySelectorAll('canvas'));
