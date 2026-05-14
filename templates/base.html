@@ -195,7 +195,7 @@
       {id:'subs-intro',    page:'/subscriptions', type:'modal',   text:'The <strong>Subscription Tracker</strong> 🔄 keeps all recurring payments in one place — and they sync to the Expense Tracker automatically.',                                         actions:[{label:'Show me →',primary:true,next:true}]},
       {id:'subs-add',      page:'/subscriptions', type:'tooltip', target:'[data-wt="subs-add"]', allowInteract:true, text:'Pick a service from the dropdown (or type a custom name) and hit <strong>Add</strong>. It defaults to monthly billing — you can change any detail after adding.',  actions:[{label:"Added one →",primary:true,next:true,validate:'hasSubData'}]},
       {id:'subs-months',   page:'/subscriptions', type:'modal',   text:'The <strong>month columns</strong> mark when each sub is active. Leave a month blank = always active. Great for seasonal or annual subs.',                                              actions:[{label:'Next: Analytics →',primary:true,navigate:'/analytics',next:true}]},
-      {id:'ana-intro',     page:'/analytics',     type:'modal',   text:'The <strong>Analytics</strong> page 📉 pulls from all your trackers automatically — spending trends, income vs expenses, category breakdowns, and more.',                               actions:[{label:"Let's look →",primary:true,next:true}]},
+      {id:'ana-intro',     page:'/analytics',     type:'modal',   text:'The <strong>Analytics</strong> page 📉 pulls from all your trackers automatically — spending trends, income vs expenses, category breakdowns, and more.<br><br><span style="font-size:.8rem;color:var(--muted)">📊 Prior months shown here use randomised sample values so the charts aren\'t empty. Your real history builds as you use the app.</span>',               actions:[{label:"Let's look →",primary:true,next:true}]},
       {id:'ana-period',    page:'/analytics',     type:'tooltip', target:'[data-wt="analytics-period"]', text:'Use the <strong>Period selector</strong> to filter all charts to a specific month or range.',                                                    actions:[{label:'Got it →',primary:true,next:true}]},
       {id:'ana-scroll',    page:'/analytics',     type:'wait',    target:null, text:'📜 <strong>Scroll down</strong> to explore all the charts — there are several! I\'ll wait here.',                                                                         waitFor:'scroll_near_bottom',actions:[]},
       {id:'ana-done',      page:'/analytics',     type:'modal',   text:'You\'ve seen it all! Charts update automatically as you add more data.',                                                                                                                actions:[{label:'Back to home →',primary:true,navigate:'/',next:true}]},
@@ -340,15 +340,14 @@
           if(!s||!s.cells) return;
           var curKeys=Object.keys(s.cells).filter(function(k){return k.indexOf(curMk+'|')===0;});
           if(!curKeys.length) return;
-          var alreadyHasPrev=Object.keys(s.cells).some(function(k){return k.indexOf(prevMk(1)+'|')===0||k.indexOf(prevMk(2)+'|')===0;});
-          if(alreadyHasPrev) return;
           [1,2].forEach(function(n){
             var pk=prevMk(n);
             curKeys.forEach(function(k){
               var parts=k.split('|');
               var v=s.cells[k];
               if(v&&typeof v==='number'){
-                var variance=0.82+Math.random()*0.36;
+                // Wide randomisation so the trend chart looks varied, not just flat copies
+                var variance=0.45+Math.random()*1.1;
                 s.cells[pk+'|'+parts[1]+'|'+parts[2]]=Math.round(v*variance*100)/100;
               }
             });
