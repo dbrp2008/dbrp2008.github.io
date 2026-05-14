@@ -148,10 +148,16 @@
     
     .th-total{background:var(--total-bg);color:var(--total-fg);}
     .total-val{display:block;padding:4px 7px;font-weight:700;text-align:right;color:var(--total-fg);font-size:.85rem;min-height:32px;line-height:24px;background:var(--total-soft);flex:1;}
-    .goal-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:0 3px;color:var(--muted);flex-shrink:0;opacity:.8;line-height:1;vertical-align:middle;}
-    .goal-btn:hover{opacity:1;color:var(--accent);}
-    .goal-bar-wrap{height:4px;border-radius:2px;background:var(--panel-border);margin:2px 7px 0;overflow:hidden;}
-    .goal-bar{height:4px;border-radius:2px;transition:width .3s,background .3s;}
+    .goal-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:0 3px;flex-shrink:0;opacity:.85;line-height:1;vertical-align:middle;transition:opacity .12s;}
+    .goal-btn:hover{opacity:1;}
+    .goal-popover{position:fixed;z-index:9000;width:min(220px,calc(100vw - 1.5rem));background:var(--panel-bg);border:1.5px solid var(--panel-border);border-radius:10px;padding:.85rem .95rem .8rem;box-shadow:0 6px 24px rgba(0,0,0,.18);}
+    .goal-pop-bar-track{height:10px;border-radius:5px;background:var(--panel-border);overflow:hidden;margin:.55rem 0 .45rem;}
+    .goal-pop-bar-fill{height:10px;border-radius:5px;transition:width .3s,background .3s;}
+    .goal-pop-stat{font-size:.8rem;font-weight:700;margin-bottom:.65rem;}
+    .goal-pop-inp{width:100%;box-sizing:border-box;padding:.3rem .5rem;font-size:.85rem;border:1px solid var(--input-border);border-radius:6px;background:var(--input-bg);color:var(--fg);margin-bottom:.5rem;}
+    .goal-pop-btns{display:flex;gap:.4rem;}
+    .goal-pop-save{flex:1;padding:.28rem 0;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:.82rem;font-weight:700;cursor:pointer;}
+    .goal-pop-clear{padding:.28rem .6rem;background:none;border:1.5px solid var(--panel-border);border-radius:6px;font-size:.82rem;color:var(--muted);cursor:pointer;}
 
     
     table.sheet tfoot td{background:var(--panel-bg);font-weight:700;border-top:2px solid var(--muted);color:var(--fg);}
@@ -740,50 +746,86 @@ function colTotal(cId){
 function fmt(n){ return '$'+Math.max(0,n).toFixed(2); }
 
 function _renderGoalBar(rId, totTd){
-  totTd.querySelectorAll('.goal-bar-wrap,.goal-label').forEach(el=>el.remove());
-  const goal=state.goals&&state.goals[rId];
-  if(!goal||isNaN(goal)) return;
+  const valSpan=totTd.querySelector('.total-val');
+  const gBtn=totTd.querySelector('.goal-btn');
+  const goal=state.goals?.[rId];
+  if(!goal||isNaN(goal)){
+    if(valSpan) valSpan.style.color='';
+    if(gBtn)    gBtn.style.color='';
+    return;
+  }
   const spent=rowTotal(rId);
-  const pct=Math.min(100,Math.round(spent/goal*100));
+  const pct=Math.min(999,Math.round(spent/goal*100));
   const color=pct>=100?'#ef4444':pct>=75?'#f59e0b':'#22c55e';
-  const wrap=document.createElement('div');wrap.className='goal-bar-wrap';
-  wrap.title='Budget: '+fmt(spent)+' / '+fmt(goal)+' ('+pct+'%)';
-  const bar=document.createElement('div');bar.className='goal-bar';
-  bar.style.width=pct+'%';bar.style.background=color;
-  wrap.appendChild(bar);totTd.appendChild(wrap);
+  if(valSpan) valSpan.style.color=color;
+  if(gBtn)    gBtn.style.color=color;
 }
-function _openGoalInput(rId, totTd){
-  const cur=(state.goals&&state.goals[rId])||'';
-  const form=document.createElement('div');
-  form.style.cssText='display:flex;align-items:center;gap:3px;padding:3px 4px;flex-wrap:wrap;';
-  const inp=document.createElement('input');
-  inp.type='number';inp.min='0';inp.step='any';inp.placeholder='Goal…';inp.value=cur;
-  inp.style.cssText='width:72px;padding:2px 4px;font-size:.8rem;border:1px solid var(--input-border);border-radius:4px;background:var(--input-bg);color:var(--fg);';
+function _openGoalPopup(rId, gBtn){
+  document.querySelectorAll('.goal-popover').forEach(el=>el.remove());
+  const totTd=gBtn.closest('td');
+  const goal=state.goals?.[rId];
+  const spent=rowTotal(rId);
+  const pct=goal?Math.min(999,Math.round(spent/goal*100)):0;
+  const color=pct>=100?'#ef4444':pct>=75?'#f59e0b':'#22c55e';
+
+  const pop=document.createElement('div'); pop.className='goal-popover';
+  const head=document.createElement('div');
+  head.style.cssText='font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.1rem;';
+  head.textContent='Monthly Budget';
+  const track=document.createElement('div'); track.className='goal-pop-bar-track';
+  const fill=document.createElement('div');  fill.className='goal-pop-bar-fill';
+  fill.style.width=(goal?Math.min(100,pct):0)+'%'; fill.style.background=color;
+  track.appendChild(fill);
+  const stat=document.createElement('div'); stat.className='goal-pop-stat';
+  stat.style.color=goal?color:'var(--muted)';
+  stat.textContent=goal?'Spent '+fmt(spent)+'  /  Goal '+fmt(goal)+'  ('+pct+'%)':'No goal set';
+  const inp=document.createElement('input'); inp.className='goal-pop-inp';
+  inp.type='number'; inp.min='0'; inp.step='any'; inp.placeholder='Enter monthly limit…'; inp.value=goal||'';
+  const btns=document.createElement('div'); btns.className='goal-pop-btns';
+  const saveBtn=document.createElement('button'); saveBtn.className='goal-pop-save'; saveBtn.textContent='Save';
+  const clrBtn=document.createElement('button');  clrBtn.className='goal-pop-clear'; clrBtn.textContent='Clear';
+
   const applyGoal=()=>{
     const v=parseFloat(inp.value);
     if(!state.goals) state.goals={};
     if(!isNaN(v)&&v>0) state.goals[rId]=v; else delete state.goals[rId];
-    save();
-    _rebuildTotTd(rId,totTd);
+    save(); _renderGoalBar(rId,totTd); pop.remove(); removePL();
   };
-  const okBtn=document.createElement('button');okBtn.textContent='✓';
-  okBtn.style.cssText='background:var(--accent);color:#fff;border:none;border-radius:3px;padding:2px 5px;font-size:.78rem;cursor:pointer;';
-  okBtn.onclick=applyGoal;
-  const clrBtn=document.createElement('button');clrBtn.textContent='✕';
-  clrBtn.style.cssText='background:none;border:1px solid var(--panel-border);border-radius:3px;padding:2px 5px;font-size:.78rem;cursor:pointer;color:var(--muted);';
-  clrBtn.onclick=()=>{inp.value='';applyGoal();};
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyGoal();}else if(e.key==='Escape')_rebuildTotTd(rId,totTd);});
-  form.appendChild(inp);form.appendChild(okBtn);form.appendChild(clrBtn);
-  totTd.innerHTML='';totTd.appendChild(form);inp.focus();inp.select();
+  saveBtn.addEventListener('click',applyGoal);
+  clrBtn.addEventListener('click',()=>{ inp.value=''; applyGoal(); });
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){ e.preventDefault(); applyGoal(); }
+    else if(e.key==='Escape'){ pop.remove(); removePL(); }
+  });
+  btns.appendChild(saveBtn); btns.appendChild(clrBtn);
+  pop.appendChild(head); pop.appendChild(track); pop.appendChild(stat);
+  pop.appendChild(inp); pop.appendChild(btns);
+  document.body.appendChild(pop);
+
+  requestAnimationFrame(()=>{
+    const rect=gBtn.getBoundingClientRect(),pw=pop.offsetWidth||220,ph=pop.offsetHeight||180,m=8;
+    let top=rect.bottom+6;
+    if(top+ph>window.innerHeight-m) top=rect.top-ph-6;
+    top=Math.max(m,top);
+    let left=rect.right-pw;
+    left=Math.max(m,Math.min(left,window.innerWidth-pw-m));
+    pop.style.top=top+'px'; pop.style.left=left+'px';
+  });
+  inp.focus(); inp.select();
+
+  const onOut=e=>{ if(!pop.contains(e.target)&&e.target!==gBtn){ pop.remove(); removePL(); } };
+  const onEsc=e=>{ if(e.key==='Escape'){ pop.remove(); removePL(); } };
+  function removePL(){ document.removeEventListener('mousedown',onOut); document.removeEventListener('keydown',onEsc); }
+  setTimeout(()=>{ document.addEventListener('mousedown',onOut); document.addEventListener('keydown',onEsc); },0);
 }
 function _rebuildTotTd(rId, totTd){
   totTd.innerHTML='';
-  const inner=document.createElement('div');inner.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:2px;';
-  const span=document.createElement('span');span.className='total-val';span.id='rt-'+rId;
-  span.textContent=fmt(rowTotal(rId));inner.appendChild(span);
-  const gBtn=document.createElement('button');gBtn.className='goal-btn';gBtn.title='Set spending goal';gBtn.textContent='🎯';
-  gBtn.addEventListener('click',e=>{e.stopPropagation();_openGoalInput(rId,totTd);});
-  inner.appendChild(gBtn);totTd.appendChild(inner);
+  const inner=document.createElement('div'); inner.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:2px;';
+  const span=document.createElement('span'); span.className='total-val'; span.id='rt-'+rId;
+  span.textContent=fmt(rowTotal(rId)); inner.appendChild(span);
+  const gBtn=document.createElement('button'); gBtn.className='goal-btn'; gBtn.title='Set or view monthly budget goal'; gBtn.textContent='🎯';
+  gBtn.addEventListener('click',e=>{ e.stopPropagation(); _openGoalPopup(rId,gBtn); });
+  inner.appendChild(gBtn); totTd.appendChild(inner);
   _renderGoalBar(rId,totTd);
 }
 
@@ -1596,8 +1638,8 @@ function renderTableBody(table){
     const totSpan=document.createElement('span');totSpan.className='total-val';totSpan.id='rt-'+row.id;
     totSpan.textContent=fmt(rowTotal(row.id));totInner.appendChild(totSpan);
     if(!isChild){
-      const gBtn=document.createElement('button');gBtn.className='goal-btn';gBtn.title='Set spending goal';gBtn.textContent='🎯';
-      gBtn.addEventListener('click',e=>{e.stopPropagation();_openGoalInput(row.id,totTd);});
+      const gBtn=document.createElement('button');gBtn.className='goal-btn';gBtn.title='Set or view monthly budget goal';gBtn.textContent='🎯';
+      gBtn.addEventListener('click',e=>{e.stopPropagation();_openGoalPopup(row.id,gBtn);});
       totInner.appendChild(gBtn);
     }
     totTd.appendChild(totInner);
@@ -2395,6 +2437,7 @@ function _esc(s){const d=document.createElement('div');d.textContent=s;return d.
         <li><strong>Undo/Redo</strong> via Ctrl+Z / Ctrl+Y or the ↩↪ toolbar buttons (history persists across page visits).</li>
         <li>Use the <strong>Share ▾</strong> menu to share a snapshot, export to CSV/JSON, or paste imported data.</li>
         <li>Set your gross income and monthly tax in the <strong>Monthly Budget</strong> panel above the table to track remaining budget.</li>
+        <li>Click <strong>🎯</strong> next to any row total to set a monthly spending limit — the total turns <span style="color:#22c55e;font-weight:700">green</span> / <span style="color:#f59e0b;font-weight:700">amber</span> / <span style="color:#ef4444;font-weight:700">red</span> as spending approaches or exceeds your goal.</li>
         <li><strong>Forecast mode</strong>: future months let you project spend or copy/average last month's values.</li>
       </ul>
     </div>
