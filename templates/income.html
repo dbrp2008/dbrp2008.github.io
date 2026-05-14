@@ -771,8 +771,8 @@ function saveHistory(){
   }catch{}
 }
 function snapshot(){ undoStack.push(JSON.stringify(state)); redoStack.length=0; if(undoStack.length>60) undoStack.shift(); saveHistory(); updateHistBtns(); }
-function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(state)); state=JSON.parse(undoStack.pop()); save(); saveHistory(); render(); updateHistBtns(); }
-function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(state)); state=JSON.parse(redoStack.pop()); save(); saveHistory(); render(); updateHistBtns(); }
+function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(state)); state=JSON.parse(undoStack.pop()); save(); saveHistory(); render(); updateHistBtns(); showToast('↩ Undone.', false, 1800); }
+function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(state)); state=JSON.parse(redoStack.pop()); save(); saveHistory(); render(); updateHistBtns(); showToast('↪ Redone.', false, 1800); }
 function updateHistBtns(){ const u=document.getElementById('undo-btn'),r=document.getElementById('redo-btn'); if(u)u.disabled=!undoStack.length; if(r)r.disabled=!redoStack.length; }
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}
