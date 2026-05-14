@@ -583,7 +583,7 @@
 
       // Disclaimer
       if(state.stepId==='disclaimer'&&_page==='/'){
-        setTimeout(_showDisclaimer,300);return;
+        _startGuard(null);setTimeout(_showDisclaimer,300);return;
       }
 
       // Find and show step for this page
@@ -591,6 +591,9 @@
       var step=vs.find(function(s){return s.id===state.stepId&&s.page===_page;});
       if(step){
         var dotIdx=vs.findIndex(function(s){return s.id===step.id;});
+        // Start guard immediately — blocks nav links during the render delay
+        // before _showStep runs and sets up the real overlay + guard.
+        _startGuard(null);
         setTimeout(function(){_showStep(step,vs.length,dotIdx);},600);
       }
     });
