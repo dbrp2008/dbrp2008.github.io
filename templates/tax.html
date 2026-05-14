@@ -178,10 +178,11 @@
         <option value="head of household">Head of Household</option>
       </select>
     </div>
-    <div id="hk-married-row" style="display:none;margin-bottom:.75rem;">
-      <label style="display:flex;align-items:center;gap:.5rem;font-size:.9rem;cursor:pointer;">
-        <input type="checkbox" id="hk-married-cb"> Use Married Person's Allowance (HK$264,000)
-      </label>
+    <div id="hk-married-row" style="display:none;margin-bottom:1rem;">
+      <div class="tax-src-head" style="margin-bottom:.5rem;">Allowance</div>
+      <div class="tax-mode-bar">
+        <button type="button" class="tax-mode-btn" id="hk-married-btn" onclick="_toggleHKMarried()">Married Person's Allowance (HK$264,000)</button>
+      </div>
     </div>
     <div>
       <label for="income">Annual Income
@@ -243,9 +244,10 @@ const IN_BRACKETS = [
   [400000,0],[800000,.05],[1200000,.10],
   [1600000,.15],[2000000,.20],[2400000,.25],[Infinity,.30]
 ];
-const IN_STD_DED   = 75000;   // standard deduction for ROR
-const IN_87A_LIMIT = 700000;  // taxable income ceiling for 87A rebate
-const IN_87A_MAX   = 25000;   // max rebate amount
+const IN_STD_DED   = 75000;    // standard deduction for ROR
+const IN_87A_LIMIT = 1200000;  // taxable income ceiling for 87A rebate (AY 2026-27)
+const IN_87A_MAX   = 60000;    // max rebate amount (AY 2026-27)
+const IN_CESS_RATE = 0.04;     // Health & Education Cess
 
 // ── HK constants (2024-25 assessment year, HKD) ───────────────────────────
 
@@ -261,7 +263,13 @@ const HK_TAX_RELIEF  = 3000;
 
 let _country     = 'US';
 let _inResidency = 'ROR';
+let _hkMarried   = false;
 let _nriSourced  = null;   // Set of top-level row IDs; null = all included
+
+function _toggleHKMarried(){
+  _hkMarried = !_hkMarried;
+  document.getElementById('hk-married-btn').classList.toggle('active', _hkMarried);
+}
 
 // ── Tax calculations ───────────────────────────────────────────────────────
 
@@ -277,7 +285,16 @@ function calcFederalTax(income, status){
   return tax;
 }
 
-// Returns slab tax only — 87A rebate and CG tax applied by caller
+// Surcharge rate on income tax (new regime). CG (111A/112A) surcharge capped at 15% by caller.
+function calcIndiaSurchargeRate(totalIncome){
+  if(totalIncome <= 5000000)  return 0;     // ≤ ₹50L
+  if(totalIncome <= 10000000) return 0.10;  // ₹50L – ₹1Cr
+  if(totalIncome <= 20000000) return 0.15;  // ₹1Cr – ₹2Cr
+  if(totalIncome <= 50000000) return 0.25;  // ₹2Cr – ₹5Cr
+  return 0.25;                               // > ₹5Cr (new regime cap)
+}
+
+// Returns slab tax only — 87A rebate, CG tax, surcharge, cess applied by caller
 function calcIndiaTax(grossINR, residency){
   const stdDed = residency==='ROR' ? IN_STD_DED : 0;
   const ordinary = Math.max(0, grossINR - stdDed);
@@ -516,6 +533,7 @@ function _showPreview(inc){
 
 function _setCountry(c){
   _country = c;
+  _hkMarried = false;
   document.querySelectorAll('.tax-mode-btn[id^="btn-"]').forEach(b=>b.classList.remove('active'));
   document.getElementById('btn-'+c.toLowerCase()).classList.add('active');
   _renderCountryUI();
@@ -732,24 +750,23 @@ function _buildUI(inc){
     if(topRows.length){
       const wrap = document.createElement('div');
       wrap.style.cssText = 'margin-top:.75rem;padding:.65rem .85rem;border:1px solid var(--panel-border);border-radius:8px;';
-      const lbl = document.createElement('div'); lbl.className='tax-hint';
-      lbl.style.cssText='margin:0 0 .4rem;font-weight:700;';
-      lbl.textContent='India-sourced income (NRI — untick foreign income):';
+      const lbl = document.createElement('div'); lbl.className='tax-src-head';
+      lbl.textContent='India-sourced income (NRI — toggle off foreign income)';
       wrap.appendChild(lbl);
+      const pillBar = document.createElement('div'); pillBar.className='tax-mode-bar';
       if(_nriSourced===null) _nriSourced=new Set(topRows.map(r=>r.id));
       topRows.forEach(r=>{
-        const rowLbl = document.createElement('label');
-        rowLbl.style.cssText='display:flex;align-items:center;gap:.45rem;font-size:.85rem;cursor:pointer;margin:.2rem 0;';
-        const cb = document.createElement('input'); cb.type='checkbox';
-        cb.checked = _nriSourced.has(r.id);
-        cb.addEventListener('change',()=>{
-          if(cb.checked) _nriSourced.add(r.id); else _nriSourced.delete(r.id);
+        const btn = document.createElement('button'); btn.type='button'; btn.className='tax-mode-btn';
+        btn.textContent = r.label||r.id;
+        if(_nriSourced.has(r.id)) btn.classList.add('active');
+        btn.addEventListener('click',()=>{
+          if(_nriSourced.has(r.id)){ _nriSourced.delete(r.id); btn.classList.remove('active'); }
+          else { _nriSourced.add(r.id); btn.classList.add('active'); }
           _showPreview(inc);
         });
-        rowLbl.appendChild(cb);
-        rowLbl.appendChild(document.createTextNode(r.label||r.id));
-        wrap.appendChild(rowLbl);
+        pillBar.appendChild(btn);
       });
+      wrap.appendChild(pillBar);
       panel.appendChild(wrap);
     }
   }
@@ -776,8 +793,10 @@ function _updateResultBox(d){
       (d.residency==='ROR' ? '<p><strong>Standard Deduction:</strong> −'+fmt(d.stdDed,'₹')+'</p>' : '')+
       '<p><strong>Taxable Ordinary Income:</strong> '+fmt(d.ordIncome,'₹')+'</p>'+
       '<p><strong>Slab Tax:</strong> '+fmt(d.slabTax,'₹')+'</p>'+
-      (d.rebate>0 ? '<p><strong>Section 87A Rebate:</strong> −'+fmt(d.rebate,'₹')+'</p>' : '')+
-      (d.cgINR>0  ? '<p><strong>Capital Gains (LTCG @ 12.5%):</strong> '+fmt(d.cgTax,'₹')+'</p>' : '')+
+      (d.rebate>0   ? '<p><strong>Section 87A Rebate:</strong> −'+fmt(d.rebate,'₹')+'</p>' : '')+
+      (d.cgINR>0    ? '<p><strong>Capital Gains (LTCG @ 12.5%):</strong> '+fmt(d.cgTax,'₹')+'</p>' : '')+
+      (d.srch>0     ? '<p><strong>Surcharge:</strong> '+fmt(d.srch,'₹')+'</p>' : '')+
+      '<p><strong>Health &amp; Education Cess (4%):</strong> '+fmt(d.cess,'₹')+'</p>'+
       '<p><strong>Net Tax Payable:</strong> '+fmt(d.tax,'₹')+'</p>';
     document.getElementById('tax-explain-btn').style.display = '';
 
@@ -815,9 +834,12 @@ function _openExplainer(d){
       '<tr><td>20,00,001 – 24,00,000</td><td>25%</td></tr>'+
       '<tr><td>Above 24,00,000</td><td>30%</td></tr></table>'+
       '<p style="margin-top:.75rem"><strong>Standard deduction:</strong> ₹75,000 (ROR only)</p>'+
-      '<p><strong>Section 87A rebate:</strong> Up to ₹25,000 if taxable ordinary income ≤ ₹7,00,000 (ROR only)</p>'+
-      '<p><strong>Capital Gains:</strong> All Capital Gains rows treated as LTCG at 12.5% (STCG at 20% cannot be auto-detected)</p>'+
-      '<p><strong>NRI:</strong> No standard deduction; untick foreign income categories to exclude them</p>';
+      '<p><strong>Section 87A rebate (AY 2026-27):</strong> Up to ₹60,000 if taxable ordinary income ≤ ₹12,00,000 (ROR only) — effectively ₹0 tax up to ₹12L</p>'+
+      '<p><strong>Capital Gains:</strong> All Capital Gains rows treated as LTCG at 12.5% (STCG at 20% cannot be auto-detected). Surcharge on CG is capped at 15%.</p>'+
+      '<p><strong>Surcharge:</strong> 10% on income ₹50L–1Cr · 15% on ₹1Cr–2Cr · 25% on ₹2Cr+ (new regime)</p>'+
+      '<p><strong>Health &amp; Education Cess:</strong> 4% on (income tax + surcharge) — applies to everyone</p>'+
+      '<p><strong>NRI:</strong> No standard deduction; untick foreign income categories to exclude them</p>'+
+      '<p style="font-size:.8rem;color:var(--muted);margin-top:.6rem;">Uses New Tax Regime only (default from AY 2024-25). Marginal surcharge relief not applied. Consult a CA for precise liability.</p>';
   } else {
     titleEl.textContent = 'Hong Kong Salaries Tax — How it works';
     bodyEl.innerHTML =
@@ -867,16 +889,22 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
         cgINR *= 12;
       }
     }
-    const stdDed    = _inResidency==='ROR' ? IN_STD_DED : 0;
-    const ordIncome = Math.max(0, income - stdDed);
-    const slabTax   = calcIndiaTax(income, _inResidency);
-    const rebate    = (_inResidency==='ROR' && ordIncome<=IN_87A_LIMIT) ? Math.min(slabTax, IN_87A_MAX) : 0;
-    const cgTax     = cgINR * 0.125;
-    tax = Math.max(0, slabTax - rebate) + cgTax;
-    resultData = {country:'IN', income, grossIncome:income, stdDed, ordIncome, slabTax, rebate, cgINR, cgTax, tax, residency:_inResidency};
+    const stdDed      = _inResidency==='ROR' ? IN_STD_DED : 0;
+    const ordIncome   = Math.max(0, income - stdDed);
+    const slabTax     = calcIndiaTax(income, _inResidency);
+    const rebate      = (_inResidency==='ROR' && ordIncome<=IN_87A_LIMIT) ? Math.min(slabTax, IN_87A_MAX) : 0;
+    const netSlabTax  = Math.max(0, slabTax - rebate);
+    const cgTax       = cgINR * 0.125;
+    const totalIncome = income + cgINR;
+    const srchRate    = calcIndiaSurchargeRate(totalIncome);
+    const srch        = netSlabTax * srchRate + cgTax * Math.min(srchRate, 0.15);
+    const preCess     = netSlabTax + cgTax + srch;
+    const cess        = preCess * IN_CESS_RATE;
+    tax = preCess + cess;
+    resultData = {country:'IN', income, grossIncome:income, stdDed, ordIncome, slabTax, rebate, netSlabTax, cgINR, cgTax, srch, cess, tax, residency:_inResidency};
 
   } else {
-    const married = document.getElementById('hk-married-cb').checked;
+    const married = _hkMarried;
     const inc = _getInc();
     let rentalHKD = 0;
     if(inc && _mode!=='manual'){
