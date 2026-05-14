@@ -197,7 +197,7 @@
 </style>
 {% endblock %}
 {% block content %}
-  <h1>Subscription Tracker <button class="help-btn" onclick="openHelp()">?</button></h1>
+  <h1>Subscription Tracker <button class="help-btn" onclick="openHelp()">?</button> <button class="wt-enhanced-btn" onclick="wtStartEnhanced('subscriptions')" title="Feature guide">📖 Guide</button></h1>
 
   <div class="month-nav">
     <button id="prev-btn" onclick="shiftMonth(-1)">◀ Prev</button>
@@ -209,7 +209,7 @@
     <p>📋 <strong>Forecast mode</strong> - costs shown are projected from your billing schedules. Add or edit subscriptions to update the forecast.</p>
   </div>
 
-  <div class="add-bar">
+  <div class="add-bar" data-wt="subs-add">
     <label>Add subscription:</label>
     <select id="sub-sel" onchange="onPresetChange()">
       <option value="">— select —</option>
