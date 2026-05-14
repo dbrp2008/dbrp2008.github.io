@@ -183,6 +183,10 @@
     function _def(){return{active:false,stepId:null,wantsCurrencyTour:null,mainCompleted:false,loggedOutWelcome:false};}
     function _backup(){var b={};WT_TRACKER_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v)b[k]=v;});localStorage.setItem(WT_BK_KEY,JSON.stringify(b));WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});}
     function _restore(){try{var bk=localStorage.getItem(WT_BK_KEY);if(!bk)return false;var b=JSON.parse(bk);Object.keys(b).forEach(function(k){localStorage.setItem(k,b[k]);});localStorage.removeItem(WT_BK_KEY);return true;}catch{return false;}}
+    // Called at every walkthrough exit point. Restores backup if one exists;
+    // otherwise clears tracker keys (new user — nothing to restore, but walkthrough
+    // data entered during the tour should not persist as real data).
+    function _endCleanup(){var restored=_restore();if(!restored)WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});return restored;}
 
     var WT_STEPS=[
       {id:'home-welcome',  page:'/',             type:'modal',   text:'Hey there! 👋 I\'m <strong>Fi</strong>, your FiApp guide.<br><br>FiApp is a 7-in-1 personal finance toolkit. Let me walk you through the key tools — you can skip at any time.',    actions:[{label:"Let's go! →",primary:true,navigate:'/income',next:true}]},
@@ -358,7 +362,7 @@
       b.className='wt-btn-ghost';b.textContent='Skip walkthrough';
       b.style.cssText='width:100%;margin-top:.3rem;opacity:.7;font-size:.8rem;';
       b.onclick=function(){
-        var restored=_restore();
+        var restored=_endCleanup();
         var s=_ld()||_def();s.active=false;_sv(s);_hideAll();
         if(restored) _toast('Walkthrough ended. Your data has been restored. ✅');
       };
@@ -443,7 +447,7 @@
       if(action.backupData){_backup();}
       if(action.setWantsTour){state.wantsCurrencyTour=true;_sv(state);}
       if(action.end){
-        var restored=_restore();
+        var restored=_endCleanup();
         state.active=false;state.mainCompleted=true;_sv(state);
         var completionText=action.end==='soft'
           ?'🎉 <strong>All set!</strong><br>Jump in and explore FiApp on your own.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>You can redo this tour from <strong>Account → Start Walkthrough</strong> anytime.'
@@ -472,7 +476,7 @@
       if(action.next){
         var vs3=_vis(state),idx3=vs3.findIndex(function(s){return s.id===state.stepId;});
         var next3=idx3>=0&&idx3<vs3.length-1?vs3[idx3+1]:null;
-        if(!next3){_restore();state.active=false;state.mainCompleted=true;_sv(state);_hideAll();return;}
+        if(!next3){_endCleanup();state.active=false;state.mainCompleted=true;_sv(state);_hideAll();return;}
         state.stepId=next3.id;_sv(state);
         if(next3.page!==_page){window.location.href=next3.page;}
         else{_showStep(next3,vs3.length,vs3.findIndex(function(s){return s.id===next3.id;}));}
@@ -584,7 +588,7 @@
             var st=_ld()||_def();
             var vs=_vis(st);var idx=vs.findIndex(function(s){return s.id===step.id;});
             var nxt=idx>=0&&idx<vs.length-1?vs[idx+1]:null;
-            if(!nxt){_restore();st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
+            if(!nxt){_endCleanup();st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
             st.stepId=nxt.id;_sv(st);
             if(nxt.page!==_page){window.location.href=nxt.page;}
             else _showStep(nxt,vs.length,vs.findIndex(function(s){return s.id===nxt.id;}));
