@@ -148,7 +148,7 @@
     
     .th-total{background:var(--total-bg);color:var(--total-fg);}
     .total-val{display:block;padding:4px 7px;font-weight:700;text-align:right;color:var(--total-fg);font-size:.85rem;min-height:32px;line-height:24px;background:var(--total-soft);flex:1;}
-    .goal-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:0 3px;color:var(--muted);flex-shrink:0;opacity:.55;line-height:1;vertical-align:middle;}
+    .goal-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:0 3px;color:var(--muted);flex-shrink:0;opacity:.8;line-height:1;vertical-align:middle;}
     .goal-btn:hover{opacity:1;color:var(--accent);}
     .goal-bar-wrap{height:4px;border-radius:2px;background:var(--panel-border);margin:2px 7px 0;overflow:hidden;}
     .goal-bar{height:4px;border-radius:2px;transition:width .3s,background .3s;}
@@ -245,6 +245,7 @@
   
   <div class="income-panel">
     <h3>Monthly Budget - <span id="budget-month"></span></h3>
+    <p style="font-size:.75rem;color:var(--muted);margin:-.3rem 0 .6rem;">Set a monthly spending limit per category with the 🎯 in the totals column.</p>
     <div class="income-grid" id="income-grid">
       <div class="income-field">
         <label>Gross Monthly Income ($)</label>
@@ -751,7 +752,7 @@ function _renderGoalBar(rId, totTd){
   bar.style.width=pct+'%';bar.style.background=color;
   wrap.appendChild(bar);totTd.appendChild(wrap);
   const lbl=document.createElement('div');lbl.className='goal-label';
-  lbl.textContent=fmt(spent)+' / '+fmt(goal);totTd.appendChild(lbl);
+  lbl.textContent='Budget: '+fmt(spent)+' / '+fmt(goal);totTd.appendChild(lbl);
 }
 function _openGoalInput(rId, totTd){
   const cur=(state.goals&&state.goals[rId])||'';
