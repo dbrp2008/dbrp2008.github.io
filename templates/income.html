@@ -1446,6 +1446,7 @@ function renderTableBody(table){
         const wrap=document.createElement('div'); wrap.className='cost-wrap';
         const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.01';inp.inputMode='decimal';inp.className='num-input c-num';
         const stored=getRawCell(row.id,col.id);inp.value=stored!==''?stored:'';
+        inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^0-9.]/g,''); });
         inp.addEventListener('focus',()=>snapshot());
         inp.addEventListener('change',()=>{
           if(parseFloat(inp.value)<0) inp.value='0';
