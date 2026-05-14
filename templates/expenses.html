@@ -969,26 +969,36 @@ function loadTaxCarryover(){
 }
 
 
-function _incomeMonthTotal(incomeState, mk2){
+async function _incomeMonthTotalUSD(incomeState, mk2){
+  await fetchExpRates();
   if(!incomeState||!incomeState.rows||!incomeState.cols) return 0;
-  return incomeState.rows.filter(r=>!r.parentId).reduce((sum,r)=>{
+  const mrCur=incomeState.monthRowCurrencies||{};
+  let total=0;
+  for(const r of incomeState.rows.filter(r=>!r.parentId)){
     const kids=incomeState.rows.filter(c=>c.parentId===r.id);
-    if(kids.length) return sum+kids.reduce((ks,c)=>ks+(incomeState.cols||[]).reduce((cs,col)=>cs+(parseFloat(incomeState.cells[mk2+'|'+c.id+'|'+col.id])||0),0),0);
-    return sum+(incomeState.cols||[]).reduce((cs,col)=>cs+(parseFloat(incomeState.cells[mk2+'|'+r.id+'|'+col.id])||0),0);
-  },0);
+    const leaves=kids.length?kids:[r];
+    for(const leaf of leaves){
+      const cur=mrCur[mk2+'|'+leaf.id]||'USD';
+      for(const col of (incomeState.cols||[])){
+        const v=parseFloat(incomeState.cells[mk2+'|'+leaf.id+'|'+col.id])||0;
+        if(!v) continue;
+        total+= cur==='USD' ? v : (expRatesCache[cur] ? v/expRatesCache[cur] : v);
+      }
+    }
+  }
+  return total;
 }
-function syncFromIncomeTracker(mk2){
+async function syncFromIncomeTracker(mk2){
   const badge=document.getElementById('income-sync-badge'); if(!badge) return;
   try{
     const incomeState=JSON.parse(localStorage.getItem(INCOME_KEY));
     if(!incomeState||!incomeState.rows){badge.innerHTML='';return;}
-    const total=_incomeMonthTotal(incomeState,mk2);
+    const total=await _incomeMonthTotalUSD(incomeState,mk2);
     if(total<=0){badge.innerHTML='';return;}
     const obj=monthIncomeObj();
     const currentGross=parseFloat(obj.gross)||0;
     const alreadySynced=obj.fromIncome&&Math.abs(currentGross-total)<0.01;
     if(!obj.gross||obj.fromIncome){
-      
       obj.gross=total.toFixed(2);
       obj.fromIncome=true;
       document.getElementById('inp-gross').value=obj.gross;
@@ -1004,11 +1014,11 @@ function syncFromIncomeTracker(mk2){
     }
   }catch(e){badge.innerHTML='';}
 }
-function acceptIncomeSync(mk2){
+async function acceptIncomeSync(mk2){
   try{
     const incomeState=JSON.parse(localStorage.getItem(INCOME_KEY));
     if(!incomeState||!incomeState.rows) return;
-    const total=_incomeMonthTotal(incomeState,mk2);
+    const total=await _incomeMonthTotalUSD(incomeState,mk2);
     if(total<=0) return;
     snapshot();
     const obj=monthIncomeObj();
@@ -1133,6 +1143,7 @@ function addCol(){
   save(); render();
 }
 function deleteRow(id){
+  try{var _wt=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wt&&_wt.active)return;}catch{}
   forkCurrentMonth();
   snapshot();
   const mk2=currentMK();
@@ -2423,11 +2434,11 @@ function _esc(s){const d=document.createElement('div');d.textContent=s;return d.
 
   fetchExpRates().then(()=>{ if(getRows().some(r=>r.linked==='subscriptions')) render(); }).catch(()=>{});
 
-  try{ syncFromIncomeTracker(currentMK()); }catch(e){}
+  syncFromIncomeTracker(currentMK()).catch(()=>{});
 
   window.addEventListener('storage',e=>{
     if(e.key===SUBS_KEY) render();
-    if(e.key===INCOME_KEY||e.key===INCOME_PUSH_KEY) { try{ syncFromIncomeTracker(currentMK()); }catch(e){} }
+    if(e.key===INCOME_KEY||e.key===INCOME_PUSH_KEY) syncFromIncomeTracker(currentMK()).catch(()=>{});
   });
 })();
 </script>
