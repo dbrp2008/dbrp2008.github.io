@@ -696,6 +696,7 @@ function setSyncStatus(msg,cls){
 }
 function syncToServer(){
   if(!window.__currentUser){setSyncStatus('Offline','');return;}
+  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active&&localStorage.getItem('fiapp_wt_backup_v1')){setSyncStatus('','');return;}}catch{} // walkthrough active — don't push to server
   clearTimeout(_syncTimer);
   setSyncStatus('Saving…','');
   _syncTimer=setTimeout(()=>{
@@ -713,7 +714,7 @@ function syncToServer(){
 }
 async function loadFromServer(){
   if(!window.__currentUser) return;
-  if(localStorage.getItem('fiapp_wt_backup_v1')) return; // walkthrough active — keep blank slate
+  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active&&localStorage.getItem('fiapp_wt_backup_v1'))return;}catch{} // walkthrough active — keep blank slate
   try{
     const res=await fetch('/api/load/income');
     if(!res.ok) return;
