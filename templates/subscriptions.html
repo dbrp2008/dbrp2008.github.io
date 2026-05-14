@@ -457,6 +457,7 @@ function showSaveQuotaWarning(){
 }
 function showToast(msg, isError=false, duration=4000, undoCb=null){
   const el=document.createElement('div');
+  el.setAttribute('data-wt-toast','1');
   el.className=isError?'error':'success';
   el.style.cssText='position:fixed;bottom:calc(1rem + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:99999;max-width:480px;padding:.6rem 1rem;display:flex;align-items:center;gap:.75rem;white-space:pre-wrap;';
   const txt=document.createElement('span'); txt.textContent=msg; el.appendChild(txt);
