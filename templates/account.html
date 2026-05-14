@@ -239,38 +239,52 @@ async function apiFetch(url,opts={}){
 
 function exportAllCSV(){
   const csvEsc=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
-  const rows=[['Tracker','Month','Row ID','Column ID','Value']];
-  const trackers=[
-    {key:'fiapp_expenses_v4', name:'Expenses'},
-    {key:'fiapp_income_v1',   name:'Income'},
-  ];
-  trackers.forEach(({key,name})=>{
+  const dl=(rows,filename)=>{
+    const blob=new Blob([rows.map(r=>r.map(csvEsc).join(',')).join('\n')],{type:'text/csv'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+  };
+  const date=new Date().toISOString().slice(0,10);
+
+  // Expenses + Income — human-readable labels
+  const rows=[['Tracker','Month','Category','Row','Column','Value','Currency']];
+  [{key:'fiapp_expenses_v4',name:'Expenses'},{key:'fiapp_income_v1',name:'Income'}]
+  .forEach(({key,name})=>{
     try{
       const s=JSON.parse(localStorage.getItem(key)||'{}');
+      const rowMap=Object.fromEntries((s.rows||[]).map(r=>[r.id,r]));
+      const colMap=Object.fromEntries((s.cols||[]).map(c=>[c.id,c]));
       Object.entries(s.cells||{}).forEach(([k,v])=>{
         if(!v&&v!==0) return;
         const [mk,rowId,colId]=k.split('|');
-        if(mk&&rowId&&colId) rows.push([name,mk,rowId,colId,v]);
+        if(!mk||!rowId||!colId) return;
+        const row=rowMap[rowId], col=colMap[colId];
+        const parent=row?.parentId?rowMap[row.parentId]:null;
+        rows.push([
+          name, mk,
+          parent?.label||row?.label||rowId,
+          row?.label||rowId,
+          col?.label||colId,
+          v,
+          (s.monthRowCurrencies||{})[mk+'|'+rowId]||'USD'
+        ]);
       });
     }catch(e){}
   });
-  // Subscriptions — flatten to name/cost/billing per row
+  dl(rows,'fiapp-export-'+date+'.csv');
+
+  // Subscriptions — separate file, one row per subscription
   try{
     const s=JSON.parse(localStorage.getItem('fiapp_subs_v4')||'{}');
-    (s.rows||[]).forEach(row=>{
-      Object.entries(s.cells||{}).forEach(([k,v])=>{
-        if(!k.startsWith(row.id+'|')||(!v&&v!==0)) return;
-        const [,colId]=k.split('|');
-        rows.push(['Subscriptions','(all)',row.id,colId,v]);
+    if((s.rows||[]).length){
+      const cols=s.cols||[];
+      const subRows=[['Subscription',...cols.map(c=>c.label||c.id)]];
+      (s.rows||[]).forEach(row=>{
+        subRows.push([row.label||row.id,...cols.map(c=>(s.cells||{})[row.id+'|'+c.id]??'')]);
       });
-    });
+      dl(subRows,'fiapp-subscriptions-'+date+'.csv');
+    }
   }catch(e){}
-  const csv=rows.map(r=>r.map(csvEsc).join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='fiapp-export-'+new Date().toISOString().slice(0,10)+'.csv';
-  a.click(); URL.revokeObjectURL(a.href);
 }
 
 function _clearAllStorage(){
