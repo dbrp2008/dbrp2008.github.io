@@ -268,6 +268,9 @@ let _inResidency = 'ROR';
 let _hkMarried   = false;
 let _nriSourced  = null;   // Set of top-level row IDs; null = all included
 
+let _incomeByCountry     = {};  // per-country income field values
+let _lastResultByCountry = {};  // per-country last _lastTaxResult objects
+
 function _toggleHKMarried(){
   _hkMarried = !_hkMarried;
   document.getElementById('hk-married-btn').classList.toggle('active', _hkMarried);
@@ -509,7 +512,9 @@ function _saveTaxUI(){
       mode:_mode, pY:_pY, pSel:_pSel,
       nriSourced:_nriSourced===null?null:[..._nriSourced],
       incomeVal:document.getElementById('income')?.value||'',
-      statusVal:document.getElementById('status')?.value||''
+      statusVal:document.getElementById('status')?.value||'',
+      incomeByCountry:_incomeByCountry,
+      lastResultByCountry:_lastResultByCountry
     }));
   }catch{}
 }
@@ -525,6 +530,8 @@ function _loadTaxUI(){
     if(Array.isArray(s.pSel))                             _pSel=s.pSel;
     if(s.nriSourced===null||Array.isArray(s.nriSourced))
       _nriSourced=s.nriSourced===null?null:new Set(s.nriSourced);
+    if(s.incomeByCountry    && typeof s.incomeByCountry==='object')    _incomeByCountry    = s.incomeByCountry;
+    if(s.lastResultByCountry && typeof s.lastResultByCountry==='object') _lastResultByCountry = s.lastResultByCountry;
     return s;
   }catch{ return {}; }
 }
@@ -567,6 +574,11 @@ function _showPreview(inc){
 // ── Country UI controller ──────────────────────────────────────────────────
 
 function _setCountry(c){
+  // Save leaving country's income value and last result
+  const _incEl = document.getElementById('income');
+  _incomeByCountry[_country] = _incEl?.value || '';
+  if(_lastTaxResult) _lastResultByCountry[_country] = _lastTaxResult;
+
   _country = c;
   _hkMarried = false;
   document.querySelectorAll('.tax-mode-btn[id^="btn-"]').forEach(b=>b.classList.remove('active'));
@@ -576,7 +588,19 @@ function _setCountry(c){
   const inc = _getInc();
   _buildUI(inc);
   _loadRates().then(()=>_buildUI(_getInc())).catch(()=>{});
-  document.getElementById('result-box').style.display = 'none';
+
+  // Restore arriving country's income value and last result
+  if(_incEl) _incEl.value = _incomeByCountry[c] || '';
+  const _prevRes = _lastResultByCountry[c];
+  if(_prevRes){
+    _lastTaxResult = _prevRes;
+    _updateResultBox(_prevRes._resultData);
+    document.getElementById('result-box').style.display = 'block';
+    _updateApplyBtns();
+  } else {
+    _lastTaxResult = null;
+    document.getElementById('result-box').style.display = 'none';
+  }
   _saveTaxUI();
 }
 
@@ -974,6 +998,7 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
     country: _country,
     _resultData: resultData
   };
+  _lastResultByCountry[_country] = _lastTaxResult;
   _updateApplyBtns();
 });
 
@@ -1076,6 +1101,17 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   }
   if(_saved.statusVal) document.getElementById('status').value=_saved.statusVal;
   document.getElementById('status').addEventListener('change', _saveTaxUI);
+
+  // Restore last result for the active country (only when income wasn't freshly overridden)
+  if(!urlVal && !localStorage.getItem('fiapp_prefill_income')){
+    const _initRes = _lastResultByCountry[_country];
+    if(_initRes){
+      _lastTaxResult = _initRes;
+      _updateResultBox(_initRes._resultData);
+      document.getElementById('result-box').style.display = 'block';
+      _updateApplyBtns();
+    }
+  }
 
   document.getElementById('tax-use-btn').addEventListener('click',()=>{
     const inc    = _getInc();
