@@ -185,10 +185,13 @@
     var WT_BK_KEY='fiapp_wt_backup_v1';
     var WT_TRACKER_KEYS=['fiapp_expenses_v4','fiapp_expenses_undo_v4','fiapp_expenses_redo_v4','fiapp_subs_v4','fiapp_subs_undo_v4','fiapp_subs_redo_v4','fiapp_income_v1','fiapp_income_push_v1','fiapp_income_undo_v1','fiapp_income_redo_v1','fiapp_tax_result','fiapp_prefill_income'];
     var _loggedIn=!!{{ current_user|default(none)|tojson }};
+    var _wtUser={{ current_user|default(none)|tojson }};
+    var _WT_USER_KEY=_wtUser?'fiapp_wt_u_'+_wtUser:null;
     var _page=window.location.pathname;
 
     function _ld(){try{return JSON.parse(localStorage.getItem(WT_KEY)||'null');}catch{return null;}}
-    function _sv(s){try{localStorage.setItem(WT_KEY,JSON.stringify(s));}catch{}}
+    function _svUser(s){if(!_WT_USER_KEY)return;try{localStorage.setItem(_WT_USER_KEY,JSON.stringify({mainCompleted:s.mainCompleted||false,seen:s.seen||[],wantsCurrencyTour:s.wantsCurrencyTour}));}catch{}}
+    function _sv(s){try{localStorage.setItem(WT_KEY,JSON.stringify(s));_svUser(s);}catch{}}
     function _def(){return{active:false,stepId:null,wantsCurrencyTour:null,mainCompleted:false,loggedOutWelcome:false,seen:[],resumeMode:false};}
     function _backup(){var b={};WT_TRACKER_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v)b[k]=v;});localStorage.setItem(WT_BK_KEY,JSON.stringify(b));WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});}
     function _restore(){try{var bk=localStorage.getItem(WT_BK_KEY);if(!bk)return false;var b=JSON.parse(bk);Object.keys(b).forEach(function(k){localStorage.setItem(k,b[k]);});localStorage.removeItem(WT_BK_KEY);return true;}catch{return false;}}
@@ -698,6 +701,18 @@
 
       var state=_ld();
 
+      if(!state&&_loggedIn&&_WT_USER_KEY){
+        try{
+          var _us=JSON.parse(localStorage.getItem(_WT_USER_KEY)||'null');
+          if(_us&&(_us.mainCompleted||((_us.seen||[]).length>0))){
+            state=_def();
+            state.mainCompleted=_us.mainCompleted||false;
+            state.seen=_us.seen||[];
+            state.wantsCurrencyTour=_us.wantsCurrencyTour;
+            _sv(state);
+          }
+        }catch{}
+      }
 
       if(!state&&_page==='/'){
         state=_def();
