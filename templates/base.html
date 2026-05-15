@@ -42,7 +42,7 @@
     #side-drawer a{display:block;padding:.6rem .75rem;border-radius:8px;text-decoration:none;color:var(--fg);font-size:.9rem;font-weight:600;}
     #side-drawer a:hover{background:var(--hover-bg,rgba(0,0,0,.07));}
     #side-drawer a.drawer-link-active{font-weight:800;color:var(--accent);background:var(--hover-bg);pointer-events:none;}
-    /* ── Fi Walkthrough Guide ── */
+    
     #wt-overlay{display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.42);pointer-events:auto;}
     #wt-overlay.wt-allow-scroll{pointer-events:none;}
     #wt-highlight{display:none;position:fixed;z-index:9501;border-radius:10px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(0,0,0,.42);pointer-events:none;transition:top .25s ease,left .25s ease,width .25s ease,height .25s ease;}
@@ -91,8 +91,8 @@
   </div>
   <script>
   var _CSRF='{{ csrf_token|default("") }}';
-  // Sync localStorage theme to server on first load if they diverge
-  // (e.g. user inherited a theme from a previous account on this device)
+
+
   (function(){
     var _lsT=localStorage.getItem('fiapp_theme');
     var _srvT='{{ theme|default("light") }}';
@@ -166,7 +166,7 @@
   </nav>
   <script>document.querySelectorAll('.drawer-link').forEach(function(a){if(a.dataset.path===window.location.pathname)a.classList.add('drawer-link-active');});</script>
 
-  <!-- ═══ Fi — Walkthrough Guide ═══ -->
+  
   <div id="wt-overlay" aria-hidden="true"></div>
   <div id="wt-highlight" aria-hidden="true"></div>
   <div id="wt-bubble" role="dialog" aria-live="polite" aria-label="App guide" style="display:none">
@@ -176,7 +176,7 @@
     <div id="wt-btns"></div>
   </div>
   <canvas id="wt-confetti" aria-hidden="true"></canvas>
-  <!-- ════════════════════════════════ -->
+  
 
   <script>
   (function(){
@@ -192,32 +192,32 @@
     function _def(){return{active:false,stepId:null,wantsCurrencyTour:null,mainCompleted:false,loggedOutWelcome:false};}
     function _backup(){var b={};WT_TRACKER_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v)b[k]=v;});localStorage.setItem(WT_BK_KEY,JSON.stringify(b));WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});}
     function _restore(){try{var bk=localStorage.getItem(WT_BK_KEY);if(!bk)return false;var b=JSON.parse(bk);Object.keys(b).forEach(function(k){localStorage.setItem(k,b[k]);});localStorage.removeItem(WT_BK_KEY);return true;}catch{return false;}}
-    // Called at every walkthrough exit point. Restores backup if one exists;
-    // otherwise clears tracker keys (new user — nothing to restore, but walkthrough
-    // data entered during the tour should not persist as real data).
+
+
+
     function _endCleanup(){var restored=_restore();if(!restored)WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});return restored;}
 
     var WT_STEPS=[
-      {id:'home-welcome',  page:'/',             type:'modal',   text:'Hey there! 👋 I\'m <strong>Fi</strong>, your FiApp guide.<br><br>FiApp is a 7-in-1 personal finance toolkit. Let me walk you through the key tools — you can skip at any time.',    actions:[{label:"Let's go! →",primary:true,navigate:'/income',next:true}]},
-      {id:'inc-intro',     page:'/income',        type:'modal',   text:'First stop: the <strong>Income Tracker</strong>. 💰<br><br>This is where you record all your income sources — salary, freelance, rental, anything.',                                 actions:[{label:'Show me →',primary:true,next:true}]},
+      {id:'home-welcome',  page:'/',             type:'modal',   text:'Hey there! 👋 I\'m <strong>Fi</strong>, your FiApp guide.<br><br>FiApp is a 7-in-1 personal finance toolkit. Let me walk you through the key tools - you can skip at any time.',    actions:[{label:"Let's go! →",primary:true,navigate:'/income',next:true}]},
+      {id:'inc-intro',     page:'/income',        type:'modal',   text:'First stop: the <strong>Income Tracker</strong>. 💰<br><br>This is where you record all your income sources - salary, freelance, rental, anything.',                                 actions:[{label:'Show me →',primary:true,next:true}]},
       {id:'inc-currency',  page:'/income',        type:'tooltip', target:'[data-wt="income-currency"]', text:'Each row can have its <strong>own currency</strong>. Pick it from the selector next to each cell. Great for multi-currency earners.',             actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'inc-enter',     page:'/income',        type:'wait',    target:'.sheet-wrap', text:'Now <strong>type in your monthly income</strong> — click any cell in the table below and enter a number. Go on, Fi won\'t judge! 😄',                      waitFor:'income_input',onMet:'confetti',actions:[]},
+      {id:'inc-enter',     page:'/income',        type:'wait',    target:'.sheet-wrap', text:'Now <strong>type in your monthly income</strong> - click any cell in the table below and enter a number. Go on, Fi won\'t judge! 😄',                      waitFor:'income_input',onMet:'confetti',actions:[]},
       {id:'inc-done',      page:'/income',        type:'modal',   text:'✨ Your first income entry! You can add more rows for different sources.<br><br>Next up: log your expenses.',                                                                           actions:[{label:'Next: Expenses →',primary:true,navigate:'/expenses',next:true}]},
-      {id:'exp-intro',     page:'/expenses',      type:'modal',   text:'Welcome to the <strong>Expense Tracker</strong>. 📊<br><br>Log everything you spend each month — rent, food, transport, etc. We\'ll do subscriptions separately.',                     actions:[{label:'Show me →',primary:true,next:true}]},
-      {id:'exp-col',       page:'/expenses',      type:'tooltip', target:'[data-wt="expense-month-col"]', text:'Each column is a <strong>week</strong> by default — but you can rename, add, or remove columns from the Table menu in the toolbar.',                              actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'exp-enter',     page:'/expenses',      type:'tooltip', target:'.sheet-wrap', allowInteract:true, text:'Fill in some expenses across a few categories — rent, groceries, transport, whatever fits your life. Take your time, then hit <strong>I\'m done</strong> when ready!', actions:[{label:"I'm done →",primary:true,next:true,validate:'hasExpenseData'}]},
-      {id:'exp-subs',      page:'/expenses',      type:'tooltip', target:'[data-wt="subs-link"]', text:'Subscriptions deserve their own tracker! Let\'s head there — they auto-sync back here so no double entry.',                                             actions:[{label:'Go to Subscriptions →',primary:true,navigate:'/subscriptions',next:true},{label:'Skip',gotoId:'ana-intro'}]},
-      {id:'subs-intro',    page:'/subscriptions', type:'modal',   text:'The <strong>Subscription Tracker</strong> 🔄 keeps all recurring payments in one place — and they sync to the Expense Tracker automatically.',                                         actions:[{label:'Show me →',primary:true,next:true}]},
-      {id:'subs-add',      page:'/subscriptions', type:'tooltip', target:'[data-wt="subs-add"]', allowInteract:true, text:'Pick a service from the dropdown (or type a custom name) and hit <strong>Add</strong>. It defaults to monthly billing — you can change any detail after adding.',  actions:[{label:"Added one →",primary:true,next:true,validate:'hasSubData'}]},
+      {id:'exp-intro',     page:'/expenses',      type:'modal',   text:'Welcome to the <strong>Expense Tracker</strong>. 📊<br><br>Log everything you spend each month - rent, food, transport, etc. We\'ll do subscriptions separately.',                     actions:[{label:'Show me →',primary:true,next:true}]},
+      {id:'exp-col',       page:'/expenses',      type:'tooltip', target:'[data-wt="expense-month-col"]', text:'Each column is a <strong>week</strong> by default - but you can rename, add, or remove columns from the Table menu in the toolbar.',                              actions:[{label:'Got it →',primary:true,next:true}]},
+      {id:'exp-enter',     page:'/expenses',      type:'tooltip', target:'.sheet-wrap', allowInteract:true, text:'Fill in some expenses across a few categories - rent, groceries, transport, whatever fits your life. Take your time, then hit <strong>I\'m done</strong> when ready!', actions:[{label:"I'm done →",primary:true,next:true,validate:'hasExpenseData'}]},
+      {id:'exp-subs',      page:'/expenses',      type:'tooltip', target:'[data-wt="subs-link"]', text:'Subscriptions deserve their own tracker! Let\'s head there - they auto-sync back here so no double entry.',                                             actions:[{label:'Go to Subscriptions →',primary:true,navigate:'/subscriptions',next:true},{label:'Skip',gotoId:'ana-intro'}]},
+      {id:'subs-intro',    page:'/subscriptions', type:'modal',   text:'The <strong>Subscription Tracker</strong> 🔄 keeps all recurring payments in one place - and they sync to the Expense Tracker automatically.',                                         actions:[{label:'Show me →',primary:true,next:true}]},
+      {id:'subs-add',      page:'/subscriptions', type:'tooltip', target:'[data-wt="subs-add"]', allowInteract:true, text:'Pick a service from the dropdown (or type a custom name) and hit <strong>Add</strong>. It defaults to monthly billing - you can change any detail after adding.',  actions:[{label:"Added one →",primary:true,next:true,validate:'hasSubData'}]},
       {id:'subs-months',   page:'/subscriptions', type:'modal',   text:'The <strong>month columns</strong> mark when each sub is active. Leave a month blank = always active. Great for seasonal or annual subs.',                                              actions:[{label:'Next: Analytics →',primary:true,navigate:'/analytics',next:true}]},
-      {id:'ana-intro',     page:'/analytics',     type:'modal',   text:'The <strong>Analytics</strong> page 📉 pulls from all your trackers automatically — spending trends, income vs expenses, category breakdowns, and more.<br><br><span style="font-size:.8rem;color:var(--muted)">📊 Prior months shown here use randomised sample values so the charts aren\'t empty. Your real history builds as you use the app.</span>',               actions:[{label:"Let's look →",primary:true,next:true}]},
+      {id:'ana-intro',     page:'/analytics',     type:'modal',   text:'The <strong>Analytics</strong> page 📉 pulls from all your trackers automatically - spending trends, income vs expenses, category breakdowns, and more.<br><br><span style="font-size:.8rem;color:var(--muted)">📊 Prior months shown here use randomised sample values so the charts aren\'t empty. Your real history builds as you use the app.</span>',               actions:[{label:"Let's look →",primary:true,next:true}]},
       {id:'ana-period',    page:'/analytics',     type:'tooltip', target:'[data-wt="analytics-period"]', text:'Use the <strong>Period selector</strong> to filter all charts to a specific month or range.',                                                    actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'ana-scroll',    page:'/analytics',     type:'wait',    target:null, pin:'tl', text:'📜 <strong>Scroll down</strong> to explore all the charts — there are several! I\'ll wait here.',                                                             waitFor:'scroll_near_bottom',actions:[],allowSelectors:['.slideshow-nav-btn']},
+      {id:'ana-scroll',    page:'/analytics',     type:'wait',    target:null, pin:'tl', text:'📜 <strong>Scroll down</strong> to explore all the charts - there are several! I\'ll wait here.',                                                             waitFor:'scroll_near_bottom',actions:[],allowSelectors:['.slideshow-nav-btn']},
       {id:'ana-done',      page:'/analytics',     type:'modal',   text:'You\'ve seen it all! Charts update automatically as you add more data.',                                                                                                                actions:[{label:'Back to home →',primary:true,navigate:'/',next:true}]},
-      {id:'home-branch',   page:'/',              type:'modal',   text:'Almost done! Two more tools you might want:<br><br>🧾 <strong>Tax Calculator</strong> — estimates income tax for 🇺🇸 US, 🇮🇳 India, and 🇭🇰 HK.<br><br>💱 <strong>Currency Converter</strong> — live exchange rates.<br><br>Want a quick look?', actions:[{label:'Yes, show me! →',primary:true,navigate:'/tax',setWantsTour:true,next:true},{label:"I'm good to explore",end:'soft'}]},
+      {id:'home-branch',   page:'/',              type:'modal',   text:'Almost done! Two more tools you might want:<br><br>🧾 <strong>Tax Calculator</strong> - estimates income tax for 🇺🇸 US, 🇮🇳 India, and 🇭🇰 HK.<br><br>💱 <strong>Currency Converter</strong> - live exchange rates.<br><br>Want a quick look?', actions:[{label:'Yes, show me! →',primary:true,navigate:'/tax',setWantsTour:true,next:true},{label:"I'm good to explore",end:'soft'}]},
       {id:'tax-intro',     page:'/tax',           type:'modal',   wantsCurrencyTour:true, text:'The <strong>Tax Calculator</strong> 🧾 supports three countries. Pick your country at the top, enter your annual income, and hit <strong>Compute Tax</strong>. After computing, an explainer link appears showing exactly how the number was calculated.',  actions:[{label:'Got it →',primary:true,next:true}]},
       {id:'tax-toggle',    page:'/tax',           type:'tooltip', wantsCurrencyTour:true, target:'[data-wt="tax-country"]', text:'Switch between 🇺🇸 US, 🇮🇳 India, and 🇭🇰 HK here. Each uses up-to-date tax rules for the current year.',                   actions:[{label:'Next: Currency →',primary:true,navigate:'/currency',next:true}]},
-      {id:'curr-intro',    page:'/currency',      type:'modal',   wantsCurrencyTour:true, text:'The <strong>Currency Converter</strong> 💱 uses live exchange rates. Rates are cached to stay within free-tier limits — refresh if you need the very latest.',  actions:[{label:'Got it →',primary:true,next:true}]},
+      {id:'curr-intro',    page:'/currency',      type:'modal',   wantsCurrencyTour:true, text:'The <strong>Currency Converter</strong> 💱 uses live exchange rates. Rates are cached to stay within free-tier limits - refresh if you need the very latest.',  actions:[{label:'Got it →',primary:true,next:true}]},
       {id:'curr-from',     page:'/currency',      type:'tooltip', wantsCurrencyTour:true, target:'[data-wt="currency-from"]', text:'Pick any two currencies, or type any ISO code (like <strong>HKD</strong> or <strong>AED</strong>) if it\'s not in the preset list.', actions:[{label:'Finish tour 🎉',primary:true,end:true}]}
     ];
 
@@ -234,9 +234,9 @@
       _elevatedEl=el;
       if(el){el.style.position='relative';el.style.zIndex='9502';}
     }
-    // Capture-phase click guard: allows clicks only inside targetEl or the bubble.
-    // Blocks everything else (toolbar buttons, nav links, etc.) during wait steps.
-    // allowSelectors: optional array of CSS selectors whose matching elements are also allowed.
+
+
+
     function _startGuard(targetEl,allowSelectors){
       if(_guardOff){_guardOff();_guardOff=null;}
       function guard(e){
@@ -244,17 +244,17 @@
         if(!t) return;
         var inBubble=_bubble&&_bubble.contains(t);
         var inToast=!!t.closest('[data-wt-toast]');
-        // Always block navigation links — walkthrough owns all navigation
+
         var navLink=t.closest('a[href]');
         if(navLink&&!inBubble){e.stopPropagation();e.preventDefault();return;}
         var inTarget=targetEl&&targetEl.contains(t);
         var inAllowed=allowSelectors&&allowSelectors.some(function(sel){return !!t.closest(sel);});
         if(!inBubble&&!inTarget&&!inToast&&!inAllowed){e.stopPropagation();e.preventDefault();}
       }
-      // touchend (not touchstart) blocks tap-navigation without blocking scroll.
-      // Scroll starts on touchstart — if we preventDefault() there, scrolling is killed.
-      // preventDefault() on touchend stops the follow-up click event, so nav taps are
-      // still blocked while the user can freely scroll through pages like analytics.
+
+
+
+
       var touchEndOpts={capture:true,passive:false};
       document.addEventListener('click',guard,true);
       document.addEventListener('mousedown',guard,true);
@@ -290,10 +290,10 @@
       });
     }
     function _vvOffset(){
-      // On iOS, position:fixed is relative to the layout viewport, but
-      // getBoundingClientRect() is relative to the visual viewport.
-      // When the software keyboard opens, visualViewport.offsetTop > 0,
-      // causing a mismatch. Correct for it here.
+
+
+
+
       return {
         top:  window.visualViewport ? window.visualViewport.offsetTop  : 0,
         left: window.visualViewport ? window.visualViewport.offsetLeft : 0
@@ -310,7 +310,7 @@
       var h=function(){_setHL(el);_posBubble(el);};
       window.addEventListener('scroll',h,{passive:true});
       window.addEventListener('resize',h,{passive:true});
-      // iOS/iPadOS: visualViewport fires when software keyboard appears/disappears
+
       if(window.visualViewport){
         window.visualViewport.addEventListener('resize',h);
         window.visualViewport.addEventListener('scroll',h);
@@ -379,8 +379,8 @@
     }
 
     function _seedHistoryForAnalytics(){
-      // Copies current-month data to 2 prior months (with ±15% variance) so analytics
-      // trend charts have something to render. Only runs if those months are empty.
+
+
       var now=new Date();
       function mkStr(d){return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);}
       var curMk=mkStr(now);
@@ -394,8 +394,8 @@
           var singlePoint=curKeys.length===1;
           [1,2].forEach(function(n){
             var pk=prevMk(n);
-            // Copy row/col structure so analytics has explicit month data
-            // (avoids depending on the exp.rows/cols fallback)
+
+
             if(s.rowsByMonth&&s.rowsByMonth[curMk]&&!s.rowsByMonth[pk])
               s.rowsByMonth[pk]=s.rowsByMonth[curMk].map(function(r){return Object.assign({},r);});
             if(s.colsByMonth&&s.colsByMonth[curMk]&&!s.colsByMonth[pk])
@@ -405,11 +405,11 @@
               var num=parseFloat(s.cells[k]);
               if(!isNaN(num)&&num!==0){
                 var val=singlePoint
-                  // Only 1 cell entered — pure random so chart bars look varied
+
                   ? Math.round((80+Math.random()*720)*100)/100
-                  // Multiple cells — copy with wide variance
+
                   : Math.round(num*(0.45+Math.random()*1.1)*100)/100;
-                // Store as string to match how trackers save cell values
+
                 s.cells[pk+'|'+parts[1]+'|'+parts[2]]=String(val);
               }
             });
@@ -420,9 +420,9 @@
       seedStore('fiapp_expenses_v4');
       seedStore('fiapp_income_v1');
 
-      // Seed fake subscriptions so analytics sub charts show something.
-      // Runs whenever user has fewer than 3 subs (so 1 real sub still gets companions).
-      // Seeded subs include a start date so the analytics trend chart picks them up.
+
+
+
       try{
         var ss=JSON.parse(localStorage.getItem('fiapp_subs_v4')||'null');
         if(ss&&ss.cols&&ss.cols.length&&(ss.rows||[]).length<3){
@@ -431,15 +431,15 @@
           if(costCol){
             var services=[['Netflix',15.99],['Spotify',9.99],['Adobe CC',Math.round((30+Math.random()*40)*100)/100]];
             if(!ss.cells) ss.cells={};
-            // Only add the fake subs that aren't already present
+
             var existingLabels=(ss.rows||[]).map(function(r){return (r.label||'').toLowerCase();});
             services.forEach(function(pair,i){
-              if(existingLabels.indexOf(pair[0].toLowerCase())>=0) return; // skip if already added
+              if(existingLabels.indexOf(pair[0].toLowerCase())>=0) return;
               var rid='wt-seed-sub-'+i;
-              if((ss.rows||[]).find(function(r){return r.id===rid;})) return; // already seeded
+              if((ss.rows||[]).find(function(r){return r.id===rid;})) return;
               ss.rows.push({id:rid,label:pair[0]});
               ss.cells[rid+'|'+costCol.id]=pair[1];
-              // Start date: i+1 months ago so analytics trend spans multiple months
+
               if(startCol){
                 var sd=new Date(now.getFullYear(),now.getMonth()-(i+1),1);
                 ss.cells[rid+'|'+startCol.id]=sd.getFullYear()+'-'+('0'+(sd.getMonth()+1)).slice(-2)+'-01';
@@ -493,17 +493,17 @@
     }
 
     function _setupWait(cond,cb){
-      // Clear only the wait listeners — do NOT stop the guard (it stays active for wait steps)
+
       _waitOff.forEach(function(f){f();});_waitOff=[];
       if(cond==='income_input'||cond==='any_expense_entered'){
         var h=function(){if([].slice.call(document.querySelectorAll('.sheet td input,.cell input')).some(function(i){var v=parseFloat(i.value||'0');return !isNaN(v)&&v!==0;})){_clearWait();cb();}};
         document.addEventListener('input',h);_waitOff.push(function(){document.removeEventListener('input',h);});
       } else if(cond==='scroll_near_bottom'){
         var sh=function(){var sc=window.scrollY||document.documentElement.scrollTop;var tot=document.documentElement.scrollHeight-window.innerHeight;if(tot<=0||sc/tot>0.72){_clearWait();cb();}};
-        // Check immediately in case page is already short enough
+
         setTimeout(sh,400);
         window.addEventListener('scroll',sh,{passive:true});_waitOff.push(function(){window.removeEventListener('scroll',sh);});
-        // IntersectionObserver on last canvas
+
         var canvases=[].slice.call(document.querySelectorAll('canvas'));
         if(canvases.length){
           var last=canvases[canvases.length-1];
@@ -558,19 +558,19 @@
       });
       _overlay.className='';_overlay.style.display='block';
       if(step.type==='wait'||step.allowInteract) _overlay.classList.add('wt-allow-scroll');
-      // Always run the click guard — for non-interactive steps use null so only the bubble
-      // is clickable. This closes the loophole where high-z-index nav links bypass the overlay.
+
+
       _startGuard(step.type==='wait'||step.allowInteract ? targetEl : null, step.allowSelectors||null);
       function _applyTarget(el){
         el.scrollIntoView({block:'center',behavior:'smooth'});
         setTimeout(function(){_setHL(el);_posBubble(el);_trackHL(el);},380);
       }
       if(step.pin==='tl'){
-        // Pin bubble to top-left so it doesn't block page content (e.g. analytics scroll step)
+
         _setHL(null);_trackHL(null);
         requestAnimationFrame(function(){
           var margin=14;
-          _bubble.style.top='4.5rem'; // below nav bar
+          _bubble.style.top='4.5rem';
           _bubble.style.left=margin+'px';
           _bubble.style.bottom=''; _bubble.style.right=''; _bubble.style.transform='';
         });
@@ -578,8 +578,8 @@
         _applyTarget(targetEl);
       } else {
         _setHL(null);_posBubble(null);_trackHL(null);
-        // Retry: JS-rendered tracker elements (table headers, dynamic buttons) may not
-        // exist yet at step show time because loadFromServer() is still in flight.
+
+
         if(step.target){
           setTimeout(function(){
             var el=document.querySelector(step.target);
@@ -595,7 +595,7 @@
           if(step.onMet==='confetti')_fireConfetti();
           setTimeout(function(){
             var st=_ld()||_def();
-            if(!st.active) return; // user skipped during the confetti delay — abort
+            if(!st.active) return;
             var vs=_vis(st);var idx=vs.findIndex(function(s){return s.id===step.id;});
             var nxt=idx>=0&&idx<vs.length-1?vs[idx+1]:null;
             if(!nxt){_endCleanup();st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
@@ -611,7 +611,7 @@
       var state=_ld()||_def();
       _transition(function(){
         _avatar.textContent='🧭';
-        _text.innerHTML='Before we start — you have saved data in FiApp.<br><br>I\'ll <strong>temporarily hide it</strong> during the walkthrough so we start with a clean slate.<br><br><strong>Don\'t worry:</strong> everything is <strong>fully restored</strong> when the tour ends or if you skip.';
+        _text.innerHTML='Before we start - you have saved data in FiApp.<br><br>I\'ll <strong>temporarily hide it</strong> during the walkthrough so we start with a clean slate.<br><br><strong>Don\'t worry:</strong> everything is <strong>fully restored</strong> when the tour ends or if you skip.';
         _btns.innerHTML='';
         var goBtn=document.createElement('button');goBtn.className='wt-btn-primary';goBtn.textContent="Got it, let's go! →";
         goBtn.onclick=function(){
@@ -659,7 +659,7 @@
 
       var state=_ld();
 
-      // Auto-start or logged-out welcome on /
+
       if(!state&&_page==='/'){
         state=_def();
         if(_loggedIn){
@@ -671,37 +671,37 @@
         _sv(state);
       }
 
-      // Safety: orphaned backup
+
       if(localStorage.getItem(WT_BK_KEY)&&(!state||!state.active)) _restore();
 
       if(!state) return;
 
-      // Logged-out welcome
+
       if(!_loggedIn&&state.loggedOutWelcome&&_page==='/'){
         setTimeout(_showLoggedOutWelcome,300);return;
       }
 
       if(!state.active) return;
 
-      // Disclaimer
+
       if(state.stepId==='disclaimer'&&_page==='/'){
         _startGuard(null);setTimeout(_showDisclaimer,300);return;
       }
 
-      // Find and show step for this page
+
       var vs=_vis(state);
       var step=vs.find(function(s){return s.id===state.stepId&&s.page===_page;});
       if(step){
         var dotIdx=vs.findIndex(function(s){return s.id===step.id;});
-        // Start guard immediately — blocks nav links during the render delay
-        // before _showStep runs and sets up the real overlay + guard.
+
+
         _startGuard(null);
         setTimeout(function(){_showStep(step,vs.length,dotIdx);},600);
       }
     });
 
-    // Public API
-    window._wtSeedAnalytics=_seedHistoryForAnalytics;  // called by analytics.html after server load
+
+    window._wtSeedAnalytics=_seedHistoryForAnalytics;
     window.wtStart=function(){
       var s=_def();
       var hasData=WT_TRACKER_KEYS.some(function(k){var v=localStorage.getItem(k);return v&&v!=='{}';});
@@ -709,7 +709,7 @@
       _sv(s);window.location.href='/';
     };
     window.wtStartEnhanced=function(page){
-      // Enhanced walkthrough stubs — expanded per page
+
       if(page==='expenses') _runEnhanced('expenses');
       else if(page==='income') _runEnhanced('income');
       else if(page==='subscriptions') _runEnhanced('subscriptions');
@@ -717,24 +717,24 @@
 
     var ENHANCED_STEPS={
       expenses:[
-        {id:'enh-exp-tax',   text:'Did you know? Your gross income from the <strong>Income Tracker</strong> can auto-fill into the Tax Calculator. Use the <a href="/tax" style="color:var(--accent)">🧾 Tax Calculator</a> to estimate your tax — it pre-fills from income data.',           target:'[data-wt="expenses-tax-link"]', emoji:'💡'},
-        {id:'enh-exp-fore',  text:'<strong>Forecast mode</strong> — when you navigate to a future month, FiApp shows this banner. You can seed it with your spending history or copy last month\'s values — great for planning ahead.',                                                     target:'[data-wt="expenses-forecast"]', emoji:'📋', beforeShow:function(){if(typeof window.isForecastMonth==='function'&&!window.isForecastMonth()&&typeof window.shiftMonth==='function')window.shiftMonth(1);}},
-        {id:'enh-exp-share', text:'You can <strong>share your expense sheet</strong> with others. Use the Share button in the toolbar — it generates a clean view without requiring a login, and you can export to CSV.',                                                                   target:'[data-wt="expenses-share"]',    emoji:'📤'}
+        {id:'enh-exp-tax',   text:'Did you know? Your gross income from the <strong>Income Tracker</strong> can auto-fill into the Tax Calculator. Use the <a href="/tax" style="color:var(--accent)">🧾 Tax Calculator</a> to estimate your tax - it pre-fills from income data.',           target:'[data-wt="expenses-tax-link"]', emoji:'💡'},
+        {id:'enh-exp-fore',  text:'<strong>Forecast mode</strong> - when you navigate to a future month, FiApp shows this banner. You can seed it with your spending history or copy last month\'s values - great for planning ahead.',                                                     target:'[data-wt="expenses-forecast"]', emoji:'📋', beforeShow:function(){if(typeof window.isForecastMonth==='function'&&!window.isForecastMonth()&&typeof window.shiftMonth==='function')window.shiftMonth(1);}},
+        {id:'enh-exp-share', text:'You can <strong>share your expense sheet</strong> with others. Use the Share button in the toolbar - it generates a clean view without requiring a login, and you can export to CSV.',                                                                   target:'[data-wt="expenses-share"]',    emoji:'📤'}
       ],
       income:[
         {id:'enh-inc-gross', text:'Your <strong>total gross income</strong> here automatically appears in the Expense Tracker\'s Budget panel and pre-fills the Tax Calculator. No manual copying needed.',                                                                                  target:'[data-wt="income-tax-link"]',   emoji:'🔗'},
-        {id:'enh-inc-curr',  text:'Each income source can have its <strong>own currency</strong>. FiApp converts everything to USD for comparisons — great for multi-currency earners.',                                                                                                     target:'[data-wt="income-currency"]',   emoji:'💱'}
+        {id:'enh-inc-curr',  text:'Each income source can have its <strong>own currency</strong>. FiApp converts everything to USD for comparisons - great for multi-currency earners.',                                                                                                     target:'[data-wt="income-currency"]',   emoji:'💱'}
       ],
       subscriptions:[
         {id:'enh-sub-sync',  text:'Subscriptions you log here are <strong>automatically reflected</strong> in your Expense Tracker under the Subscriptions category. No double-entry needed.',                                                                                              target:'[data-wt="subs-add"]',          emoji:'🔄'},
-        {id:'enh-sub-mths',  text:'Use the <strong>month columns</strong> to mark when each subscription is active. Uncheck a month for subs you paused or cancelled — your totals update instantly.',                                                                                     target:null,                             emoji:'📅'}
+        {id:'enh-sub-mths',  text:'Use the <strong>month columns</strong> to mark when each subscription is active. Uncheck a month for subs you paused or cancelled - your totals update instantly.',                                                                                     target:null,                             emoji:'📅'}
       ]
     };
 
     function _runEnhanced(page){
       var steps=ENHANCED_STEPS[page];if(!steps||!steps.length) return;
       var eIdx=0;
-      // Remember starting month so we can restore it if a step navigated away
+
       var _origMK=typeof window.currentMK==='function'?window.currentMK():null;
       function _cleanup(){
         if(_origMK&&typeof window.jumpToMonth==='function'&&typeof window.currentMK==='function'&&window.currentMK()!==_origMK)
