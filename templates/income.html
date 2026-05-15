@@ -259,11 +259,11 @@
       </div>
       <div class="summary-item" id="conv-wrap" style="display:none">
         <span class="summary-label" id="conv-lbl">Total</span>
-        <span class="summary-val" id="disp-conv">—</span>
+        <span class="summary-val" id="disp-conv">-</span>
       </div>
       <div class="summary-item">
         <span class="summary-label">Annual (×12, USD)</span>
-        <span class="summary-val" id="disp-annual">—</span>
+        <span class="summary-val" id="disp-annual">-</span>
       </div>
       <div class="summary-item" style="display:flex;flex-direction:column;gap:4px;">
         <a class="summary-link" href="/expenses">→ Expense Tracker</a>
@@ -657,7 +657,7 @@ function openCopyToDropdown(e){
     const selected=[...menu.querySelectorAll('.copy-to-pill.selected')].map(p=>p.dataset.mk);
     if(!selected.length){showToast('Select at least one month.');return;}
     const hasExisting=selected.some(tMk=>Object.keys(state.cells||{}).some(k=>k.startsWith(tMk+'|')&&state.cells[k]));
-    if(hasExisting&&!confirm('Some selected months already have data — overwrite it?')) return;
+    if(hasExisting&&!confirm('Some selected months already have data - overwrite it?')) return;
     menu.classList.remove('open');
     copyMonthToTargets(sourceMk,selected,true);
   });
@@ -696,7 +696,7 @@ function setSyncStatus(msg,cls){
 }
 function syncToServer(){
   if(!window.__currentUser){setSyncStatus('Offline','');return;}
-  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active){setSyncStatus('','');return;}}catch{} // walkthrough active — don't push to server
+  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active){setSyncStatus('','');return;}}catch{}
   clearTimeout(_syncTimer);
   setSyncStatus('Saving…','');
   _syncTimer=setTimeout(()=>{
@@ -714,7 +714,7 @@ function syncToServer(){
 }
 async function loadFromServer(){
   if(!window.__currentUser) return;
-  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active)return;}catch{} // walkthrough active — keep blank slate
+  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active)return;}catch{}
   try{
     const res=await fetch('/api/load/income');
     if(!res.ok) return;
@@ -969,12 +969,12 @@ function updateSummaryBar(){
   const annualEl=document.getElementById('disp-annual');
   const convEl=document.getElementById('disp-conv');
   if(el) el.textContent=totalUSD>0?'$'+totalUSD.toFixed(2):'$0.00';
-  if(annualEl) annualEl.textContent=totalUSD>0?'$'+(totalUSD*12).toFixed(2):'—';
+  if(annualEl) annualEl.textContent=totalUSD>0?'$'+(totalUSD*12).toFixed(2):'-';
   if(convEl&&currentRate!==1){
     const cur=state.displayCurrency||'USD';
-    convEl.textContent=totalUSD>0?cur+' '+(totalUSD*currentRate).toFixed(2):'—';
+    convEl.textContent=totalUSD>0?cur+' '+(totalUSD*currentRate).toFixed(2):'-';
     const annualConvEl=document.getElementById('conv-annual');
-    if(annualConvEl) annualConvEl.textContent=totalUSD>0?cur+' '+(totalUSD*12*currentRate).toFixed(2):'—';
+    if(annualConvEl) annualConvEl.textContent=totalUSD>0?cur+' '+(totalUSD*12*currentRate).toFixed(2):'-';
   }
   
   const salaryUSD=salaryTotal();
@@ -2004,7 +2004,7 @@ function showShareModal(title,text){
   emailXlsxBtn.href=gmailHref(title,xlsxBody);emailXlsxBtn.target='_blank';emailXlsxBtn.rel='noopener noreferrer';
   emailXlsxBtn.addEventListener('click',()=>{
     exportXlsx('income-'+ym+'.xlsx');
-    flash.textContent='XLSX downloading — drag it into Gmail to attach.';
+    flash.textContent='XLSX downloading - drag it into Gmail to attach.';
     setTimeout(()=>flash.textContent='',5000);
   });
 
