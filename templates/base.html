@@ -189,7 +189,7 @@
 
     function _ld(){try{return JSON.parse(localStorage.getItem(WT_KEY)||'null');}catch{return null;}}
     function _sv(s){try{localStorage.setItem(WT_KEY,JSON.stringify(s));}catch{}}
-    function _def(){return{active:false,stepId:null,wantsCurrencyTour:null,mainCompleted:false,loggedOutWelcome:false};}
+    function _def(){return{active:false,stepId:null,wantsCurrencyTour:null,mainCompleted:false,loggedOutWelcome:false,seen:[],resumeMode:false};}
     function _backup(){var b={};WT_TRACKER_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v)b[k]=v;});localStorage.setItem(WT_BK_KEY,JSON.stringify(b));WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});}
     function _restore(){try{var bk=localStorage.getItem(WT_BK_KEY);if(!bk)return false;var b=JSON.parse(bk);Object.keys(b).forEach(function(k){localStorage.setItem(k,b[k]);});localStorage.removeItem(WT_BK_KEY);return true;}catch{return false;}}
 
@@ -221,7 +221,7 @@
       {id:'curr-from',     page:'/currency',      type:'tooltip', wantsCurrencyTour:true, target:'[data-wt="currency-from"]', text:'Pick any two currencies, or type any ISO code (like <strong>HKD</strong> or <strong>AED</strong>) if it\'s not in the preset list.', actions:[{label:'Finish tour 🎉',primary:true,end:true}]}
     ];
 
-    function _vis(state){return WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===state.wantsCurrencyTour;});}
+    function _vis(state){return WT_STEPS.filter(function(s){if(s.wantsCurrencyTour!=null&&s.wantsCurrencyTour!==state.wantsCurrencyTour)return false;if(state.resumeMode&&state.seen&&state.seen.indexOf(s.id)>=0)return false;return true;});}
 
     var _overlay,_highlight,_bubble,_avatar,_text,_progress,_btns,_confCvs;
     var _waitOff=[];
@@ -453,11 +453,13 @@
 
     function _handleAction(action,state){
       state=state||_ld()||_def();
+      if(!state.seen) state.seen=[];
+      if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
       if(action.backupData){_backup();}
       if(action.setWantsTour){state.wantsCurrencyTour=true;_sv(state);}
       if(action.end){
         var restored=_endCleanup();
-        state.active=false;state.mainCompleted=true;_sv(state);
+        state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);
         var completionText=action.end==='soft'
           ?'🎉 <strong>All set!</strong><br>Jump in and explore FiApp on your own.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>You can redo this tour from <strong>Account → Start Walkthrough</strong> anytime.'
           :'🎉 <strong>Walkthrough complete!</strong><br><br>You\'re all set to use FiApp.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>Redo this tour from <strong>Account → Start Walkthrough</strong> anytime.';
@@ -476,16 +478,20 @@
       }
       if(action.navigate){
         var vs2=_vis(state),idx=vs2.findIndex(function(s){return s.id===state.stepId;});
-        if(idx>=0&&idx<vs2.length-1){state.stepId=vs2[idx+1].id;}
-        _sv(state);
-        if(action.navigate==='/analytics') _seedHistoryForAnalytics();
-        window.location.href=action.navigate;
+        if(idx>=0&&idx<vs2.length-1){
+          state.stepId=vs2[idx+1].id;_sv(state);
+          if(action.navigate==='/analytics') _seedHistoryForAnalytics();
+          window.location.href=action.navigate;
+        } else {
+          _endCleanup();state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);_hideAll();
+          _toast('All caught up! 🎉');
+        }
         return;
       }
       if(action.next){
         var vs3=_vis(state),idx3=vs3.findIndex(function(s){return s.id===state.stepId;});
         var next3=idx3>=0&&idx3<vs3.length-1?vs3[idx3+1]:null;
-        if(!next3){_endCleanup();state.active=false;state.mainCompleted=true;_sv(state);_hideAll();return;}
+        if(!next3){_endCleanup();state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);_hideAll();return;}
         state.stepId=next3.id;_sv(state);
         if(next3.page!==_page){window.location.href=next3.page;}
         else{_showStep(next3,vs3.length,vs3.findIndex(function(s){return s.id===next3.id;}));}
@@ -598,7 +604,7 @@
             if(!st.active) return;
             var vs=_vis(st);var idx=vs.findIndex(function(s){return s.id===step.id;});
             var nxt=idx>=0&&idx<vs.length-1?vs[idx+1]:null;
-            if(!nxt){_endCleanup();st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
+            if(!nxt){_endCleanup();st.seen=[];st.resumeMode=false;st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
             st.stepId=nxt.id;_sv(st);
             if(nxt.page!==_page){window.location.href=nxt.page;}
             else _showStep(nxt,vs.length,vs.findIndex(function(s){return s.id===nxt.id;}));
@@ -615,9 +621,14 @@
         _btns.innerHTML='';
         var goBtn=document.createElement('button');goBtn.className='wt-btn-primary';goBtn.textContent="Got it, let's go! →";
         goBtn.onclick=function(){
-          _backup();state.stepId='home-welcome';_sv(state);
-          var vs=_vis(state);var step=vs.find(function(s){return s.id==='home-welcome';});
-          if(step)_showStep(step,vs.length,vs.findIndex(function(s){return s.id==='home-welcome';}));
+          _backup();
+          var vs=_vis(state);
+          var firstId=state.resumeMode?(vs[0]?vs[0].id:null):'home-welcome';
+          if(!firstId){state.active=false;_sv(state);_hideAll();return;}
+          state.stepId=firstId;_sv(state);
+          var step=vs.find(function(s){return s.id===firstId;});
+          if(step&&step.page!==_page){window.location.href=step.page;}
+          else if(step){_showStep(step,vs.length,vs.findIndex(function(s){return s.id===firstId;}));}
         };
         var skipBtn=document.createElement('button');skipBtn.className='wt-btn-ghost';skipBtn.textContent='Skip walkthrough';
         skipBtn.style.cssText='width:100%;margin-top:.3rem;opacity:.7;font-size:.8rem;';
@@ -703,10 +714,22 @@
 
     window._wtSeedAnalytics=_seedHistoryForAnalytics;
     window.wtStart=function(){
-      var s=_def();
+      var s=_ld()||_def();
+      if(!s.seen) s.seen=[];
       var hasData=WT_TRACKER_KEYS.some(function(k){var v=localStorage.getItem(k);return v&&v!=='{}';});
-      s.active=true;s.stepId=hasData?'disclaimer':'home-welcome';
-      _sv(s);window.location.href='/';
+      var unseen=WT_STEPS.filter(function(step){
+        if(step.wantsCurrencyTour!=null&&step.wantsCurrencyTour!==s.wantsCurrencyTour) return false;
+        return s.seen.indexOf(step.id)<0;
+      });
+      if(s.mainCompleted&&unseen.length>0){
+        s.active=true;s.resumeMode=true;
+        s.stepId=hasData?'disclaimer':unseen[0].id;
+        _sv(s);window.location.href=hasData?'/':unseen[0].page;
+      } else {
+        s=_def();s.active=true;
+        s.stepId=hasData?'disclaimer':'home-welcome';
+        _sv(s);window.location.href='/';
+      }
     };
     window.wtStartEnhanced=function(page){
 
