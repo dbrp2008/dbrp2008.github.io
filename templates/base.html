@@ -374,7 +374,7 @@
       b.className='wt-btn-ghost';b.textContent='Skip walkthrough';
       b.style.cssText='width:100%;margin-top:.3rem;opacity:.7;font-size:.8rem;';
       b.onclick=function(){
-        var restored=_restore();
+        var restored=_endCleanup();
         var s=_ld()||_def();
         var wasFirst=!s.mainCompleted;
         s.active=false;
