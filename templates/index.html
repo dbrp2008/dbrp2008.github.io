@@ -280,14 +280,10 @@
 
 
 (function(){
+  var curUser = {{ current_user|default(none)|tojson }};
+  if(!curUser) return;
   var wt = null;
-  try{ wt = JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null'); }catch{}
-  if(!wt){
-    try{
-      var u = {{ current_user|default(none)|tojson }};
-      if(u) wt = JSON.parse(localStorage.getItem('fiapp_wt_u_'+u)||'null');
-    }catch{}
-  }
+  try{ wt = JSON.parse(localStorage.getItem('fiapp_wt_u_'+curUser)||'null'); }catch{}
   if(wt && wt.mainCompleted){
     var el = document.getElementById('wt-restart-link');
     if(el) el.style.display = 'block';
