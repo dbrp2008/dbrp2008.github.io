@@ -459,7 +459,9 @@
       if(action.end){
         if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
         var restored=_endCleanup();
-        state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);
+        var _visAll=WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===state.wantsCurrencyTour;});
+        if(_visAll.every(function(s){return state.seen.indexOf(s.id)>=0;})) state.seen=[];
+        state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);
         var completionText=action.end==='soft'
           ?'🎉 <strong>All set!</strong><br>Jump in and explore FiApp on your own.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>You can redo this tour from <strong>Account → Start Walkthrough</strong> anytime.'
           :'🎉 <strong>Walkthrough complete!</strong><br><br>You\'re all set to use FiApp.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>Redo this tour from <strong>Account → Start Walkthrough</strong> anytime.';
@@ -493,7 +495,7 @@
         var vs3=_vis(state),idx3=vs3.findIndex(function(s){return s.id===state.stepId;});
         if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
         var next3=idx3>=0&&idx3<vs3.length-1?vs3[idx3+1]:null;
-        if(!next3){_endCleanup();state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);_hideAll();return;}
+        if(!next3){_endCleanup();var _va2=WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===state.wantsCurrencyTour;});if(_va2.every(function(s){return state.seen.indexOf(s.id)>=0;}))state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);_hideAll();return;}
         state.stepId=next3.id;_sv(state);
         if(next3.page!==_page){window.location.href=next3.page;}
         else{_showStep(next3,vs3.length,vs3.findIndex(function(s){return s.id===next3.id;}));}
@@ -604,9 +606,11 @@
           setTimeout(function(){
             var st=_ld()||_def();
             if(!st.active) return;
+            if(!st.seen) st.seen=[];
+            if(step.id&&st.seen.indexOf(step.id)<0) st.seen.push(step.id);
             var vs=_vis(st);var idx=vs.findIndex(function(s){return s.id===step.id;});
             var nxt=idx>=0&&idx<vs.length-1?vs[idx+1]:null;
-            if(!nxt){_endCleanup();st.seen=[];st.resumeMode=false;st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
+            if(!nxt){_endCleanup();var _va3=WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===st.wantsCurrencyTour;});if(_va3.every(function(s){return st.seen.indexOf(s.id)>=0;}))st.seen=[];st.resumeMode=false;st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
             st.stepId=nxt.id;_sv(st);
             if(nxt.page!==_page){window.location.href=nxt.page;}
             else _showStep(nxt,vs.length,vs.findIndex(function(s){return s.id===nxt.id;}));
