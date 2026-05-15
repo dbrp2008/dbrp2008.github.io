@@ -349,7 +349,7 @@ function allSpendingMonths(exp, subs){
 
 function combinedMonthTotals(exp, subs, allMonths){
   const totals={};
-  // Use subCostPerMonth for subscription costs — same code path as Subscription Cost Trend
+
   const subCosts=subCostPerMonth(subs, allMonths);
   allMonths.forEach((mk2, idx)=>{
     let sum=subCosts[idx]||0;
@@ -487,7 +487,7 @@ function calcSubCostForMonth(row, subs, year, month){
   if(billing==='Yearly')    return cost/12;
   if(billing==='Quarterly') return cost/3;
 
-  // Weekly / Bi-Weekly: count actual billing events in the month
+
   if((billing==='Weekly'||billing==='Bi-Weekly')&&startStr){
     const msDay=86400000;
     const itvMs=(billing==='Weekly'?7:14)*msDay;
@@ -527,7 +527,7 @@ function subMonthlySnapshot(subs){
   return (subs.rows||[]).map(r=>{
     const status=statusCol?subs.cells[r.id+'|'+statusCol.id]||'Active':'Active';
     if(status==='Cancelled') return null;
-    const name    =nameCol  ?subs.cells[r.id+'|'+nameCol.id]  ||'—':'—';
+    const name    =nameCol  ?subs.cells[r.id+'|'+nameCol.id]  ||'-':'-';
     const rawCost =parseFloat(costCol?subs.cells[r.id+'|'+costCol.id]||0:0)||0;
     const currency=(subs.rowCurrencies||{})[r.id]||'USD';
     const cost    =_toUSD(rawCost, currency);
@@ -1063,7 +1063,7 @@ function renderBreakdownChart(){
     
     Object.entries(catFcTotals).filter(([n])=>!catTotals[n]).forEach(([name,d])=>{
       list.innerHTML+=`<li><span class="insight-name">${escapeHtml(name)}</span>`+
-        `<span class="insight-val"><span style="color:var(--muted)">—</span> <span style="color:var(--muted);font-size:.8em">+${fmtMoney(d.value)} forecast</span></span></li>`;
+        `<span class="insight-val"><span style="color:var(--muted)">-</span> <span style="color:var(--muted);font-size:.8em">+${fmtMoney(d.value)} forecast</span></span></li>`;
     });
   }
 }
@@ -1226,8 +1226,8 @@ function reRenderCharts(){
 (async()=>{
   
   try{
-    // Skip server load when walkthrough is active — locally seeded prior-month data
-    // would be wiped by the server response (server only has the current month).
+
+
     const _wtActive=(function(){try{const w=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');return !!(w&&w.active);}catch(e){return false;}})();
     const me=await fetch('/auth/me').then(r=>r.json());
     if(me&&me.username&&!_wtActive){
@@ -1242,7 +1242,7 @@ function reRenderCharts(){
       if(subRes.ok){const d=await subRes.json();if(d&&typeof d==='object') localStorage.setItem(SUBS_KEY,JSON.stringify(d));}
       if(incRes.ok){const d=await incRes.json();if(d&&typeof d==='object') localStorage.setItem(INC_KEY,JSON.stringify(d));}
     }
-    // Seed prior-month history when walkthrough is active so charts aren't empty
+
     if(_wtActive && typeof window._wtSeedAnalytics==='function') window._wtSeedAnalytics();
   }catch(e){}
   await _fetchRates();
