@@ -375,8 +375,13 @@
       b.style.cssText='width:100%;margin-top:.3rem;opacity:.7;font-size:.8rem;';
       b.onclick=function(){
         var restored=_endCleanup();
-        var s=_ld()||_def();s.active=false;_sv(s);_hideAll();
+        var s=_ld()||_def();
+        var wasFirst=!s.mainCompleted;
+        s.active=false;
+        if(wasFirst) s.mainCompleted=true;
+        _sv(s);_hideAll();
         if(restored) _toast('Walkthrough ended. Your data has been restored. ✅');
+        if(wasFirst) _updateWtHomeLink();
       };
       return b;
     }
