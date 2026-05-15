@@ -496,9 +496,9 @@
         var vs2=_vis(state),idx=vs2.findIndex(function(s){return s.id===state.stepId;});
         if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
         if(idx>=0&&idx<vs2.length-1){
-          state.stepId=vs2[idx+1].id;_sv(state);
-          if(action.navigate==='/analytics') _seedHistoryForAnalytics();
-          window.location.href=action.navigate;
+          var nxt2=vs2[idx+1];state.stepId=nxt2.id;_sv(state);
+          if(nxt2.page==='/analytics') _seedHistoryForAnalytics();
+          window.location.href=nxt2.page;
         } else {
           var restored2=_endCleanup();
           state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);
