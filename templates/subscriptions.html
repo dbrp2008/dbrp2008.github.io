@@ -212,7 +212,7 @@
   <div class="add-bar" data-wt="subs-add">
     <label>Add subscription:</label>
     <select id="sub-sel" onchange="onPresetChange()">
-      <option value="">— select —</option>
+      <option value="">- select -</option>
       <optgroup label="Streaming"><option>Netflix</option><option>Disney+</option><option>Amazon Prime</option><option>Apple TV+</option><option>Hulu</option><option>HBO Max</option><option>YouTube Premium</option><option>Paramount+</option></optgroup>
       <optgroup label="Music"><option>Spotify</option><option>Apple Music</option><option>Tidal</option></optgroup>
       <optgroup label="AI &amp; Productivity"><option>ChatGPT Plus</option><option>Claude Pro</option><option>Microsoft 365</option><option>Adobe Creative Cloud</option><option>Notion</option><option>Grammarly</option></optgroup>
@@ -410,7 +410,7 @@ function setSyncStatus(msg,cls){
 }
 function syncToServer(){
   if(!window.__currentUser){setSyncStatus('Offline','');return;}
-  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active){setSyncStatus('','');return;}}catch{} // walkthrough active — don't push to server
+  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active){setSyncStatus('','');return;}}catch{}
   clearTimeout(_syncTimer);
   setSyncStatus('Saving…','');
   _syncTimer=setTimeout(()=>{
@@ -428,7 +428,7 @@ function syncToServer(){
 }
 async function loadFromServer(){
   if(!window.__currentUser) return;
-  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active)return;}catch{} // walkthrough active — keep blank slate
+  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active)return;}catch{}
   try{
     const res=await fetch('/api/load/subs');
     if(!res.ok) return;
@@ -639,7 +639,7 @@ function jumpToMonth(mkStr){
 function updateMonthNav(){
   populateMonthJump();
   document.getElementById('sum-label').textContent=MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
-  document.getElementById('lb-month-lbl').textContent='— '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
+  document.getElementById('lb-month-lbl').textContent='- '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   document.getElementById('prev-btn').disabled=isAtMin();
   document.getElementById('next-btn').disabled=isAtMax();
   updateForecastUI();
@@ -835,7 +835,7 @@ function renderLeaderboard(){
         +`<div class="podium-pct">${pct}% of total</div>`
         +`</div>`;
     } else {
-      html+='<div class="podium-card" style="opacity:.45"><div class="podium-medal">—</div><div class="podium-name">—</div><div class="podium-cost">—</div><div class="podium-pct"></div></div>';
+      html+='<div class="podium-card" style="opacity:.45"><div class="podium-medal">-</div><div class="podium-name">-</div><div class="podium-cost">-</div><div class="podium-pct"></div></div>';
     }
   }
   html+='</div>';
@@ -870,10 +870,10 @@ function renderChart(){
   const serviceCol=colByType('text');
   let data, topLabel;
   if(chartMode==='yearly'){
-    data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcYearlyCost(r,state.currentYear)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
+    data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'-':'-',cost:calcYearlyCost(r,state.currentYear)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
     topLabel='Top Subscriptions - '+state.currentYear;
   } else {
-    data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'—':'—',cost:calcMonthCost(r,state.currentYear,state.currentMonth)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
+    data=state.rows.filter(r=>!isHiddenForMonth(r)).map(r=>({name:serviceCol?getCell(r.id,serviceCol.id)||'-':'-',cost:calcMonthCost(r,state.currentYear,state.currentMonth)})).filter(x=>x.cost>0).sort((a,b)=>b.cost-a.cost);
     topLabel='Top Subscriptions - '+MONTHS_SHORT[state.currentMonth]+' '+state.currentYear;
   }
   if(chartInstance){ chartInstance.destroy(); chartInstance=null; }
@@ -890,7 +890,7 @@ function renderTop3(data,label){
   const top=(data||[]).slice(0,3);
   const el=document.getElementById('top3');
   if(!top.length){el.innerHTML='';return;}
-  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.name)}</strong> — $${(isFinite(t.cost)?t.cost:0).toFixed(2)}</li>`).join('')+'</ol>';
+  el.innerHTML='<h4>'+escapeHtml(label||'Top 3')+'</h4><ol>'+top.map(t=>`<li><strong>${escapeHtml(t.name)}</strong> - $${(isFinite(t.cost)?t.cost:0).toFixed(2)}</li>`).join('')+'</ol>';
 }
 
 
@@ -1315,7 +1315,7 @@ function showShareModal(title,text){
   const modal=document.createElement('div'); modal.className='share-modal';
   const tsv=buildTsv();
   const MAX=1500;
-  const bodyText=text.length>MAX?text.slice(0,MAX)+'\n…(truncated — use Export to send full data)':text;
+  const bodyText=text.length>MAX?text.slice(0,MAX)+'\n…(truncated - use Export to send full data)':text;
   const ym=state.currentYear+'-'+String(state.currentMonth+1).padStart(2,'0');
   const xlsxFile='subscriptions-'+ym+'.xlsx';
   const xlsxBody='I\'m sharing my FiApp subscriptions spreadsheet. Open FiApp at https://fiapp.onrender.com/subscriptions to view your own data.\n\nAttached XLSX file (saved to your Downloads folder): '+xlsxFile;
