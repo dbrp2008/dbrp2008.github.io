@@ -127,7 +127,7 @@
     .tax-no-data-note a { color: var(--accent); text-decoration: none; font-weight: 600; }
     .tax-no-data-note a:hover { text-decoration: underline; }
 
-    /* Explainer modal table */
+    
     #explainer-body table { border-collapse: collapse; width: 100%; }
     #explainer-body table tr { border-bottom: 1px solid var(--panel-border); }
     #explainer-body table th { color: var(--muted); font-size: .75rem; text-align: left; padding: 3px 6px; }
@@ -142,7 +142,7 @@
   <h1>Income Tax Calculator</h1>
   <div id="msg-area"></div>
 
-  <!-- Country toggle -->
+  
   <div class="tax-src-wrap" style="margin-bottom:1rem;" data-wt="tax-country">
     <div class="tax-src-head">Country</div>
     <div class="tax-mode-bar">
@@ -152,10 +152,10 @@
     </div>
   </div>
 
-  <!-- Regime row: India ROR/NRI (hidden for US/HK) -->
+  
   <div id="regime-row" style="display:none;" class="tax-src-wrap"></div>
 
-  <!-- Income Source -->
+  
   <div class="tax-src-wrap">
     <div class="tax-src-head">Income Source</div>
     <div id="tracker-panel"></div>
@@ -210,7 +210,7 @@
     </div>
   </div>
 
-  <!-- Explainer modal -->
+  
   <div id="tax-explainer-overlay"
        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;overflow-y:auto;cursor:pointer;"
        onclick="if(event.target===this)this.style.display='none'">
@@ -230,7 +230,7 @@
 {% block body_scripts %}
 <script>
 
-// ── US brackets ────────────────────────────────────────────────────────────
+
 
 const BRACKETS = {
   single:              [[11600,.10],[47150,.12],[100525,.22],[191950,.24],[243725,.32],[609350,.35],[Infinity,.37]],
@@ -238,38 +238,38 @@ const BRACKETS = {
   'head of household': [[16550,.10],[63100,.12],[100500,.22],[191950,.24],[243700,.32],[609350,.35],[Infinity,.37]],
 };
 
-// ── India constants (New Regime FY 2024-25, INR) ───────────────────────────
+
 
 const IN_BRACKETS = [
   [400000,0],[800000,.05],[1200000,.10],
   [1600000,.15],[2000000,.20],[2400000,.25],[Infinity,.30]
 ];
-const IN_STD_DED   = 75000;    // standard deduction for ROR
-const IN_87A_LIMIT = 1200000;  // taxable income ceiling for 87A rebate (AY 2026-27)
-const IN_87A_MAX   = 60000;    // max rebate amount (AY 2026-27)
-const IN_CESS_RATE = 0.04;     // Health & Education Cess
+const IN_STD_DED   = 75000;
+const IN_87A_LIMIT = 1200000;
+const IN_87A_MAX   = 60000;
+const IN_CESS_RATE = 0.04;
 
-// ── HK constants (2026-27 assessment year, HKD) ───────────────────────────
+
 
 const HK_BRACKETS = [
   [50000,.02],[100000,.06],[150000,.10],[200000,.14],[Infinity,.17]
 ];
-const HK_STD_RATE      = 0.15;   // standard rate on net assessable income ≤ HK$5M
-const HK_STD_RATE_HIGH = 0.16;   // standard rate on portion above HK$5M (AY 2026-27)
+const HK_STD_RATE      = 0.15;
+const HK_STD_RATE_HIGH = 0.16;
 const HK_STD_TIER      = 5000000;
 const HK_BASIC_ALLOW   = 132000;
 const HK_MPA           = 264000;
 const HK_TAX_RELIEF    = 3000;
 
-// ── Country state ──────────────────────────────────────────────────────────
+
 
 let _country     = 'US';
 let _inResidency = 'ROR';
 let _hkMarried   = false;
-let _nriSourced  = null;   // Set of top-level row IDs; null = all included
+let _nriSourced  = null;
 
-let _incomeByCountry     = {};  // per-country income field values
-let _lastResultByCountry = {};  // per-country last _lastTaxResult objects
+let _incomeByCountry     = {};
+let _lastResultByCountry = {};
 
 function _toggleHKMarried(){
   _hkMarried = !_hkMarried;
@@ -277,7 +277,7 @@ function _toggleHKMarried(){
   _saveTaxUI();
 }
 
-// ── Tax calculations ───────────────────────────────────────────────────────
+
 
 function calcFederalTax(income, status){
   const brackets = BRACKETS[status];
@@ -291,16 +291,16 @@ function calcFederalTax(income, status){
   return tax;
 }
 
-// Surcharge rate on income tax (new regime). CG (111A/112A) surcharge capped at 15% by caller.
+
 function calcIndiaSurchargeRate(totalIncome){
-  if(totalIncome <= 5000000)  return 0;     // ≤ ₹50L
-  if(totalIncome <= 10000000) return 0.10;  // ₹50L – ₹1Cr
-  if(totalIncome <= 20000000) return 0.15;  // ₹1Cr – ₹2Cr
-  if(totalIncome <= 50000000) return 0.25;  // ₹2Cr – ₹5Cr
-  return 0.25;                               // > ₹5Cr (new regime cap)
+  if(totalIncome <= 5000000)  return 0;
+  if(totalIncome <= 10000000) return 0.10;
+  if(totalIncome <= 20000000) return 0.15;
+  if(totalIncome <= 50000000) return 0.25;
+  return 0.25;
 }
 
-// Returns slab tax only — 87A rebate, CG tax, surcharge, cess applied by caller
+
 function calcIndiaTax(grossINR, residency){
   const stdDed = residency==='ROR' ? IN_STD_DED : 0;
   const ordinary = Math.max(0, grossINR - stdDed);
@@ -313,7 +313,7 @@ function calcIndiaTax(grossINR, residency){
   return tax;
 }
 
-// Returns { tax, method, prog, std }
+
 function calcHKTax(incomeHKD, married, rentalHKD=0){
   const allowance  = married ? HK_MPA : HK_BASIC_ALLOW;
   const assessable = Math.max(0, incomeHKD - allowance);
@@ -327,12 +327,12 @@ function calcHKTax(incomeHKD, married, rentalHKD=0){
     ? incomeHKD * HK_STD_RATE
     : HK_STD_TIER * HK_STD_RATE + (incomeHKD - HK_STD_TIER) * HK_STD_RATE_HIGH;
   let tax   = Math.min(prog, std);
-  tax      += rentalHKD * 0.80 * 0.15;       // rental: 15% on 80%
+  tax      += rentalHKD * 0.80 * 0.15;
   tax       = Math.max(0, tax - HK_TAX_RELIEF);
   return { tax, method: prog<=std ? 'progressive' : 'standard rate', prog, std };
 }
 
-// ── UI helpers ─────────────────────────────────────────────────────────────
+
 
 function showError(msg){
   document.getElementById('msg-area').innerHTML='<div class="error">'+msg+'</div>';
@@ -342,7 +342,7 @@ function clearMsg(){ document.getElementById('msg-area').innerHTML=''; }
 
 let _lastTaxResult = null;
 
-// ── Income tracker data helpers ────────────────────────────────────────────
+
 
 const _IK  = 'fiapp_income_v1';
 const _MOS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -371,7 +371,7 @@ function _isFullYr(y){
 function _mksForYear(y){ const r=[]; for(let m=0;m<12;m++) if(_inRng(y,m)) r.push(_mk(y,m)); return r; }
 function _getInc(){ try{ return JSON.parse(localStorage.getItem(_IK))||null; }catch{ return null; } }
 
-// US: salary leaf rows only
+
 function _salaryLeafs(inc){
   if(!inc||!inc.rows) return [];
   const ps = inc.rows.filter(r=>!r.parentId&&r.label.trim().toLowerCase()==='salary');
@@ -383,7 +383,7 @@ function _salaryLeafs(inc){
   return ps.flatMap(p=>collectLeafs(p.id));
 }
 
-// India / HK: categorise all leaf rows by income type
+
 function _incRowsByType(inc){
   if(!inc||!inc.rows) return {ordinary:[],capitalGains:[],rental:[],exempt:[]};
   const CG_LBLS  = ['capital gains'];
@@ -413,7 +413,7 @@ function _getTopParent(rowId, inc){
   return r||null;
 }
 
-// Sum a list of rows for a given month, converting to targetCcy using cached _rates
+
 function _rowTotal(mk, inc, rowList, targetCcy){
   let t=0;
   for(const row of rowList) for(const col of (inc.cols||[])){
@@ -431,7 +431,7 @@ function _rowTotal(mk, inc, rowList, targetCcy){
   return t;
 }
 
-// US: salary total in USD
+
 function _mthTotal(mk, inc){
   const rows = _salaryLeafs(inc); let t=0;
   for(const row of rows) for(const col of (inc.cols||[])){
@@ -443,7 +443,7 @@ function _mthTotal(mk, inc){
   return t;
 }
 
-// Country-aware total for annualisation (US uses salary only; India/HK use broader set)
+
 function _mthTotalForCountry(mk, inc){
   if(_country==='US') return _mthTotal(mk, inc);
   const rows = _incRowsByType(inc);
@@ -454,8 +454,8 @@ function _mthTotalForCountry(mk, inc){
   }
   const ordinary = _rowTotal(mk, inc, ordRows, tgt);
   const rental   = _rowTotal(mk, inc, rows.rental, tgt);
-  if(_country==='HK') return ordinary;        // HK rental handled separately
-  return ordinary + rental;                   // India: rental taxed under slabs
+  if(_country==='HK') return ordinary;
+  return ordinary + rental;
 }
 
 function _mthCGForCountry(mk, inc){
@@ -489,7 +489,7 @@ async function _loadRates(){
   }catch(e){ console.warn('tax: rate fetch failed', e.message); }
 }
 
-// ── Annualisation modes ────────────────────────────────────────────────────
+
 
 const _MODES = [
   {id:'manual', label:'✏ Manual',    n:0,  mult:null},
@@ -502,7 +502,7 @@ const _MODES = [
 ];
 let _mode='manual', _pY=_cY, _pSel=[];
 
-// ── UI state persistence ───────────────────────────────────────────────────
+
 const _TAX_UI_KEY = 'fiapp_tax_ui_v1';
 
 function _saveTaxUI(){
@@ -571,10 +571,10 @@ function _showPreview(inc){
   }
 }
 
-// ── Country UI controller ──────────────────────────────────────────────────
+
 
 function _setCountry(c){
-  // Save leaving country's income value and last result
+
   const _incEl = document.getElementById('income');
   _incomeByCountry[_country] = _incEl?.value || '';
   if(_lastTaxResult) _lastResultByCountry[_country] = _lastTaxResult;
@@ -589,7 +589,7 @@ function _setCountry(c){
   _buildUI(inc);
   _loadRates().then(()=>_buildUI(_getInc())).catch(()=>{});
 
-  // Restore arriving country's income value and last result
+
   if(_incEl) _incEl.value = _incomeByCountry[c] || '';
   const _prevRes = _lastResultByCountry[c];
   if(_prevRes){
@@ -644,7 +644,7 @@ function _setResidency(r){
   _saveTaxUI();
 }
 
-// ── Income source panel ────────────────────────────────────────────────────
+
 
 function _buildUI(inc){
   const panel = document.getElementById('tracker-panel');
@@ -681,11 +681,11 @@ function _buildUI(inc){
 
   if(_mode==='1'){
     const hint = document.createElement('span'); hint.className='tax-hint';
-    hint.textContent = 'Pick a month — its total will be multiplied by 12:';
+    hint.textContent = 'Pick a month - its total will be multiplied by 12:';
     picker.appendChild(hint);
 
     const sel = document.createElement('select'); sel.className='tax-month-sel';
-    const def = document.createElement('option'); def.value=''; def.textContent='— select a month —';
+    const def = document.createElement('option'); def.value=''; def.textContent='- select a month -';
     sel.appendChild(def);
 
     for(const y of _YRS){
@@ -713,7 +713,7 @@ function _buildUI(inc){
       picker.appendChild(note);
     } else {
       const hint = document.createElement('span'); hint.className='tax-hint';
-      hint.textContent = 'Select a year — all income entries will be summed:';
+      hint.textContent = 'Select a year - all income entries will be summed:';
       picker.appendChild(hint);
 
       const ybar = document.createElement('div'); ybar.className='tax-year-bar';
@@ -777,7 +777,7 @@ function _buildUI(inc){
       const atLimit = _pSel.length>=n;
       const cHint   = document.createElement('span'); cHint.className='tax-hint';
       cHint.style.marginTop = '.35rem';
-      cHint.textContent = `${_pY} — ${_pSel.length} of ${n} selected:`;
+      cHint.textContent = `${_pY} - ${_pSel.length} of ${n} selected:`;
       picker.appendChild(cHint);
 
       const chips = document.createElement('div'); chips.className='tax-chips';
@@ -805,14 +805,14 @@ function _buildUI(inc){
 
   panel.appendChild(picker);
 
-  // NRI income-source classifier (which categories are India-sourced)
+
   if(_country==='IN' && _inResidency==='NRI' && inc.rows){
     const topRows = inc.rows.filter(r=>!r.parentId);
     if(topRows.length){
       const wrap = document.createElement('div');
       wrap.style.cssText = 'margin-top:.75rem;padding:.65rem .85rem;border:1px solid var(--panel-border);border-radius:8px;';
       const lbl = document.createElement('div'); lbl.className='tax-src-head';
-      lbl.textContent='India-sourced income (NRI — toggle off foreign income)';
+      lbl.textContent='India-sourced income (NRI - toggle off foreign income)';
       wrap.appendChild(lbl);
       const pillBar = document.createElement('div'); pillBar.className='tax-mode-bar';
       if(_nriSourced===null) _nriSourced=new Set(topRows.map(r=>r.id));
@@ -835,7 +835,7 @@ function _buildUI(inc){
   _showPreview(inc);
 }
 
-// ── Result box ─────────────────────────────────────────────────────────────
+
 
 function _updateResultBox(d){
   const el  = document.getElementById('result-detail');
@@ -877,13 +877,13 @@ function _updateResultBox(d){
   }
 }
 
-// ── Explainer modal ────────────────────────────────────────────────────────
+
 
 function _openExplainer(d){
   const titleEl = document.getElementById('explainer-title');
   const bodyEl  = document.getElementById('explainer-body');
   if(d.country==='IN'){
-    titleEl.textContent = 'India New Tax Regime — How it works';
+    titleEl.textContent = 'India New Tax Regime - How it works';
     bodyEl.innerHTML =
       '<p><strong>Slabs (FY 2025-26 / AY 2026-27):</strong></p>'+
       '<table><tr><th>Income Range (₹)</th><th>Rate</th></tr>'+
@@ -895,14 +895,14 @@ function _openExplainer(d){
       '<tr><td>20,00,001 – 24,00,000</td><td>25%</td></tr>'+
       '<tr><td>Above 24,00,000</td><td>30%</td></tr></table>'+
       '<p style="margin-top:.75rem"><strong>Standard deduction:</strong> ₹75,000 (ROR only)</p>'+
-      '<p><strong>Section 87A rebate (AY 2026-27):</strong> Up to ₹60,000 if taxable ordinary income ≤ ₹12,00,000 (ROR only) — effectively ₹0 tax up to ₹12L</p>'+
+      '<p><strong>Section 87A rebate (AY 2026-27):</strong> Up to ₹60,000 if taxable ordinary income ≤ ₹12,00,000 (ROR only) - effectively ₹0 tax up to ₹12L</p>'+
       '<p><strong>Capital Gains:</strong> All Capital Gains rows treated as LTCG at 12.5% (STCG at 20% cannot be auto-detected). Surcharge on CG is capped at 15%.</p>'+
       '<p><strong>Surcharge:</strong> 10% on income ₹50L–1Cr · 15% on ₹1Cr–2Cr · 25% on ₹2Cr+ (new regime)</p>'+
-      '<p><strong>Health &amp; Education Cess:</strong> 4% on (income tax + surcharge) — applies to everyone</p>'+
+      '<p><strong>Health &amp; Education Cess:</strong> 4% on (income tax + surcharge) - applies to everyone</p>'+
       '<p><strong>NRI:</strong> No standard deduction; untick foreign income categories to exclude them</p>'+
       '<p style="font-size:.8rem;color:var(--muted);margin-top:.6rem;">Uses New Tax Regime (AY 2026-27). Marginal surcharge relief not applied. Consult a CA for precise liability.</p>';
   } else {
-    titleEl.textContent = 'Hong Kong Salaries Tax — How it works';
+    titleEl.textContent = 'Hong Kong Salaries Tax - How it works';
     bodyEl.innerHTML =
       '<p><strong>Progressive slabs (net chargeable income after allowance):</strong></p>'+
       '<table><tr><th>Net Chargeable Income (HK$)</th><th>Rate</th></tr>'+
@@ -915,12 +915,12 @@ function _openExplainer(d){
       '<p><strong>Allowances:</strong> Basic HK$132,000 · Married Person HK$264,000</p>'+
       '<p><strong>Tax reduction:</strong> HK$3,000 relief cap applied after calculation.</p>'+
       '<p><strong>Exempt income:</strong> Dividends, Interest Income, Capital Gains are not included (HK$0 tax).</p>'+
-      '<p><strong>Rental income:</strong> Taxed separately — 15% on 80% of rental (20% deemed expenses deduction).</p>';
+      '<p><strong>Rental income:</strong> Taxed separately - 15% on 80% of rental (20% deemed expenses deduction).</p>';
   }
   document.getElementById('tax-explainer-overlay').style.display = '';
 }
 
-// ── Form submit ────────────────────────────────────────────────────────────
+
 
 document.getElementById('tax-form').addEventListener('submit', async function(e){
   e.preventDefault(); clearMsg();
@@ -1002,7 +1002,7 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
   _updateApplyBtns();
 });
 
-// ── Apply buttons ──────────────────────────────────────────────────────────
+
 
 function _fmtMkLabel(mk2){
   const [y,m] = mk2.split('-');
@@ -1069,12 +1069,12 @@ document.getElementById('apply-pick-go').addEventListener('click',function(){
   _saveTaxAndNavigate(months);
 });
 
-// ── Init ───────────────────────────────────────────────────────────────────
+
 
 window.addEventListener('DOMContentLoaded', async ()=>{
   const incomeInput = document.getElementById('income');
 
-  // Restore persisted state before building UI
+
   const _saved = _loadTaxUI();
   document.querySelectorAll('.tax-mode-btn[id^="btn-"]').forEach(b=>b.classList.remove('active'));
   document.getElementById('btn-'+_country.toLowerCase()).classList.add('active');
@@ -1090,7 +1090,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     _saveTaxUI();
   });
 
-  // URL param / prefill win over saved value; saved value is the fallback
+
   const params = new URLSearchParams(window.location.search);
   const urlVal = params.get('annual')||params.get('gross');
   if(urlVal){ incomeInput.value=urlVal; }
@@ -1102,7 +1102,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   if(_saved.statusVal) document.getElementById('status').value=_saved.statusVal;
   document.getElementById('status').addEventListener('change', _saveTaxUI);
 
-  // Restore last result for the active country (only when income wasn't freshly overridden)
+
   if(!urlVal && !localStorage.getItem('fiapp_prefill_income')){
     const _initRes = _lastResultByCountry[_country];
     if(_initRes){
