@@ -454,10 +454,10 @@
     function _handleAction(action,state){
       state=state||_ld()||_def();
       if(!state.seen) state.seen=[];
-      if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
       if(action.backupData){_backup();}
       if(action.setWantsTour){state.wantsCurrencyTour=true;_sv(state);}
       if(action.end){
+        if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
         var restored=_endCleanup();
         state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);
         var completionText=action.end==='soft'
@@ -472,12 +472,14 @@
         return;
       }
       if(action.gotoId){
+        if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
         var vs=_vis(state);var target=vs.find(function(s){return s.id===action.gotoId;});
         if(target){state.stepId=target.id;_sv(state);if(target.page!==_page){if(target.page==='/analytics')_seedHistoryForAnalytics();window.location.href=target.page;}else{_showStep(target,vs.length,vs.findIndex(function(s){return s.id===target.id;}));}}
         return;
       }
       if(action.navigate){
         var vs2=_vis(state),idx=vs2.findIndex(function(s){return s.id===state.stepId;});
+        if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
         if(idx>=0&&idx<vs2.length-1){
           state.stepId=vs2[idx+1].id;_sv(state);
           if(action.navigate==='/analytics') _seedHistoryForAnalytics();
@@ -489,6 +491,7 @@
       }
       if(action.next){
         var vs3=_vis(state),idx3=vs3.findIndex(function(s){return s.id===state.stepId;});
+        if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
         var next3=idx3>=0&&idx3<vs3.length-1?vs3[idx3+1]:null;
         if(!next3){_endCleanup();state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);_hideAll();return;}
         state.stepId=next3.id;_sv(state);
