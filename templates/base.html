@@ -451,6 +451,24 @@
       }catch(e){}
     }
 
+    function _updateWtHomeLink(){
+      var wt=_ld();
+      var el=document.getElementById('wt-restart-link');
+      var lbl=document.getElementById('wt-restart-lbl');
+      if(!el||!lbl) return;
+      if(wt&&wt.mainCompleted){el.style.display='block';lbl.textContent=(wt.seen&&wt.seen.length>0)?'↺ Continue walkthrough':'↺ Restart walkthrough';}
+    }
+
+    function _showDoneCard(text){
+      _transition(function(){
+        _avatar.textContent='🎉';_text.innerHTML=text;_btns.innerHTML='';_progress.innerHTML='';
+        var b=document.createElement('button');b.className='wt-btn-primary';b.textContent="Let's go! 🚀";
+        b.onclick=function(){_hideAll();_updateWtHomeLink();};
+        _btns.appendChild(b);
+      });
+      _setHL(null);_posBubble(null);
+    }
+
     function _handleAction(action,state){
       state=state||_ld()||_def();
       if(!state.seen) state.seen=[];
@@ -463,14 +481,9 @@
         if(_visAll.every(function(s){return state.seen.indexOf(s.id)>=0;})) state.seen=[];
         state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);
         var completionText=action.end==='soft'
-          ?'🎉 <strong>All set!</strong><br>Jump in and explore FiApp on your own.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>You can redo this tour from <strong>Account → Start Walkthrough</strong> anytime.'
-          :'🎉 <strong>Walkthrough complete!</strong><br><br>You\'re all set to use FiApp.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>Redo this tour from <strong>Account → Start Walkthrough</strong> anytime.';
-        _transition(function(){
-          _avatar.textContent='🎉';_text.innerHTML=completionText;_btns.innerHTML='';_progress.innerHTML='';
-          var b=document.createElement('button');b.className='wt-btn-primary';b.textContent="Let's go! 🚀";
-          b.onclick=function(){_hideAll();};_btns.appendChild(b);
-        });
-        _setHL(null);_posBubble(null);
+          ?'🎉 <strong>All set!</strong><br>Jump in and explore FiApp on your own.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>You can redo this tour from <strong>Account → Walkthrough</strong> anytime.'
+          :'🎉 <strong>Walkthrough complete!</strong><br><br>You\'re all set to use FiApp.'+(restored?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>Redo this tour from <strong>Account → Walkthrough</strong> anytime.';
+        _showDoneCard(completionText);
         return;
       }
       if(action.gotoId){
@@ -487,7 +500,9 @@
           if(action.navigate==='/analytics') _seedHistoryForAnalytics();
           window.location.href=action.navigate;
         } else {
-          _endCleanup();state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);_hideAll();
+          var restored2=_endCleanup();
+          state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);
+          _showDoneCard('🎉 <strong>All caught up!</strong><br>You\'ve now seen every section of FiApp.'+(restored2?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>Come back to <strong>Account → Walkthrough</strong> to restart anytime.');
         }
         return;
       }
@@ -495,7 +510,14 @@
         var vs3=_vis(state),idx3=vs3.findIndex(function(s){return s.id===state.stepId;});
         if(state.stepId&&state.seen.indexOf(state.stepId)<0) state.seen.push(state.stepId);
         var next3=idx3>=0&&idx3<vs3.length-1?vs3[idx3+1]:null;
-        if(!next3){_endCleanup();var _va2=WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===state.wantsCurrencyTour;});if(_va2.every(function(s){return state.seen.indexOf(s.id)>=0;}))state.seen=[];state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);_hideAll();return;}
+        if(!next3){
+          var restored3=_endCleanup();
+          var _va2=WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===state.wantsCurrencyTour;});
+          if(_va2.every(function(s){return state.seen.indexOf(s.id)>=0;})) state.seen=[];
+          state.resumeMode=false;state.active=false;state.mainCompleted=true;_sv(state);
+          _showDoneCard('🎉 <strong>All caught up!</strong><br>You\'ve now seen every section of FiApp.'+(restored3?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>Come back to <strong>Account → Walkthrough</strong> to restart anytime.');
+          return;
+        }
         state.stepId=next3.id;_sv(state);
         if(next3.page!==_page){window.location.href=next3.page;}
         else{_showStep(next3,vs3.length,vs3.findIndex(function(s){return s.id===next3.id;}));}
@@ -610,7 +632,7 @@
             if(step.id&&st.seen.indexOf(step.id)<0) st.seen.push(step.id);
             var vs=_vis(st);var idx=vs.findIndex(function(s){return s.id===step.id;});
             var nxt=idx>=0&&idx<vs.length-1?vs[idx+1]:null;
-            if(!nxt){_endCleanup();var _va3=WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===st.wantsCurrencyTour;});if(_va3.every(function(s){return st.seen.indexOf(s.id)>=0;}))st.seen=[];st.resumeMode=false;st.active=false;st.mainCompleted=true;_sv(st);_hideAll();return;}
+            if(!nxt){var _r4=_endCleanup();var _va3=WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===st.wantsCurrencyTour;});if(_va3.every(function(s){return st.seen.indexOf(s.id)>=0;}))st.seen=[];st.resumeMode=false;st.active=false;st.mainCompleted=true;_sv(st);_showDoneCard('🎉 <strong>All caught up!</strong><br>You\'ve now seen every section of FiApp.'+(_r4?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>Come back to <strong>Account → Walkthrough</strong> to restart anytime.');return;}
             st.stepId=nxt.id;_sv(st);
             if(nxt.page!==_page){window.location.href=nxt.page;}
             else _showStep(nxt,vs.length,vs.findIndex(function(s){return s.id===nxt.id;}));
@@ -723,6 +745,13 @@
       var s=_ld()||_def();
       if(!s.seen) s.seen=[];
       var hasData=WT_TRACKER_KEYS.some(function(k){var v=localStorage.getItem(k);return v&&v!=='{}';});
+      if(s.mainCompleted){
+        if(s.wantsCurrencyTour!==true){
+          s.wantsCurrencyTour=null;
+          var hbIdx=s.seen.indexOf('home-branch');
+          if(hbIdx>=0) s.seen.splice(hbIdx,1);
+        }
+      }
       var unseen=WT_STEPS.filter(function(step){
         if(step.wantsCurrencyTour!=null&&step.wantsCurrencyTour!==s.wantsCurrencyTour) return false;
         return s.seen.indexOf(step.id)<0;
