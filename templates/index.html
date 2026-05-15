@@ -284,7 +284,7 @@
   try{ wt = JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null'); }catch{}
   if(!wt){
     try{
-      var u = localStorage.getItem('fiapp_auth_user');
+      var u = {{ current_user|default(none)|tojson }};
       if(u) wt = JSON.parse(localStorage.getItem('fiapp_wt_u_'+u)||'null');
     }catch{}
   }
