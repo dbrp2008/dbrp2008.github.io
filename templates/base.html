@@ -198,7 +198,7 @@
 
 
 
-    function _endCleanup(){return _restore();}
+    function _endCleanup(){var restored=_restore();if(!restored)WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});return restored;}
 
     var WT_STEPS=[
       {id:'home-welcome',  page:'/',             type:'modal',   text:'Hey there! 👋 I\'m <strong>Fi</strong>, your FiApp guide.<br><br>FiApp is a 7-in-1 personal finance toolkit. Let me walk you through the key tools - you can skip at any time.',    actions:[{label:"Let's go! →",primary:true,navigate:'/income',next:true}]},
@@ -374,7 +374,7 @@
       b.className='wt-btn-ghost';b.textContent='Skip walkthrough';
       b.style.cssText='width:100%;margin-top:.3rem;opacity:.7;font-size:.8rem;';
       b.onclick=function(){
-        var restored=_endCleanup();
+        var restored=_restore();
         var s=_ld()||_def();
         var wasFirst=!s.mainCompleted;
         s.active=false;
