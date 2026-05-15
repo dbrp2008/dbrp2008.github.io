@@ -98,7 +98,7 @@ function populateSelects(){
     const sel=document.getElementById(id);
     sel.innerHTML='';
     const placeholder=document.createElement('option');
-    placeholder.value=''; placeholder.textContent='— select —';
+    placeholder.value=''; placeholder.textContent='- select -';
     placeholder.disabled=true; placeholder.selected=true;
     sel.appendChild(placeholder);
     CURRENCIES.forEach(c=>{
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if(d) updateRatesDateBtn(d);
 });
 
-// ── Rate cache info panel ──────────────────────────────────────
+
 const _LS_TTL_MS=7*24*3600*1000;
 let _ratesTick=null;
 
@@ -301,7 +301,7 @@ function _buildRatesPanel(){
   if(userCurs.length>1)
     html+='<div style="color:var(--muted);font-size:.77rem;margin-bottom:.5rem;">Your currencies: '+userCurs.join(', ')+'</div>';
   if(!bases.length){
-    html+='<div style="color:var(--muted);padding:.2rem 0;">No cached rates yet — convert something first.</div>';
+    html+='<div style="color:var(--muted);padding:.2rem 0;">No cached rates yet - convert something first.</div>';
   } else {
     bases.forEach(b=>{
       const fetched=new Date(b.fetched_at);
