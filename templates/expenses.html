@@ -263,19 +263,19 @@
       </div>
       <div class="income-field">
         <label>Annual Gross (auto)</label>
-        <span class="income-computed" id="disp-annual">—</span>
+        <span class="income-computed" id="disp-annual">-</span>
       </div>
       <div class="income-field">
         <label>After-tax (monthly)</label>
-        <span class="income-computed" id="disp-aftertax">—</span>
+        <span class="income-computed" id="disp-aftertax">-</span>
       </div>
       <div class="income-field">
         <label>Total Expenses This Month</label>
-        <span class="income-computed" id="disp-expenses">—</span>
+        <span class="income-computed" id="disp-expenses">-</span>
       </div>
       <div class="income-field">
         <label>Remaining</label>
-        <span class="income-computed" id="disp-remaining">—</span>
+        <span class="income-computed" id="disp-remaining">-</span>
       </div>
       <div class="apply-row">
         <button class="btn-ghost btn-sm" id="apply-year-btn" onclick="applyIncomeToYear()" style="display:none;font-size:.78rem;" title="Copy this month's income/tax to all months in the same year">Apply to all months in <span id="apply-year-lbl"></span></button>
@@ -495,7 +495,7 @@ function setSyncStatus(msg,cls){
 }
 function syncToServer(){
   if(!window.__currentUser){setSyncStatus('Offline','');return;}
-  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active){setSyncStatus('','');return;}}catch{} // walkthrough active — don't push to server
+  try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active){setSyncStatus('','');return;}}catch{}
   clearTimeout(_syncTimer);
   setSyncStatus('Saving…','');
   _syncTimer=setTimeout(()=>{
@@ -513,7 +513,7 @@ function syncToServer(){
 }
 async function loadFromServer(){
   if(!window.__currentUser) return;
-  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active)return;}catch{} // walkthrough active — keep blank slate
+  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active)return;}catch{}
   try{
     const res=await fetch('/api/load/expenses');
     if(!res.ok) return;
@@ -524,10 +524,10 @@ async function loadFromServer(){
   }catch(e){}
 }
 async function loadSubsFromServer(){
-  // Fetch subscriptions data into localStorage so virtualSubChildren() works
-  // on first login without needing to visit subscriptions.html first.
+
+
   if(!window.__currentUser) return;
-  try{var _wtr2=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr2&&_wtr2.active)return;}catch{} // walkthrough active — keep blank slate
+  try{var _wtr2=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr2&&_wtr2.active)return;}catch{}
   try{
     const res=await fetch('/api/load/subs');
     if(!res.ok) return;
@@ -923,11 +923,11 @@ function updateIncomeSummary(){
   const afterTax=Math.max(0,gross-tax);
   const exp=grandTotal();
   const rem=afterTax-exp;
-  document.getElementById('disp-annual').textContent  =annual>0?'$'+annual.toFixed(2):'—';
-  document.getElementById('disp-aftertax').textContent=gross>0?fmt(afterTax):'—';
+  document.getElementById('disp-annual').textContent  =annual>0?'$'+annual.toFixed(2):'-';
+  document.getElementById('disp-aftertax').textContent=gross>0?fmt(afterTax):'-';
   document.getElementById('disp-expenses').textContent=fmt(exp);
   const remEl=document.getElementById('disp-remaining');
-  remEl.textContent=gross>0?('$'+Math.abs(rem).toFixed(2)+(rem<0?' over budget':'')):'—';
+  remEl.textContent=gross>0?('$'+Math.abs(rem).toFixed(2)+(rem<0?' over budget':'')):'-';
   remEl.className='income-computed '+(rem<0?'neg':'pos');
 }
 
@@ -1444,7 +1444,7 @@ function virtualSubChildren(){
   const subs=loadSubsState(); if(!subs||!subs.rows||!subs.cols) return [];
   const svcCol=subs.cols.find(c=>c.ctype==='text');
   return subs.rows.map(r=>{
-    const label=svcCol?subs.cells[r.id+'|'+svcCol.id]||'—':'—';
+    const label=svcCol?subs.cells[r.id+'|'+svcCol.id]||'-':'-';
     const cost=calcSubMonthCostInExp(r,subs,state.currentYear,state.currentMonth);
     const weekCosts=getSubWeekCosts(r,subs,state.currentYear,state.currentMonth);
     return {id:r.id,label,cost,weekCosts};
@@ -1855,7 +1855,7 @@ function buildTsv(){
     .join('\r\n');
 }
 
-// Gmail compose URL helper (works in any browser as long as user is signed into Gmail)
+
 function gmailHref(subject, body){
   return 'https://mail.google.com/mail/?view=cm&fs=1&tf=1'
        + '&su='+encodeURIComponent(subject)
@@ -1965,7 +1965,7 @@ function buildExpFullBlob(){
         if(y===maxY&&m2>maxM) continue;
         const mk2=mk(y,m2);
         const snap=subsData.rows.map(r=>({
-          label:svcCol?subsData.cells[r.id+'|'+svcCol.id]||'—':'—',
+          label:svcCol?subsData.cells[r.id+'|'+svcCol.id]||'-':'-',
           cost:calcSubMonthCostInExp(r,subsData,y,m2),
           weekCosts:getSubWeekCosts(r,subsData,y,m2),
         })).filter(c=>c.cost>0);
@@ -2331,7 +2331,7 @@ function showShareModal(title,text){
   emailXlsxBtn.addEventListener('click',()=>{
     
     exportXlsx('expenses-'+ym+'.xlsx');
-    flash.textContent='XLSX downloading — drag it into Gmail to attach.';
+    flash.textContent='XLSX downloading - drag it into Gmail to attach.';
     setTimeout(()=>flash.textContent='',5000);
   });
 
@@ -2459,7 +2459,7 @@ function _esc(s){const d=document.createElement('div');d.textContent=s;return d.
         <li><strong>Undo/Redo</strong> via Ctrl+Z / Ctrl+Y or the ↩↪ toolbar buttons (history persists across page visits).</li>
         <li>Use the <strong>Share ▾</strong> menu to share a snapshot, export to CSV/JSON, or paste imported data.</li>
         <li>Set your gross income and monthly tax in the <strong>Monthly Budget</strong> panel above the table to track remaining budget.</li>
-        <li>Click <strong>🎯</strong> next to any row total to set a monthly spending limit — the total turns <span style="color:#22c55e;font-weight:700">green</span> / <span style="color:#f59e0b;font-weight:700">amber</span> / <span style="color:#ef4444;font-weight:700">red</span> as spending approaches or exceeds your goal.</li>
+        <li>Click <strong>🎯</strong> next to any row total to set a monthly spending limit - the total turns <span style="color:#22c55e;font-weight:700">green</span> / <span style="color:#f59e0b;font-weight:700">amber</span> / <span style="color:#ef4444;font-weight:700">red</span> as spending approaches or exceeds your goal.</li>
         <li><strong>Forecast mode</strong>: future months let you project spend or copy/average last month's values.</li>
       </ul>
     </div>
