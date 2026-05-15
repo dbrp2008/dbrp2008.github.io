@@ -637,8 +637,8 @@
             var st=_ld()||_def();
             if(!st.active) return;
             if(!st.seen) st.seen=[];
-            if(step.id&&st.seen.indexOf(step.id)<0) st.seen.push(step.id);
             var vs=_vis(st);var idx=vs.findIndex(function(s){return s.id===step.id;});
+            if(step.id&&st.seen.indexOf(step.id)<0) st.seen.push(step.id);
             var nxt=idx>=0&&idx<vs.length-1?vs[idx+1]:null;
             if(!nxt){var _r4=_endCleanup();var _va3=WT_STEPS.filter(function(s){return s.wantsCurrencyTour==null||s.wantsCurrencyTour===st.wantsCurrencyTour;});if(_va3.every(function(s){return st.seen.indexOf(s.id)>=0;}))st.seen=[];st.resumeMode=false;st.active=false;st.mainCompleted=true;_sv(st);_showDoneCard('🎉 <strong>All caught up!</strong><br>You\'ve now seen every section of FiApp.'+(_r4?'<br><em>Your saved data has been restored.</em>':'')+'<br><br>Come back to <strong>Account → Walkthrough</strong> to restart anytime.');return;}
             st.stepId=nxt.id;_sv(st);
