@@ -202,7 +202,7 @@
 
   <div class="account-card">
     <h2>🧭 App Walkthrough</h2>
-    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem;">New to FiApp or want a refresher? Start the guided tour — Fi will walk you through every tool.</p>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem;">New to FiApp or want a refresher? Start the guided tour - Fi will walk you through every tool.</p>
     <button class="btn-primary" onclick="window.wtStart()">Start Walkthrough</button>
   </div>
 
@@ -258,7 +258,7 @@ function exportAllCSV(){
   };
   const date=new Date().toISOString().slice(0,10);
 
-  // Expenses + Income — human-readable labels
+
   const rows=[['Tracker','Month','Category','Row','Column','Value','Currency']];
   [{key:'fiapp_expenses_v4',name:'Expenses'},{key:'fiapp_income_v1',name:'Income'}]
   .forEach(({key,name})=>{
@@ -285,7 +285,7 @@ function exportAllCSV(){
   });
   dl(rows,'fiapp-export-'+date+'.csv');
 
-  // Subscriptions — separate file, one row per subscription
+
   try{
     const s=JSON.parse(localStorage.getItem('fiapp_subs_v4')||'{}');
     if((s.rows||[]).length){
