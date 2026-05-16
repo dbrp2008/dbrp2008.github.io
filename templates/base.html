@@ -198,20 +198,7 @@
 
 
 
-    function _syncTrackers(restored){
-      if(!window._CSRF) return;
-      var map={'fiapp_expenses_v4':'expenses','fiapp_income_v1':'income','fiapp_subs_v4':'subscriptions'};
-      Object.keys(map).forEach(function(lk){
-        var body=restored?(localStorage.getItem(lk)||'{}'):'{}';
-        fetch('/api/save/'+map[lk],{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':window._CSRF},body:body}).catch(function(){});
-      });
-    }
-    function _endCleanup(){
-      var restored=_restore();
-      if(!restored) WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});
-      _syncTrackers(restored);
-      return restored;
-    }
+    function _endCleanup(){var restored=_restore();if(!restored)WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});return restored;}
 
     var WT_STEPS=[
       {id:'home-welcome',  page:'/',             type:'modal',   text:'Hey there! 👋 I\'m <strong>Fi</strong>, your FiApp guide.<br><br>FiApp is a 7-in-1 personal finance toolkit. Let me walk you through the key tools - you can skip at any time.',    actions:[{label:"Let's go! →",primary:true,navigate:'/income',next:true}]},
@@ -638,7 +625,10 @@
             var el=document.querySelector(step.target);
             if(el){
               _applyTarget(el);
-              if(step.type==='wait'||step.allowInteract) _startGuard(el, step.allowSelectors||null);
+              if(step.type==='wait'||step.allowInteract){
+                var _chk=_ld();
+                if(_chk&&_chk.active) _startGuard(el, step.allowSelectors||null);
+              }
             }
           },700);
         }
