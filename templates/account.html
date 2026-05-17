@@ -154,7 +154,7 @@
       <span><strong>{{ current_user | default('') }}</strong></span>
     </div>
     <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
-      <button class="btn-ghost btn-sm" onclick="logOut()">Log out</button>
+      <button class="btn-ghost btn-sm" onclick="logOutStep(this)">Log out</button>
     </div>
   </div>
 
@@ -203,8 +203,15 @@
   <div class="account-card">
     <h2>🧭 App Walkthrough</h2>
     <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem;">New to FiApp or want a refresher? Start the guided tour - Fi will walk you through every tool.</p>
-    <button class="btn-primary" onclick="window.wtStart()">Start Walkthrough</button>
+    <button class="btn-primary" id="wt-acct-btn" onclick="window.wtStart()">Start Walkthrough</button>
   </div>
+  <script>
+  (function(){
+    var wt=null;try{wt=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');}catch{}
+    var btn=document.getElementById('wt-acct-btn');
+    if(btn&&wt&&wt.mainCompleted) btn.textContent=(wt.seen&&wt.seen.length>0)?'Continue Walkthrough':'Restart Walkthrough';
+  })();
+  </script>
 
   <div class="account-card danger-card">
     <h2>⚠ Delete Account</h2>
@@ -218,7 +225,7 @@
     <div class="delete-form">
       <div>
         <label for="del-pw">Confirm your password to continue</label>
-        <input type="password" id="del-pw" placeholder="Your password" autocomplete="current-password">
+        <input type="password" id="del-pw" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){document.getElementById('delete-confirm-step').style.display==='none'?armDelete():confirmDelete();}">
       </div>
 
       <div id="delete-steps">
