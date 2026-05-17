@@ -225,7 +225,7 @@
     <div class="delete-form">
       <div>
         <label for="del-pw">Confirm your password to continue</label>
-        <input type="password" id="del-pw" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){document.getElementById('delete-confirm-step').style.display==='none'?armDelete():confirmDelete();}">
+        <input type="password" id="del-pw" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){document.getElementById('delete-confirm-step').style.display==='block'?confirmDelete():armDelete();}">
       </div>
 
       <div id="delete-steps">
