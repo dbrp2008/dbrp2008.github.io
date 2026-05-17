@@ -748,7 +748,7 @@
 
 
       if(state.stepId==='disclaimer'&&_page==='/'){
-        _startGuard(null);setTimeout(_showDisclaimer,300);return;
+        _startGuard(null);setTimeout(function(){var _chk=_ld();if(_chk&&_chk.active)_showDisclaimer();},300);return;
       }
 
 
@@ -759,7 +759,7 @@
 
 
         _startGuard(null);
-        setTimeout(function(){_showStep(step,vs.length,dotIdx);},600);
+        setTimeout(function(){var _chk=_ld();if(_chk&&_chk.active)_showStep(step,vs.length,dotIdx);},600);
       }
     });
 
