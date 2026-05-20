@@ -440,14 +440,10 @@ function _rowTotal(mk, inc, rowList, targetCcy){
 
 
 function _mthTotal(mk, inc){
-  const rows = _salaryLeafs(inc, mk); let t=0;
-  for(const row of rows) for(const col of _iCols(inc, mk)){
-    const v = parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0;
-    if(!v) continue;
-    const cur = (inc.monthRowCurrencies||{})[`${mk}|${row.id}`]||'USD';
-    t += cur==='USD' ? v : (_rates[cur] ? v/_rates[cur] : v);
-  }
-  return t;
+  // Sum all leaf rows (not just Salary) — Freelance, Investments, Other Income etc. are all ordinary income for US
+  const typed = _incRowsByType(inc, mk);
+  const allLeafs = [...typed.ordinary, ...typed.capitalGains, ...typed.rental, ...typed.exempt];
+  return _rowTotal(mk, inc, allLeafs, 'USD');
 }
 
 
@@ -473,10 +469,10 @@ function _mthRentalForCountry(mk, inc){
 }
 
 function _mthHas(mk, inc){
-  for(const row of _salaryLeafs(inc, mk))
-    for(const col of _iCols(inc, mk))
-      if((parseFloat(inc.cells[`${mk}|${row.id}|${col.id}`]||0)||0)>0) return true;
-  return false;
+  // Check all rows, not just Salary, so mode buttons enable whenever any income exists
+  const typed = _incRowsByType(inc, mk);
+  const allLeafs = [...typed.ordinary, ...typed.capitalGains, ...typed.rental, ...typed.exempt];
+  return _rowTotal(mk, inc, allLeafs, 'USD') > 0;
 }
 function _mthHasForCountry(mk, inc){
   if(_country==='US') return _mthHas(mk, inc);
