@@ -1,24 +1,39 @@
 // rates-utils.js — Shared exchange-rate cache helper (localStorage + /api/exchange)
 // Provides: fiappGetRates(base, force), fiappConvert(amount, from, to), fiappRatesCachedAt(base)
 (function(global){
-  var LS_TTL = 7 * 24 * 3600 * 1000; // 7 days in ms
+  var LS_TTL   = 7  * 24 * 3600 * 1000; // 7 days  — refresh interval
+  var DEAD_TTL = 14 * 24 * 3600 * 1000; // 14 days — delete if unused this long
 
   function lsKey(base){ return 'fiapp_exchange_rates_' + base.toUpperCase(); }
 
   function lsGet(base){
     try {
-      var raw = localStorage.getItem(lsKey(base));
+      var k = lsKey(base);
+      var raw = localStorage.getItem(k);
       if(!raw) return null;
       var obj = JSON.parse(raw);
       if(!obj || !obj.fetched_at) return null;
-      if(Date.now() - new Date(obj.fetched_at).getTime() > LS_TTL) return null;
-      return obj; // {rates, fetched_at}
+      var now = Date.now();
+      var lastUsed = obj.last_used_at ? new Date(obj.last_used_at).getTime()
+                                      : new Date(obj.fetched_at).getTime();
+      // Unused for 14 days — delete
+      if(now - lastUsed > DEAD_TTL){ localStorage.removeItem(k); return null; }
+      // Stale (>7 days since fetch) — needs refresh; return null so caller fetches fresh
+      if(now - new Date(obj.fetched_at).getTime() > LS_TTL) return null;
+      // Fresh cache hit — bump last_used_at
+      obj.last_used_at = new Date().toISOString();
+      localStorage.setItem(k, JSON.stringify(obj));
+      return obj;
     } catch(e){ return null; }
   }
 
   function lsSet(base, rates, fetched_at){
     try {
-      localStorage.setItem(lsKey(base), JSON.stringify({rates: rates, fetched_at: fetched_at}));
+      localStorage.setItem(lsKey(base), JSON.stringify({
+        rates: rates,
+        fetched_at: fetched_at,
+        last_used_at: new Date().toISOString()
+      }));
     } catch(e){}
   }
 
