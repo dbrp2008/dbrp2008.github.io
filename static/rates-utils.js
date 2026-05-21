@@ -81,4 +81,23 @@
     return obj ? new Date(obj.fetched_at) : null;
   };
 
+  // Init-time sweep: delete any rate cache entries unused for more than 14 days
+  (function(){
+    try {
+      var prefix = 'fiapp_exchange_rates_';
+      var now = Date.now();
+      for(var i = localStorage.length - 1; i >= 0; i--){
+        var k = localStorage.key(i);
+        if(!k || k.indexOf(prefix) !== 0) continue;
+        try {
+          var obj = JSON.parse(localStorage.getItem(k) || 'null');
+          if(!obj) { localStorage.removeItem(k); continue; }
+          var lastUsed = obj.last_used_at ? new Date(obj.last_used_at).getTime()
+                                          : new Date(obj.fetched_at || 0).getTime();
+          if(now - lastUsed > DEAD_TTL) localStorage.removeItem(k);
+        } catch(e){ localStorage.removeItem(k); }
+      }
+    } catch(e){}
+  })();
+
 })(window);
