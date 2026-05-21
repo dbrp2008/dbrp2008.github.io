@@ -308,6 +308,12 @@ function exportAllCSV(){
 
 function _clearAllStorage(){
   FIAPP_USER_KEYS.forEach(function(k){ localStorage.removeItem(k); });
+  // Also clear all user-specific walkthrough keys (fiapp_wt_u_*) so a re-created
+  // account with the same username starts fresh instead of finding stale data
+  for(var i=localStorage.length-1;i>=0;i--){
+    var k=localStorage.key(i);
+    if(k&&k.startsWith('fiapp_wt_u_')) localStorage.removeItem(k);
+  }
 }
 
 function showDeleteError(msg){
