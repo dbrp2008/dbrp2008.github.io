@@ -243,6 +243,7 @@
     var _elevatedEl=null;
     var _guardOff=null;
     var _hlTrackOff=null;
+    var _curTarget=null,_curPin=null; // tracked so resize can reposition
 
     function _elevate(el){
       if(_elevatedEl){_elevatedEl.style.position='';_elevatedEl.style.zIndex='';}
@@ -285,8 +286,14 @@
     function _hideAll(){if(_overlay)_overlay.style.display='none';if(_highlight)_highlight.style.display='none';if(_bubble)_bubble.style.display='none';_elevate(null);_clearWait();if(_hlTrackOff){_hlTrackOff();_hlTrackOff=null;}}
     function _toast(msg,dur){var el=document.createElement('div');el.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--panel-bg);border:1.5px solid var(--panel-border);border-radius:8px;padding:.5rem 1rem;font-size:.85rem;color:var(--fg);z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:calc(100vw - 2rem);text-align:center;pointer-events:none;';el.textContent=msg;document.body.appendChild(el);setTimeout(function(){el.remove();},dur||3000);}
 
-    function _posBubble(targetEl){
+    function _posBubble(targetEl,pin){
+      _curTarget=targetEl||null; _curPin=pin||null;
       requestAnimationFrame(function(){
+        if(_curPin==='tl'){
+          _bubble.style.top='4.5rem';_bubble.style.left='14px';
+          _bubble.style.bottom='';_bubble.style.right='';_bubble.style.transform='';
+          return;
+        }
         var margin=14,pw=_bubble.offsetWidth||310,ph=_bubble.offsetHeight||160;
         var top,left;
         if(!targetEl){
@@ -303,6 +310,11 @@
         left=Math.max(margin,Math.min(left,window.innerWidth-pw-margin));
         _bubble.style.top=top+'px';_bubble.style.left=left+'px';_bubble.style.bottom='';_bubble.style.transform='';
       });
+    }
+    function _onResize(){
+      if(!_bubble||_bubble.style.display==='none') return;
+      _posBubble(_curTarget,_curPin);
+      if(_curTarget) _setHL(_curTarget);
     }
     function _vvOffset(){
 
@@ -618,14 +630,8 @@
         setTimeout(function(){_setHL(el);_posBubble(el);_trackHL(el);},380);
       }
       if(step.pin==='tl'){
-
         _setHL(null);_trackHL(null);
-        requestAnimationFrame(function(){
-          var margin=14;
-          _bubble.style.top='4.5rem';
-          _bubble.style.left=margin+'px';
-          _bubble.style.bottom=''; _bubble.style.right=''; _bubble.style.transform='';
-        });
+        _posBubble(null,'tl');
       } else if(targetEl){
         _applyTarget(targetEl);
       } else {
@@ -718,6 +724,10 @@
       _btns=document.getElementById('wt-btns');
       _confCvs=document.getElementById('wt-confetti');
       if(!_overlay||!_bubble) return;
+
+      // Global resize handler — repositions bubble at any zoom level for ALL step types
+      window.addEventListener('resize',_onResize,{passive:true});
+      if(window.visualViewport) window.visualViewport.addEventListener('resize',_onResize);
 
       var state=_ld();
 
