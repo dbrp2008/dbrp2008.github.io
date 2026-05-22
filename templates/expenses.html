@@ -513,7 +513,7 @@ function syncToServer(){
 }
 async function loadFromServer(){
   if(!window.__currentUser) return;
-  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active)return;}catch{}
+  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active&&localStorage.getItem('fiapp_wt_backup_v1'))return;}catch{}
   try{
     const res=await fetch('/api/load/expenses');
     if(!res.ok) return;
