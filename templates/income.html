@@ -735,15 +735,16 @@ async function loadFromServer(){
     }
   }catch(e){}
 }
-function save(){
+function saveLocal(){
   try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
   catch(e){
     if(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'){
-      console.error('FiApp: localStorage quota exceeded');
-      showSaveQuotaWarning();
+      console.error('FiApp: localStorage quota exceeded'); showSaveQuotaWarning();
     } else { throw e; }
   }
-  
+}
+function save(){
+  saveLocal();
   try{ localStorage.setItem(PUSH_KEY, JSON.stringify({mk:currentMK(),total:grandTotal(),ts:Date.now()})); }catch{}
   syncToServer();
 }
@@ -805,7 +806,7 @@ function shiftMonth(d){
   let y=state.currentYear, m=state.currentMonth+d;
   if(m<0){y--;m=11;} if(m>11){y++;m=0;}
   state.currentYear=y; state.currentMonth=m;
-  save(); updateMonthNav(); render();
+  saveLocal(); updateMonthNav(); render();
 }
 function populateMonthJump(){
   const sel=document.getElementById('month-jump'); if(!sel) return;
@@ -826,7 +827,7 @@ function jumpToMonth(mkStr){
   const parts=mkStr.split('-');
   state.currentYear=parseInt(parts[0],10);
   state.currentMonth=parseInt(parts[1],10)-1;
-  save(); updateMonthNav(); render();
+  saveLocal(); updateMonthNav(); render();
 }
 function updateMonthNav(){
   const label=MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
