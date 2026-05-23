@@ -1083,7 +1083,7 @@ function renderCatTrendsChart(){
       type:'line',
       data:{labels:_cm.map(mkLabel),datasets:entries.map(e=>({
         label:e.label,data:e.values,borderColor:e.color,
-        backgroundColor:'transparent',borderWidth:2,fill:false,
+        backgroundColor:e.color,borderWidth:2,fill:false,
         tension:0.3,pointRadius:3,pointBackgroundColor:e.color,
       }))},
       options:{responsive:true,maintainAspectRatio:false,plugins:{
@@ -1253,5 +1253,10 @@ function reRenderCharts(){
 window.addEventListener('storage', e=>{
   if(e.key===EXP_KEY||e.key===SUBS_KEY||e.key===INC_KEY) renderAll();
 });
+
+// Re-render charts when theme class changes on <html>
+new MutationObserver(function(ms){
+  ms.forEach(function(m){ if(m.attributeName==='class') reRenderCharts(); });
+}).observe(document.documentElement,{attributes:true,attributeFilter:['class']});
 </script>
 {% endblock %}
