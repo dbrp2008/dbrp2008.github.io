@@ -1705,7 +1705,7 @@ function _esc(s){const d=document.createElement('div');d.textContent=s;return d.
         var _dynAcct=document.getElementById('dyn-acct-menu-btn');
         if(_dynAcct) _dynAcct.addEventListener('click',function(e){toggleAcctMenu(e.currentTarget);});
         var _dynLogout=document.getElementById('dyn-logout-btn');
-        if(_dynLogout) _dynLogout.addEventListener('click',logOut);
+        if(_dynLogout) _dynLogout.addEventListener('click',function(e){logOutStep(e.currentTarget);});
       } else {
         badge.innerHTML='<a class="btn-ghost btn-sm" href="/login">Log in</a>';
       }
