@@ -147,7 +147,7 @@
 </head>
 <body>
   <div class="nav">
-    <div class="theme-menu-wrap"><button class="btn-ghost btn-sm" id="theme-btn" onclick="toggleThemeMenu(this)">☀️ Light</button><div class="theme-dropdown"><button class="theme-opt" data-theme="light" onclick="setTheme('light')">☀️ Light</button><button class="theme-opt" data-theme="dark" onclick="setTheme('dark')">🌙 Dark</button><button class="theme-opt" data-theme="ocean" onclick="setTheme('ocean')">🌊 Ocean</button><button class="theme-opt" data-theme="forest" onclick="setTheme('forest')">🌿 Forest</button><button class="theme-opt" data-theme="sunset" onclick="setTheme('sunset')">🌅 Sunset</button><button class="theme-opt" data-theme="midnight" onclick="setTheme('midnight')">🌃 Midnight</button><button class="theme-opt" data-theme="rose" onclick="setTheme('rose')">🌹 Rose</button><button class="theme-opt" data-theme="purple" onclick="setTheme('purple')">💜 Purple</button><button class="theme-opt" data-theme="indigo" onclick="setTheme('indigo')">🔷 Indigo</button></div></div><script>(function(){var t=localStorage.getItem('fiapp_theme')||'light';var L={'light':'☀️ Light','dark':'🌙 Dark','ocean':'🌊 Ocean','forest':'🌿 Forest','sunset':'🌅 Sunset','midnight':'🌃 Midnight','rose':'🌹 Rose','purple':'💜 Purple','indigo':'🔷 Indigo'};var b=document.getElementById('theme-btn');if(b)b.textContent=L[t]||t;document.querySelectorAll('.theme-opt').forEach(function(o){if(o.dataset.theme===t)o.classList.add('active');});})();</script>
+    <div class="theme-menu-wrap"><button class="btn-ghost btn-sm" id="theme-btn">☀️ Light</button><div class="theme-dropdown"><button class="theme-opt" data-theme="light">☀️ Light</button><button class="theme-opt" data-theme="dark">🌙 Dark</button><button class="theme-opt" data-theme="ocean">🌊 Ocean</button><button class="theme-opt" data-theme="forest">🌿 Forest</button><button class="theme-opt" data-theme="sunset">🌅 Sunset</button><button class="theme-opt" data-theme="midnight">🌃 Midnight</button><button class="theme-opt" data-theme="rose">🌹 Rose</button><button class="theme-opt" data-theme="purple">💜 Purple</button><button class="theme-opt" data-theme="indigo">🔷 Indigo</button></div></div><script>(function(){var t=localStorage.getItem('fiapp_theme')||'light';var L={'light':'☀️ Light','dark':'🌙 Dark','ocean':'🌊 Ocean','forest':'🌿 Forest','sunset':'🌅 Sunset','midnight':'🌃 Midnight','rose':'🌹 Rose','purple':'💜 Purple','indigo':'🔷 Indigo'};var b=document.getElementById('theme-btn');if(b)b.textContent=L[t]||t;document.querySelectorAll('.theme-opt').forEach(function(o){if(o.dataset.theme===t)o.classList.add('active');});})();</script>
   </div>
 
   <div id="deleted-banner" style="display:none;background:var(--success-bg);border:1px solid var(--success-border);color:var(--success-fg);padding:.65rem .9rem;border-radius:8px;font-size:.88rem;font-weight:600;margin-bottom:1rem;text-align:center;">
@@ -171,8 +171,8 @@
   </script>
 
   <div class="tab-bar">
-    <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Log In</button>
-    <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Register</button>
+    <button class="tab-btn active" id="tab-login">Log In</button>
+    <button class="tab-btn" id="tab-register">Register</button>
   </div>
 
   
@@ -188,7 +188,7 @@
       <input type="password" id="login-password" autocomplete="current-password"
              placeholder="Your password" />
     </div>
-    <button class="login-btn" id="login-btn" onclick="submitLogin()">Log In</button>
+    <button class="login-btn" id="login-btn">Log In</button>
     <div class="back-link"><a href="/">← Back to FiApp</a></div>
   </div>
 
@@ -204,14 +204,14 @@
     <div class="form-group">
       <label for="reg-password">Password</label>
       <input type="password" id="reg-password" autocomplete="new-password"
-             placeholder="At least 6 characters" minlength="6" />
+             placeholder="Min 8 chars, 1 uppercase, 1 number" minlength="8" />
     </div>
     <div class="form-group">
       <label for="reg-password-confirm">Confirm password</label>
       <input type="password" id="reg-password-confirm" autocomplete="new-password"
-             placeholder="Repeat your password" minlength="6" />
+             placeholder="Repeat your password" minlength="8" />
     </div>
-    <button class="login-btn" id="register-btn" onclick="submitRegister()">Create Account</button>
+    <button class="login-btn" id="register-btn">Create Account</button>
     <div class="back-link"><a href="/">← Back to FiApp</a></div>
   </div>
 
@@ -273,7 +273,6 @@ async function submitLogin(){
     const data=await res.json();
     if(res.ok){
       localStorage.setItem('fiapp_auth_user', data.username || username);
-      if(data.csrf_token) sessionStorage.setItem('fiapp_csrf', data.csrf_token);
       window.location='/';
     }
     else{ showError('login-error', data.error||'Login failed.'); }
@@ -291,7 +290,7 @@ async function submitRegister(){
   const confirm=document.getElementById('reg-password-confirm').value;
   if(!username||!password||!confirm){ showError('register-error','Please fill in all fields.'); return; }
   if(username.length<3){ showError('register-error','Username must be at least 3 characters.'); return; }
-  if(password.length<6){ showError('register-error','Password must be at least 6 characters.'); return; }
+  if(password.length<8){ showError('register-error','Password must be at least 8 characters, include 1 uppercase letter and 1 number.'); return; }
   if(password!==confirm){ showError('register-error','Passwords do not match.'); return; }
 
   const btn=document.getElementById('register-btn');
@@ -305,7 +304,6 @@ async function submitRegister(){
     const data=await res.json();
     if(res.ok){
       localStorage.setItem('fiapp_auth_user', data.username || username);
-      if(data.csrf_token) sessionStorage.setItem('fiapp_csrf', data.csrf_token);
       window.location='/';
     }
     else{ showError('register-error', data.error||'Registration failed.'); }
@@ -322,6 +320,15 @@ document.addEventListener('keydown', e=>{
   const loginVisible = document.getElementById('panel-login').style.display !== 'none';
   if(loginVisible) submitLogin();
   else submitRegister();
+});
+document.getElementById('tab-login').addEventListener('click',function(){switchTab('login');});
+document.getElementById('tab-register').addEventListener('click',function(){switchTab('register');});
+document.getElementById('login-btn').addEventListener('click',submitLogin);
+document.getElementById('register-btn').addEventListener('click',submitRegister);
+var _themeBtn=document.getElementById('theme-btn');
+if(_themeBtn) _themeBtn.addEventListener('click',function(e){toggleThemeMenu(e.currentTarget);});
+document.querySelectorAll('.theme-opt').forEach(function(btn){
+  btn.addEventListener('click',function(){setTheme(btn.dataset.theme);});
 });
 </script>
 </body>
