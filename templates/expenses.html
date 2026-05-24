@@ -488,7 +488,7 @@ function showMonthCopyPicker(){
   overlay.appendChild(modal);document.body.appendChild(overlay);
 }
 
-let _syncTimer=null;
+let _syncTimer=null, _serverLoaded=false, _wtWasBlocking=false, _reloadPending=false;
 function setSyncStatus(msg,cls){
   const el=document.getElementById('sync-status');if(!el)return;
   el.textContent=msg;el.className=cls||'';
@@ -496,6 +496,13 @@ function setSyncStatus(msg,cls){
 function syncToServer(){
   if(!window.__currentUser){setSyncStatus('Offline','');return;}
   try{var _wts=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wts&&_wts.active){setSyncStatus('','');return;}}catch{}
+  if(!_serverLoaded){
+    if(_wtWasBlocking&&!_reloadPending){
+      _reloadPending=true; setSyncStatus('Loading…','');
+      loadFromServer().then(()=>{state=loadState();render();syncIncomeInputs();_reloadPending=false;}).catch(()=>{_serverLoaded=true;_reloadPending=false;});
+    }
+    return;
+  }
   clearTimeout(_syncTimer);
   setSyncStatus('Saving…','');
   _syncTimer=setTimeout(()=>{
@@ -513,10 +520,10 @@ function syncToServer(){
 }
 async function loadFromServer(){
   if(!window.__currentUser) return;
-  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active&&localStorage.getItem('fiapp_wt_backup_v1'))return;}catch{}
+  try{var _wtr=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wtr&&_wtr.active&&localStorage.getItem('fiapp_wt_backup_v1')){_wtWasBlocking=true;return;}}catch{}
   try{
     const res=await fetch('/api/load/expenses');
-    if(!res.ok) return;
+    if(!res.ok){_serverLoaded=true;return;}
     const data=await res.json();
     if(data&&typeof data==='object'&&(Array.isArray(data.rows)||data.cells||data.rowsByMonth)){
       const _srvHas=data.cells&&Object.keys(data.cells).length>0;
@@ -525,6 +532,7 @@ async function loadFromServer(){
       if(_srvHas||!_locHas) localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
     }
   }catch(e){}
+  _serverLoaded=true;
 }
 async function loadSubsFromServer(){
 
