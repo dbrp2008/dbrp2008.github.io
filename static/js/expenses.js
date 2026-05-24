@@ -951,9 +951,13 @@ function resetAll(){
   const btn=document.getElementById('reset-btn');
   if(btn.dataset.arm){
     clearTimeout(resetTimer); delete btn.dataset.arm; btn.textContent='Reset'; btn.style.background='#dc2626';
-    snapshot(); state=freshState();
-    localStorage.removeItem(TAX_KEY);
-    localStorage.removeItem(PREFILL_KEY);
+    snapshot();
+    const mk=currentMK();
+    Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk+'|')) delete state.cells[k]; });
+    if(state.rowsByMonth) delete state.rowsByMonth[mk];
+    if(state.colsByMonth) delete state.colsByMonth[mk];
+    if(state.goals) Object.keys(state.goals).forEach(k=>{ if(k.startsWith(mk+'|')) delete state.goals[k]; });
+    if(state.income) delete state.income[mk];
     save(); render(); syncIncomeInputs();
   } else {
     btn.dataset.arm='1'; btn.textContent='Sure?'; btn.style.background='#991b1b';
