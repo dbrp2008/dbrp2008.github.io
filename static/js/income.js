@@ -690,6 +690,7 @@ function showSubMenu(btn, row){
 
 
 function addRow(){
+  try{var _wt=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wt&&_wt.active)return;}catch{}
   forkCurrentMonth();
   const mk2=currentMK();
   if(getRows(mk2).filter(r=>!r.parentId).length>=MAX_ROWS){showToast('Maximum '+MAX_ROWS+' rows per month.');return;}
@@ -713,6 +714,7 @@ function addSubRow(parentRow, subLabel){
   save(); render();
 }
 function addCol(){
+  try{var _wt=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wt&&_wt.active)return;}catch{}
   forkCurrentMonth();
   const mk2=currentMK();
   if(getCols(mk2).length>=MAX_COLS){showToast('Maximum '+MAX_COLS+' columns per month.');return;}
