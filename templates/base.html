@@ -477,6 +477,8 @@
               s.colsByMonth[pk]=s.colsByMonth[curMk].map(function(c){return Object.assign({},c);});
             curKeys.forEach(function(k){
               var parts=k.split('|');
+              var pKey=pk+'|'+parts[1]+'|'+parts[2];
+              if(pKey in s.cells) return; // never overwrite real data
               var num=parseFloat(s.cells[k]);
               if(!isNaN(num)&&num!==0){
                 var val=singlePoint
@@ -485,7 +487,7 @@
 
                   : Math.round(num*(0.45+Math.random()*1.1)*100)/100;
 
-                s.cells[pk+'|'+parts[1]+'|'+parts[2]]=String(val);
+                s.cells[pKey]=String(val);
               }
             });
           });
