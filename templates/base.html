@@ -470,7 +470,8 @@
         if(wasFirst) s.mainCompleted=true;
         _sv(s);var restored=_restore();_hideAll();
         if(wasFirst) _updateWtHomeLink();
-        if(restored){_toast('Walkthrough ended. Your data has been restored. ✅',2500);setTimeout(function(){window.location.reload();},1500);}
+        if(restored) _toast('Walkthrough ended. Your data has been restored. ✅',2000);
+        setTimeout(function(){window.location.reload();},restored?1500:300);
       };
       return b;
     }
@@ -562,7 +563,7 @@
       _transition(function(){
         _avatar.textContent='🎉';_text.innerHTML=text;_btns.innerHTML='';_progress.innerHTML='';
         var b=document.createElement('button');b.className='wt-btn-primary';b.textContent="Let's go! 🚀";
-        b.onclick=function(){_hideAll();_updateWtHomeLink();if(reloadOnDismiss)window.location.reload();};
+        b.onclick=function(){_hideAll();_updateWtHomeLink();window.location.reload();};
         _btns.appendChild(b);
       });
       _setHL(null);_posBubble(null);
@@ -824,19 +825,29 @@
       if(step){
         var dotIdx=vs.findIndex(function(s){return s.id===step.id;});
         _startGuard(null);
-        setTimeout(function(){
+        setTimeout(async function(){
           var _chk=_ld();if(!_chk||!_chk.active) return;
-          // Show disclaimer only on the home page (first step) when user has pre-existing data
-          if(_page==='/'&&_hasTrackerData()&&!localStorage.getItem(WT_BK_KEY)){
-            _showDisclaimer(function(){
-              var _s2=_ld()||_def();var _vs2=_vis(_s2);
-              var _st2=_vs2.find(function(s){return s.id===_s2.stepId&&s.page===_page;});
-              if(_st2) _showStep(_st2,_vs2.length,_vs2.findIndex(function(s){return s.id===_st2.id;}));
-              else if(_vs2[0]){_s2.stepId=_vs2[0].id;_sv(_s2);window.location.href=_vs2[0].page;}
-            });
-          } else {
-            _showStep(step,vs.length,dotIdx);
+          if(_page==='/'&&!localStorage.getItem(WT_BK_KEY)){
+            // Check localStorage first; if empty, ask server (handles cleared-localStorage case)
+            var _hasData=_hasTrackerData();
+            if(!_hasData&&_loggedIn){
+              try{
+                var _sr=await fetch('/api/load/expenses');
+                if(_sr.ok){var _sj=await _sr.json();var _sd=_sj&&_sj.data;
+                  _hasData=!!(_sd&&_sd.cells&&Object.keys(_sd.cells).length>0);}
+              }catch(_){}
+            }
+            if(_hasData){
+              _showDisclaimer(function(){
+                var _s2=_ld()||_def();var _vs2=_vis(_s2);
+                var _st2=_vs2.find(function(s){return s.id===_s2.stepId&&s.page===_page;});
+                if(_st2) _showStep(_st2,_vs2.length,_vs2.findIndex(function(s){return s.id===_st2.id;}));
+                else if(_vs2[0]){_s2.stepId=_vs2[0].id;_sv(_s2);window.location.href=_vs2[0].page;}
+              });
+              return;
+            }
           }
+          _showStep(step,vs.length,dotIdx);
         },600);
       }
     });
