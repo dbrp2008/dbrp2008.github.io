@@ -960,7 +960,6 @@ function resetAll(){
     if(state.rowsByMonth) delete state.rowsByMonth[mk];
     if(state.colsByMonth) delete state.colsByMonth[mk];
     if(state.goals) Object.keys(state.goals).forEach(k=>{ if(k.startsWith(mk+'|')) delete state.goals[k]; });
-    if(state.income) delete state.income[mk];
     save(); render(); syncIncomeInputs();
   } else {
     btn.dataset.arm='1'; btn.textContent='⚠ Sure?'; btn.classList.add('armed');
