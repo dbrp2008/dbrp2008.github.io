@@ -896,16 +896,32 @@
         if(step.wantsCurrencyTour!=null&&step.wantsCurrencyTour!==s.wantsCurrencyTour) return false;
         return s.seen.indexOf(step.id)<0;
       });
-      if(s.mainCompleted&&unseen.length>0){
-        if(_hasTrackerData()) _backup();
-        s.active=true;s.resumeMode=true;
-        s.stepId=unseen[0].id;
-        _sv(s);window.location.href=unseen[0].page;
-      } else {
-        s=_def();s.active=true;
-        s.stepId='home-welcome';
-        _sv(s);window.location.href='/';
+      // _go() performs the actual navigation — called directly (no data) or after disclaimer
+      function _go(){
+        if(s.mainCompleted&&unseen.length>0){
+          if(_hasTrackerData()) _backup();
+          s.active=true;s.resumeMode=true;
+          s.stepId=unseen[0].id;
+          _sv(s);window.location.href=unseen[0].page;
+        } else {
+          s=_def();s.active=true;
+          s.stepId='home-welcome';
+          _sv(s);window.location.href='/';
+        }
       }
+      // Check for existing data — localStorage first, then server (handles cleared-localStorage)
+      (async function(){
+        var _hd=_hasTrackerData();
+        if(!_hd&&_loggedIn){
+          try{
+            var _sr=await fetch('/api/load/expenses');
+            if(_sr.ok){var _sj=await _sr.json();var _sd=_sj&&_sj.data;
+              _hd=!!(_sd&&_sd.cells&&Object.keys(_sd.cells).length>0);}
+          }catch(_){}
+        }
+        if(_hd) _showDisclaimer(function(){_go();});
+        else _go();
+      })();
     };
     window.wtStartEnhanced=function(page){
 
