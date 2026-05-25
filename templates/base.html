@@ -782,6 +782,7 @@
       if(!state&&_page==='/'){
         state=_def();
         if(_loggedIn){
+          _backup();
           state.active=true;state.stepId='home-welcome';
         } else {
           state.loggedOutWelcome=true;
