@@ -805,6 +805,7 @@ function deleteRow(id){
   showToast('Row deleted.', false, 5000, undo);
 }
 function deleteCol(id){
+  try{var _wt=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');if(_wt&&_wt.active)return;}catch{}
   forkCurrentMonth();
   snapshot();
   const mk2=currentMK();
