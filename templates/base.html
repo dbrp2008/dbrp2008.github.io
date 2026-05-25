@@ -345,6 +345,9 @@
       try{
         var bk=JSON.parse(localStorage.getItem(WT_BK_KEY)||'null');
         var hadData=bk&&WT_TRACKER_KEYS.some(function(k){return !!bk[k];});
+        // Always wipe tracker keys first — discards any data entered during the walkthrough
+        WT_TRACKER_KEYS.forEach(function(k){localStorage.removeItem(k);});
+        // Then restore pre-tour data if a backup exists
         if(bk){WT_TRACKER_KEYS.forEach(function(k){if(bk[k])localStorage.setItem(k,bk[k]);});}
         localStorage.removeItem(WT_BK_KEY);
         return !!hadData;
