@@ -1012,8 +1012,7 @@ function renderWins(root){
       }
     });
     if(savingsTotal>0) wins.push('💰 Set aside $'+savingsTotal.toFixed(0)+' in savings last month.');
-    const nonSavingsSpend=prevSpent-savingsTotal;
-    const freeRate=(prevGross-nonSavingsSpend)/prevGross;
+    const freeRate=(prevGross-prevSpent)/prevGross;
     if(freeRate>0.20) wins.push('🟢 '+Math.round(freeRate*100)+'% of income was free money last month.');
   }
 
