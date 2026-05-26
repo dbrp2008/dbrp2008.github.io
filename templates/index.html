@@ -647,6 +647,7 @@
       var cats       = topCategories(cmk);
       var subTotal   = subMonthlyTotal(cmk);
       var badges     = earnedBadges();
+      var streak     = trackingStreak();
 
       html += '<div class="snap-card">' +
         '<div class="snap-header">' + escapeHtml(mkLabel(cmk)) +
