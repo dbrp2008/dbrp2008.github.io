@@ -294,7 +294,7 @@ function _showRecurringToast(rowId,label){
     [state.rows,...Object.values(state.rowsByMonth||{})].forEach(arr=>{
       const r=(arr||[]).find(r=>r.id===rowId);if(r) r.recurring=true;
     });
-    save(); el.remove();
+    save(); render(); el.remove();
   };
   const no=document.createElement('button');no.className='btn-ghost btn-sm';no.style.fontSize='.8rem';no.textContent='Skip';
   no.onclick=function(){ localStorage.setItem('fiapp_rec_dismissed_'+rowId,'1');el.remove(); };
