@@ -255,7 +255,11 @@ function detectRecurring(){
   const allMonths=Object.keys(state.cells||{}).map(k=>k.split('|')[0]).filter((v,i,a)=>v&&a.indexOf(v)===i);
   allMonths.forEach(mk2=>{
     const cols2=(state.colsByMonth&&state.colsByMonth[mk2])||state.cols||[];
-    const rows2=(state.rowsByMonth&&state.rowsByMonth[mk2])||state.rows||[];
+    // Merge base rows with month-specific rows so rows added after forking are included
+    const monthRows=(state.rowsByMonth&&state.rowsByMonth[mk2])||[];
+    const baseRows=state.rows||[];
+    const seenIds=new Set(monthRows.map(r=>r.id));
+    const rows2=[...monthRows,...baseRows.filter(r=>!seenIds.has(r.id))];
     rows2.filter(r=>!r.parentId&&!r.linked&&!r.recurring).forEach(row=>{
       let total=0;
       cols2.forEach(col=>{ total+=parseFloat((state.cells||{})[mk2+'|'+row.id+'|'+col.id]||0)||0; });
@@ -1538,6 +1542,7 @@ function renderTableBody(table){
     tcWrap.appendChild(textSwatch);tcWrap.appendChild(tcInp);
     const rowLabel=document.createElement('span');rowLabel.className='row-label';rowLabel.contentEditable='true';rowLabel.textContent=row.label;
     rowLabel.style.color=row.textColor||'#1f2937';
+    if(row.recurring){const rb=document.createElement('span');rb.textContent=' 🔁';rb.contentEditable='false';rb.style.cssText='font-size:.8em;opacity:.7;pointer-events:none;';rowLabel.appendChild(rb);}
     rowLabel.addEventListener('blur',()=>{row.label=rowLabel.textContent.trim()||row.label;save();_hideLabelSuggest();});
     rowLabel.addEventListener('input',()=>_showLabelSuggest(rowLabel));
     rowLabel.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();rowLabel.blur();}if(e.key==='Escape')_hideLabelSuggest();});
