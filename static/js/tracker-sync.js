@@ -17,6 +17,7 @@ function createSyncManager(storageKey, saveApiPath, loadApiPath, opts) {
   opts = opts || {};
 
   var _syncTimer      = null;
+  var _syncPending    = false;
   var _serverLoaded   = false;
   var _wtWasBlocking  = false;
   var _reloadPending  = false;
@@ -49,8 +50,10 @@ function createSyncManager(storageKey, saveApiPath, loadApiPath, opts) {
       }
       return;
     }
+    _syncPending = true;
     if (_syncTimer) clearTimeout(_syncTimer);
     _syncTimer = setTimeout(function() {
+      _syncPending = false;
       fetch(saveApiPath, {
         method: 'POST',
         headers: {
@@ -71,6 +74,20 @@ function createSyncManager(storageKey, saveApiPath, loadApiPath, opts) {
       })
       .catch(function() { setSyncStatus('⚠ Offline', 'failed'); });
     }, 1500);
+
+    // Flush to server immediately on page unload if a sync is still pending
+    window.addEventListener('beforeunload', function() {
+      if (!_syncPending) return;
+      fetch(saveApiPath, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': window._CSRF || ''
+        },
+        body: localStorage.getItem(storageKey) || 'null'
+      });
+    }, { once: true });
   }
 
   function loadFromServer() {
