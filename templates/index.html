@@ -635,7 +635,9 @@
 
   } else if(isStateC || isStateB) {
     // ─ Components 4+5+6: Snapshot + wins + checklist ─
-    var check = checklistState(cmk);
+    var check  = checklistState(cmk);
+    var badges = earnedBadges();
+    var streak = trackingStreak();
 
     if(isStateC) {
       // ── Full snapshot (State C) ──
@@ -646,8 +648,6 @@
       var barPct     = ratio !== null ? Math.min(100, Math.round(ratio * 100)) : 0;
       var cats       = topCategories(cmk);
       var subTotal   = subMonthlyTotal(cmk);
-      var badges     = earnedBadges();
-      var streak     = trackingStreak();
 
       html += '<div class="snap-card">' +
         '<div class="snap-header">' + escapeHtml(mkLabel(cmk)) +
@@ -697,7 +697,9 @@
     } else if(isStateB) {
       // ── Compact strip (State B) ──
       html += '<div class="snap-strip">' +
-        '<div><div class="snap-strip-label">' + escapeHtml(mkLabel(cmk)) + '</div>' +
+        '<div><div class="snap-strip-label">' + escapeHtml(mkLabel(cmk)) +
+          (badges.length ? ' <span style="font-size:.72rem;font-weight:600;color:var(--muted)">' + badges.map(escapeHtml).join(' · ') + '</span>' : '') +
+        '</div>' +
           '<div class="snap-strip-sub">Month in progress</div>' +
         '</div>' +
         (spent > 0 ? '<div style="text-align:right"><div style="font-size:.7rem;color:var(--muted);margin-bottom:.1rem">Spent</div><div class="snap-strip-amt">' + fmtMoney(spent) + '</div></div>' : '') +
