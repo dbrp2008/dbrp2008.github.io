@@ -376,6 +376,7 @@ function shiftMonth(d){
   let y=state.currentYear, m=state.currentMonth+d;
   if(m<0){y--;m=11;} if(m>11){y++;m=0;}
   state.currentYear=y; state.currentMonth=m;
+  var vs=document.getElementById('voice-strip'); if(vs) vs.remove();
   saveLocal(); updateMonthNav(); render(); syncIncomeInputs();
 }
 function populateMonthJump(){
@@ -398,6 +399,7 @@ function jumpToMonth(mkStr){
   const parts=mkStr.split('-');
   state.currentYear=parseInt(parts[0],10);
   state.currentMonth=parseInt(parts[1],10)-1;
+  var vs=document.getElementById('voice-strip'); if(vs) vs.remove();
   saveLocal(); updateMonthNav(); render(); syncIncomeInputs();
 }
 function updateMonthNav(){
