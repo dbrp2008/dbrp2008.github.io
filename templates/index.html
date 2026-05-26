@@ -541,22 +541,23 @@
   }
 
   // ── Helper: earned identity badge ──
-  function earnedBadge() {
+  function earnedBadges() {
+    var badges = [];
+    // Streak: history dimension (independent of current-month behaviour)
     var streak = trackingStreak();
-    var prevMonth = prevMK(cmk);
-    // 1. streak badge (≥2 consecutive months)
-    if(streak >= 2) return '🔥 ' + streak + '-month streak';
-    // 2. goal setter
-    if(exp && exp.goals && Object.keys(exp.goals).some(function(k){ return k.startsWith(cmk+'|'); }))
-      return '🎯 Goal Setter';
-    // 3. power tracker (data in all 3 this month)
+    if(streak >= 2) badges.push('🔥 ' + streak + '-month streak');
+    // Current-month behaviour: Goal Setter takes priority over Power Tracker
     var hasExp  = currentMonthCellCount() > 0;
     var hasInc  = grossForMonth(cmk) > 0;
     var hasSubs = subs && subs.rows && subs.rows.length > 0;
-    if(hasExp && hasInc && hasSubs) return '📊 Power Tracker';
-    // 4. regular tracker
-    if(hasExp) return '📌 Tracking';
-    return null;
+    if(exp && exp.goals && Object.keys(exp.goals).some(function(k){ return k.startsWith(cmk+'|'); })) {
+      badges.push('🎯 Goal Setter');
+    } else if(hasExp && hasInc && hasSubs) {
+      badges.push('📊 Power Tracker');
+    } else if(hasExp && !streak) {
+      badges.push('📌 Tracking');
+    }
+    return badges;
   }
 
   // ── Helper: top 2 categories for a month ──
@@ -645,13 +646,12 @@
       var barPct     = ratio !== null ? Math.min(100, Math.round(ratio * 100)) : 0;
       var cats       = topCategories(cmk);
       var subTotal   = subMonthlyTotal(cmk);
-      var badge      = earnedBadge();
-      var streak     = trackingStreak();
+      var badges     = earnedBadges();
 
       html += '<div class="snap-card">' +
         '<div class="snap-header">' + escapeHtml(mkLabel(cmk)) +
           '<span class="snap-badge ' + badgeClass + '">' + escapeHtml(badgeText) + '</span>' +
-          (badge ? '<span style="font-size:.78rem;color:var(--muted);font-weight:600;margin-left:auto">' + escapeHtml(badge) + '</span>' : '') +
+          (badges.length ? '<span style="font-size:.78rem;color:var(--muted);font-weight:600;margin-left:auto">' + badges.map(escapeHtml).join(' &nbsp;·&nbsp; ') + '</span>' : '') +
         '</div>' +
         '<div class="snap-row"><span>Spent</span><span>' + fmtMoney(spent) + '</span></div>' +
         (gross > 0 ? '<div class="snap-row"><span>Income</span><span>' + fmtMoney(gross) + '</span></div>' : '') +
@@ -699,7 +699,7 @@
         '<div><div class="snap-strip-label">' + escapeHtml(mkLabel(cmk)) + '</div>' +
           '<div class="snap-strip-sub">Month in progress</div>' +
         '</div>' +
-        (spent > 0 ? '<div class="snap-strip-amt">' + fmtMoney(spent) + '</div>' : '') +
+        (spent > 0 ? '<div style="text-align:right"><div style="font-size:.7rem;color:var(--muted);margin-bottom:.1rem">Spent</div><div class="snap-strip-amt">' + fmtMoney(spent) + '</div></div>' : '') +
       '</div>';
     }
 
