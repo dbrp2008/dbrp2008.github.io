@@ -599,8 +599,8 @@
   // State A: no data at all
   var isStateA = !hasAnyData;
 
-  // State C: ≥3 non-zero cells (income not required — bar only shows when income present)
-  var isStateC = cellCount >= 3;
+  // State C: ≥3 non-zero cells, OR user manually confirmed they're done (override flag)
+  var isStateC = cellCount >= 3 || !!localStorage.getItem('fiapp_snap_full_' + cmk);
 
   // State B: some data but not rich enough for C, and not lapsed
   var isStateB = !isStateA && !isStateC && !isStateD;
@@ -697,10 +697,12 @@
     } else if(isStateB) {
       // ── Compact strip (State B) ──
       html += '<div class="snap-strip">' +
-        '<div><div class="snap-strip-label">' + escapeHtml(mkLabel(cmk)) +
-          (badges.length ? ' <span style="font-size:.72rem;font-weight:600;color:var(--muted)">' + badges.map(escapeHtml).join(' · ') + '</span>' : '') +
-        '</div>' +
-          '<div class="snap-strip-sub">Month in progress</div>' +
+        '<div>' +
+          '<div class="snap-strip-label">' + escapeHtml(mkLabel(cmk)) + '</div>' +
+          '<div class="snap-strip-sub">Month in progress · <a href="/expenses" style="color:var(--accent)">Add entries</a> for full overview' +
+            ' &nbsp;<button onclick="localStorage.setItem(\'fiapp_snap_full_' + cmk + '\',\'1\');location.reload();" ' +
+            'style="font-size:.72rem;padding:.1rem .45rem;border-radius:.3rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;vertical-align:middle">I\'m done for this month</button>' +
+          '</div>' +
         '</div>' +
         (spent > 0 ? '<div style="text-align:right"><div style="font-size:.7rem;color:var(--muted);margin-bottom:.1rem">Spent</div><div class="snap-strip-amt">' + fmtMoney(spent) + '</div></div>' : '') +
       '</div>';
