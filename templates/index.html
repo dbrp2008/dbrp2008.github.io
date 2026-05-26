@@ -482,8 +482,16 @@
 
   // ── Helper: gross income for a given month ──
   function grossForMonth(mk2) {
-    // Dedicated income tracker takes priority
-    if(inc && inc.cells) {
+    // If income tracker has rows for this month, it is authoritative (even if total is 0)
+    var incHasRows = inc && inc.cells && (function(){
+      var rows2 = incRows(inc, mk2);
+      return rows2.some(function(r){
+        return !r.parentId && (inc.cols||[]).some(function(col){
+          return !!inc.cells[mk2+'|'+r.id+'|'+col.id];
+        });
+      });
+    })();
+    if(incHasRows) {
       var rows = incRows(inc, mk2);
       var total = 0;
       var getCurrency = function(rowId){ return (inc.monthRowCurrencies||{})[mk2+'|'+rowId]||'USD'; };
@@ -505,7 +513,7 @@
           });
         }
       });
-      if(total > 0) return parseFloat(total.toFixed(2));
+      return parseFloat(total.toFixed(2));
     }
     // Fall back to expense tracker's income panel
     if(exp && exp.income && exp.income[mk2]) {
