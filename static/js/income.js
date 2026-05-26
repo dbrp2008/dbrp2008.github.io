@@ -451,8 +451,67 @@ function updateMonthNav(){
   document.getElementById('next-btn').disabled=isAtMax();
   populateMonthJump();
   updateForecastUI();
+  updateCloseBar();
 }
 
+// ── Monthly Close Flow ────────────────────────────────────────────────────
+function _hasDataForMonth(mk2){
+  return Object.keys(state.cells||{}).some(k=>k.startsWith(mk2+'|')&&parseFloat(state.cells[k])>0);
+}
+function _isPastMonth(){
+  const now=new Date();
+  const nowMk=mk(now.getFullYear(),now.getMonth());
+  return currentMK()<nowMk;
+}
+function _isClosedMonth(mk2){
+  return !!(state.closedMonths&&state.closedMonths[mk2]);
+}
+function updateCloseBar(){
+  const bar=document.getElementById('close-bar');
+  if(!bar) return;
+  const mk2=currentMK();
+  if(!_isPastMonth()||!_hasDataForMonth(mk2)||_isClosedMonth(mk2)){
+    bar.style.display='none'; return;
+  }
+  // Compute income total for the display
+  let total=0;
+  const rows=getRows(mk2);
+  rows.filter(r=>!r.parentId).forEach(row=>{
+    const kids=rows.filter(c=>c.parentId===row.id);
+    if(kids.length){ kids.forEach(child=>{ (state.cols||[]).forEach(col=>{ total+=parseFloat((state.cells||{})[mk2+'|'+child.id+'|'+col.id]||0)||0; }); }); }
+    else { (state.cols||[]).forEach(col=>{ total+=parseFloat((state.cells||{})[mk2+'|'+row.id+'|'+col.id]||0)||0; }); }
+  });
+  const label=MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
+  document.getElementById('close-bar-text').textContent='📋 Close '+label+'? — $'+total.toFixed(2)+' income logged';
+  bar.style.display='flex';
+}
+function openCloseModal(){
+  const mk2=currentMK();
+  let total=0;
+  const rows=getRows(mk2);
+  rows.filter(r=>!r.parentId).forEach(row=>{
+    const kids=rows.filter(c=>c.parentId===row.id);
+    if(kids.length){ kids.forEach(child=>{ (state.cols||[]).forEach(col=>{ total+=parseFloat((state.cells||{})[mk2+'|'+child.id+'|'+col.id]||0)||0; }); }); }
+    else { (state.cols||[]).forEach(col=>{ total+=parseFloat((state.cells||{})[mk2+'|'+row.id+'|'+col.id]||0)||0; }); }
+  });
+  const label=MONTHS_FULL[state.currentMonth]+' '+state.currentYear;
+  document.getElementById('close-modal-body').innerHTML='<strong>'+label+'</strong><br>Income logged: $'+total.toFixed(2);
+  const overlay=document.getElementById('close-modal-overlay');
+  if(overlay) overlay.style.display='flex';
+}
+function confirmClose(){
+  const mk2=currentMK();
+  if(!state.closedMonths) state.closedMonths={};
+  state.closedMonths[mk2]=Date.now();
+  saveLocal(); save();
+  document.getElementById('close-modal-overlay').style.display='none';
+  updateCloseBar();
+  populateMonthJump();
+}
+function cancelClose(){
+  const overlay=document.getElementById('close-modal-overlay');
+  if(overlay) overlay.style.display='none';
+}
 
 function isForecastMonth(){
   const now=new Date();
