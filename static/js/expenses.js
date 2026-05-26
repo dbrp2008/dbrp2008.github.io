@@ -198,23 +198,24 @@ function _monthSpendTotal(mk2){
   return parseFloat(sum.toFixed(2));
 }
 function checkSpendTrend(){
-  if(typeof voice==='undefined') return;
   // Only run for the current calendar month, not past months being browsed
   var now=new Date(); var todayMk=mk(now.getFullYear(),now.getMonth());
   if(currentMK()!==todayMk) return;
   var mk2=todayMk;
-  var gateKey='fiapp_trend_shown_'+mk2;
-  if(localStorage.getItem(gateKey)) return; // only once per month
   var thisTotal=_monthSpendTotal(mk2);
-  if(thisTotal<10) return; // not enough data yet
   var py=now.getFullYear(), pm=now.getMonth()-1;
   if(pm<0){py--;pm=11;}
   var prevMk2=mk(py,pm);
   var prevTotal=_monthSpendTotal(prevMk2);
-  if(prevTotal<10) return; // need prior month data
+  // Hide strip and bail if conditions not met
+  if(thisTotal<10||prevTotal<10){
+    var old=document.getElementById('voice-strip'); if(old) old.remove(); return;
+  }
   var delta=thisTotal-prevTotal;
   var pct=Math.round(Math.abs(delta)/prevTotal*100);
-  if(pct<10) return; // < 10% change not worth mentioning
+  if(pct<10){
+    var old=document.getElementById('voice-strip'); if(old) old.remove(); return;
+  }
   var dir=delta>0?'up':'down';
   // Find the category with the largest absolute change vs last month
   var rowTotalsThis={}, rowTotalsPrev={};
@@ -228,17 +229,14 @@ function checkSpendTrend(){
   getRows(mk2).forEach(function(row){
     if(row.parentId) return;
     var t=rowTotalsThis[row.id]||0, p=rowTotalsPrev[row.id]||0;
-    if(p<1) return; // need prior data for this category
+    if(p<1) return;
     var cp=Math.round(Math.abs(t-p)/p*100);
     if(cp>topCatPct){ topCatPct=cp; topCat=row.label; topCatDir=t>p?'up':'down'; }
   });
   var text=topCat && topCatPct>=10
     ? (topCat+' is '+topCatDir+' '+topCatPct+'% vs last month.')
     : ('Spending '+dir+' '+pct+'% vs last month.');
-  var msg=voice.observation('spend-trend-'+mk2, text);
-  if(!msg) return;
-  localStorage.setItem(gateKey,'1');
-  showVoiceStrip(msg);
+  showVoiceStrip(text);
 }
 function showVoiceStrip(text){
   var el=document.getElementById('voice-strip');
@@ -376,7 +374,6 @@ function shiftMonth(d){
   let y=state.currentYear, m=state.currentMonth+d;
   if(m<0){y--;m=11;} if(m>11){y++;m=0;}
   state.currentYear=y; state.currentMonth=m;
-  var vs=document.getElementById('voice-strip'); if(vs) vs.remove();
   saveLocal(); updateMonthNav(); render(); syncIncomeInputs();
 }
 function populateMonthJump(){
@@ -399,7 +396,6 @@ function jumpToMonth(mkStr){
   const parts=mkStr.split('-');
   state.currentYear=parseInt(parts[0],10);
   state.currentMonth=parseInt(parts[1],10)-1;
-  var vs=document.getElementById('voice-strip'); if(vs) vs.remove();
   saveLocal(); updateMonthNav(); render(); syncIncomeInputs();
 }
 function updateMonthNav(){
