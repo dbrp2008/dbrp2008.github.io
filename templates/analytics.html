@@ -337,6 +337,10 @@ function renderAll(){
   // Phase 6: Financial Patterns panel (above stat grid)
   renderFinancialPatterns(root);
 
+  // Phase 4d: Win cards + Phase 7: Passive memory (both near top, before charts)
+  renderWins(root);
+  renderMemory(root);
+
   const statGrid=document.createElement('div');
   statGrid.id='stat-grid'; statGrid.className='stat-grid';
   root.appendChild(statGrid);
@@ -444,8 +448,6 @@ function renderAll(){
     );
   })();
 
-  // Phase 7: Passive memory observations
-  renderMemory(root);
 }
 
 
@@ -956,6 +958,66 @@ function renderFinancialPatterns(root){
 
   panel.appendChild(grid);
   root.appendChild(panel);
+}
+
+// ── Phase 4d: Win cards ────────────────────────────────────────────────────
+function renderWins(root){
+  const today=new Date();
+  const py=today.getMonth()===0?today.getFullYear()-1:today.getFullYear();
+  const pm=today.getMonth()===0?11:today.getMonth()-1;
+  const prevMk=String(py)+'-'+String(pm+1).padStart(2,'0');
+  if(!_allMonths.includes(prevMk)) return;
+
+  const wins=[];
+
+  // Win 1: categories under goal last month
+  const goals=(_exp&&_exp.goals)||{};
+  const cells=(_exp&&_exp.cells)||{};
+  let underCount=0;
+  expRows(prevMk).forEach(function(row){
+    if(row.parentId) return;
+    const goalAmt=parseFloat(goals[prevMk+'|'+row.id])||0;
+    if(!goalAmt) return;
+    let tot=0;
+    Object.keys(cells).forEach(function(k){
+      const p=k.split('|');
+      if(p.length===3&&p[0]===prevMk&&p[1]===row.id) tot+=parseFloat(cells[k])||0;
+    });
+    if(tot>0&&tot<goalAmt) underCount++;
+  });
+  if(underCount>=1) wins.push('🎯 Under budget in '+underCount+' categor'+(underCount===1?'y':'ies')+' last month.');
+
+  // Win 2: subscription cost dropped vs month before
+  if(_subs&&_subs.rows){
+    const ppy=pm===0?py-1:py, ppm=pm===0?11:pm-1;
+    const ppMk=String(ppy)+'-'+String(ppm+1).padStart(2,'0');
+    const subPrev=(subCostPerMonth(_subs,[prevMk])||{})[prevMk]||0;
+    const subPP=(subCostPerMonth(_subs,[ppMk])||{})[ppMk]||0;
+    if(subPrev>0&&subPP>0&&subPP>subPrev)
+      wins.push('📉 Subscriptions dropped $'+(subPP-subPrev).toFixed(0)+' vs the month before.');
+  }
+
+  // Win 3: savings rate > 20%
+  const prevGross=_monthIncomes[prevMk]||0;
+  const prevSpent=_monthTotals[prevMk]||0;
+  if(prevGross>0&&prevSpent>0){
+    const rate=(prevGross-prevSpent)/prevGross;
+    if(rate>0.20) wins.push('💰 Saved '+Math.round(rate*100)+'% of income last month.');
+  }
+
+  if(!wins.length) return;
+  const details=document.createElement('details');
+  details.open=true;
+  details.style.cssText='margin-bottom:1rem;';
+  const summary=document.createElement('summary');
+  summary.className='section-title';
+  summary.style.cssText='cursor:pointer;user-select:none;';
+  summary.textContent='Last month\'s wins';
+  details.appendChild(summary);
+  const ul=document.createElement('ul'); ul.className='insight-list';
+  wins.forEach(function(w){ const li=document.createElement('li'); li.textContent=w; ul.appendChild(li); });
+  details.appendChild(ul);
+  root.appendChild(details);
 }
 
 // ── Phase 7: Passive Memory panel ──────────────────────────────────────────
