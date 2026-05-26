@@ -824,14 +824,22 @@
       prevGross = parseFloat(inc.months[prevMonth].gross || inc.months[prevMonth].total) || 0;
     }
     if(prevGross > 0) {
-      var prevSpent2 = 0;
-      var prevRows2 = (exp && exp.rowsByMonth && exp.rowsByMonth[prevMonth]) || (exp && exp.rows) || [];
+      var prevSpent2 = 0, savingsRowTotal = 0;
+      var prevRows2 = (exp && exp.rowsByMonth && exp.rowsByMonth[prevMonth] && exp.rowsByMonth[prevMonth].length > 0)
+        ? exp.rowsByMonth[prevMonth] : (exp && exp.rows) || [];
       var prevCols2 = (exp && exp.colsByMonth && exp.colsByMonth[prevMonth]) || (exp && exp.cols) || [];
-      prevRows2.forEach(function(row){ prevCols2.forEach(function(col){
-        prevSpent2 += parseFloat((exp && exp.cells || {})[prevMonth + '|' + row.id + '|' + col.id] || 0) || 0;
-      }); });
-      var savingsRate = (prevGross - prevSpent2) / prevGross;
-      if(savingsRate > 0.20) wins.push('💰 Saved ' + Math.round(savingsRate * 100) + '% of income last month.');
+      var expCells2 = (exp && exp.cells) || {};
+      prevRows2.forEach(function(row){
+        var rowTotal = 0;
+        prevCols2.forEach(function(col){
+          rowTotal += parseFloat(expCells2[prevMonth + '|' + row.id + '|' + col.id] || 0) || 0;
+        });
+        prevSpent2 += rowTotal;
+        if(!row.parentId && /sav/i.test(row.label || '')) savingsRowTotal += rowTotal;
+      });
+      if(savingsRowTotal > 0) wins.push('💰 Set aside $' + savingsRowTotal.toFixed(0) + ' in savings last month.');
+      var freeRate = (prevGross - (prevSpent2 - savingsRowTotal)) / prevGross;
+      if(freeRate > 0.20) wins.push('🟢 ' + Math.round(freeRate * 100) + '% of income was free money last month.');
     }
 
     if(!wins.length) return;
