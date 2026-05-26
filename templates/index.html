@@ -582,11 +582,15 @@
   var spent     = currentMonthSpent();
   var gross     = grossForMonth(cmk);
   var lastActive = lastActiveMonth();
-  var hasCurrentData = cellCount > 0 || (subs && subs.rows && subs.rows.length > 0);
+  // Subscriptions are always-present and not month-specific — don't count toward "current month data"
+  // for State D detection. Only expense cells signal whether this month has been tracked.
+  var hasCurrentExpData = cellCount > 0;
+  var hasCurrentData = hasCurrentExpData || (subs && subs.rows && subs.rows.length > 0);
   var hasAnyData = !!(exp && exp.cells && Object.keys(exp.cells).length > 0) || !!(subs && subs.rows && subs.rows.length > 0);
 
-  // State D: no current-month entries AND last active month is before previous calendar month
-  var isStateD = !hasCurrentData && hasAnyData && lastActive && lastActive < pmk;
+  // State D: no expense cells this month AND there is historical expense data AND last active was before prev calendar month
+  var hasAnyExpCells = !!(exp && exp.cells && Object.keys(exp.cells).length > 0);
+  var isStateD = !hasCurrentExpData && hasAnyExpCells && lastActive && lastActive < pmk;
 
   // State A: no data at all
   var isStateA = !hasAnyData;
@@ -627,24 +631,7 @@
     // ─ Components 4+5+6: Snapshot + wins + checklist ─
     var check = checklistState(cmk);
 
-    if(isStateC && check.all) {
-      // ── Completion sub-state ──
-      html += '<div class="snap-card">' +
-        '<div class="snap-complete">' +
-          '<span class="snap-complete-check">✓</span>' +
-          '<div class="snap-complete-title">You\'re set for ' + escapeHtml(mkLabel(cmk)) + '</div>' +
-          '<div class="snap-complete-items">Income logged · Goals configured · Subscriptions reviewed</div>' +
-        '</div>';
-      if(spent > 0) {
-        var pct = gross > 0 ? Math.min(100, Math.round(spent / gross * 100)) : null;
-        html += '<div class="snap-bar-wrap" style="margin-top:.75rem">' +
-          '<div class="snap-bar-fill ' + (pct===null?'snap-ok-fill':pct>=100?'snap-over-fill':pct>=80?'snap-warn-fill':'snap-ok-fill') + '" style="width:' + (pct||0) + '%"></div>' +
-        '</div>';
-        html += '<div class="snap-cats" style="text-align:center">' + fmtMoney(spent) + ' spent</div>';
-      }
-      html += '</div>';
-
-    } else if(isStateC) {
+    if(isStateC) {
       // ── Full snapshot (State C) ──
       var ratio = gross > 0 ? spent / gross : null;
       var badgeClass = ratio === null ? 'snap-grey' : ratio >= 1 ? 'snap-over' : ratio >= 0.8 ? 'snap-warn' : 'snap-ok';
@@ -692,6 +679,9 @@
       }
       if(streak >= 2) {
         html += '<div class="snap-streak">📅 Tracking for ' + streak + ' month' + (streak!==1?'s':'') + '</div>';
+      }
+      if(check.all) {
+        html += '<div style="font-size:.75rem;color:var(--muted);margin-top:.4rem">✓ You\'re set for ' + escapeHtml(mkLabel(cmk)) + '</div>';
       }
       html += '</div>';
 
