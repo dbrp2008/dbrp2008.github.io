@@ -362,13 +362,16 @@ function incTrackerMonthTotals(inc) {
 
 function mergedMonthIncomes(exp, incMap) {
   var out = {};
-  if (exp && exp.income) {
+  if (incMap.size > 0) {
+    // Income tracker has data — use it exclusively
+    incMap.forEach(function(val, mk2) { out[mk2] = val; });
+  } else if (exp && exp.income) {
+    // Income tracker empty — fall back to expenses panel
     Object.entries(exp.income).forEach(function(entry) {
       var mk2 = entry[0], v = entry[1];
       var g = parseFloat(v.gross) || 0; if (g > 0) out[mk2] = g;
     });
   }
-  incMap.forEach(function(val, mk2) { out[mk2] = val; });
   return out;
 }
 
