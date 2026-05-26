@@ -372,7 +372,8 @@ function populateMonthJump(){
       if(y===minY&&m2<minM) continue;
       if(y===maxY&&m2>maxM) continue;
       const opt=document.createElement('option');
-      opt.value=mk(y,m2); opt.textContent=MONTHS_FULL[m2]+' '+y;
+      const isClosed=_isClosedMonth(mk(y,m2));
+      opt.value=mk(y,m2); opt.textContent=(isClosed?'🔒 ':'')+MONTHS_FULL[m2]+' '+y;
       if(mk(y,m2)===curMk) opt.selected=true;
       sel.appendChild(opt);
     }
@@ -407,11 +408,23 @@ function _isPastMonth(){
 function _isClosedMonth(mk2){
   return !!(state.closedMonths&&state.closedMonths[mk2]);
 }
+function reopenMonth(){
+  const mk2=currentMK();
+  if(state.closedMonths) delete state.closedMonths[mk2];
+  saveLocal(); save();
+  updateCloseBar(); populateMonthJump(); render();
+}
 function updateCloseBar(){
   const bar=document.getElementById('close-bar');
   if(!bar) return;
   const mk2=currentMK();
-  if(!_isPastMonth()||!_hasDataForMonth(mk2)||_isClosedMonth(mk2)){
+  if(_isClosedMonth(mk2)){
+    document.getElementById('close-bar-text').innerHTML='🔒 <strong>Closed</strong> — this month is locked.';
+    const btn=bar.querySelector('button');
+    if(btn){ btn.textContent='Reopen ↩'; btn.onclick=reopenMonth; }
+    bar.style.display='flex'; return;
+  }
+  if(!_isPastMonth()||!_hasDataForMonth(mk2)){
     bar.style.display='none'; return;
   }
   // Compute total for the display
@@ -1573,6 +1586,7 @@ function renderTableBody(table){
         span.textContent=s>0?fmt(s):'';td.appendChild(span);
       } else {
         const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.01';inp.inputMode='decimal';inp.className='num-input';
+        if(_isClosedMonth(currentMK())) inp.disabled=true;
         const stored=getRawCell(row.id,col.id);inp.value=stored!==''?stored:'';
         inp.addEventListener('input',()=>{ inp.value=inp.value.replace(/[^0-9.]/g,''); });
         inp.addEventListener('focus',()=>snapshot());
