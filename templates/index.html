@@ -479,11 +479,7 @@
 
   // ── Helper: gross income for a given month ──
   function grossForMonth(mk2) {
-    // Check expense tracker's linked income first
-    if(exp && exp.income && exp.income[mk2]) {
-      var g = parseFloat(exp.income[mk2].gross); if(g > 0) return g;
-    }
-    // Then dedicated income tracker
+    // Dedicated income tracker takes priority
     if(inc && inc.cells) {
       var rows = incRows(inc, mk2);
       var total = 0;
@@ -498,6 +494,10 @@
         }
       });
       if(total > 0) return parseFloat(total.toFixed(2));
+    }
+    // Fall back to expense tracker's income panel
+    if(exp && exp.income && exp.income[mk2]) {
+      var g = parseFloat(exp.income[mk2].gross); if(g > 0) return g;
     }
     return 0;
   }
@@ -579,8 +579,8 @@
   // State A: no data at all
   var isStateA = !hasAnyData;
 
-  // State C: ≥3 non-zero cells and income data present (or subs data present counts toward richness)
-  var isStateC = cellCount >= 3 && gross > 0;
+  // State C: ≥3 non-zero cells (income not required — bar only shows when income present)
+  var isStateC = cellCount >= 3;
 
   // State B: some data but not rich enough for C, and not lapsed
   var isStateB = !isStateA && !isStateC && !isStateD;
