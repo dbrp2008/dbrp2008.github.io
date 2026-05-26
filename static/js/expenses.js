@@ -418,15 +418,16 @@ function updateCloseBar(){
   const bar=document.getElementById('close-bar');
   if(!bar) return;
   const mk2=currentMK();
+  const btn=bar.querySelector('button');
   if(_isClosedMonth(mk2)){
     document.getElementById('close-bar-text').innerHTML='🔒 <strong>Closed</strong> — this month is locked.';
-    const btn=bar.querySelector('button');
     if(btn){ btn.textContent='Reopen ↩'; btn.onclick=reopenMonth; }
     bar.style.display='flex'; return;
   }
   if(!_isPastMonth()||!_hasDataForMonth(mk2)){
     bar.style.display='none'; return;
   }
+  if(btn){ btn.textContent='Review & close ✓'; btn.onclick=openCloseModal; }
   // Compute total for the display
   let spent=0;
   const mCols=(state.colsByMonth&&state.colsByMonth[mk2])||state.cols||[];
