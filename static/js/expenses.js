@@ -200,7 +200,7 @@ function _monthSpendTotal(mk2){
 function checkSpendTrend(){
   // Only run for the current calendar month, not past months being browsed
   var now=new Date(); var todayMk=mk(now.getFullYear(),now.getMonth());
-  if(currentMK()!==todayMk) return;
+  if(currentMK()!==todayMk){var _s=document.getElementById('voice-strip');if(_s)_s.style.display='none';return;}
   var mk2=todayMk;
   var thisTotal=_monthSpendTotal(mk2);
   var py=now.getFullYear(), pm=now.getMonth()-1;
