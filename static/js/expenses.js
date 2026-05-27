@@ -741,6 +741,8 @@ function syncIncomeInputs(){
   const obj=monthIncomeObj();
   document.getElementById('inp-gross').value=obj.gross||'';
   document.getElementById('inp-gross').readOnly=!!obj.fromIncome;
+  const _icon=document.getElementById('income-sync-icon');
+  if(_icon) _icon.style.display=obj.fromIncome?'':'none';
   document.getElementById('inp-tax').value  =obj.tax  ||'';
   const hasData=!!(obj.gross||obj.tax);
   document.getElementById('apply-year-btn').style.display=hasData?'inline-block':'none';
@@ -755,7 +757,9 @@ function enterIncomeManually(){
   const inp=document.getElementById('inp-gross');
   inp.readOnly=false;
   inp.focus(); inp.select();
-  document.getElementById('income-sync-badge').innerHTML='<div class="income-sync-row"><span class="income-sync-badge income-sync-badge--override">✎ Manual entry</span><button class="income-sync-update" data-action="accept-income-sync" data-mk="'+currentMK()+'">↺ Re-link to Income Tracker</button></div>';
+  const icon=document.getElementById('income-sync-icon');
+  if(icon) icon.style.display='none';
+  document.getElementById('income-sync-badge').innerHTML='<button class="income-sync-update" data-action="accept-income-sync" data-mk="'+currentMK()+'">↺ Re-link to Income Tracker</button>';
 }
 function applyIncomeToYear(){
   snapshot();
@@ -882,12 +886,15 @@ async function syncFromIncomeTracker(mk2){
       saveLocal(); updateIncomeSummary();
     }
     const tFmt='$'+total.toFixed(2);
+    const icon=document.getElementById('income-sync-icon');
     if(alreadySynced||obj.fromIncome){
       document.getElementById('inp-gross').readOnly=true;
-      badge.innerHTML='<div class="income-sync-row"><span class="income-sync-badge">✓ Synced from <a class="income-sync-link" href="/income">Income Tracker</a> &nbsp;·&nbsp; '+tFmt+'</span><button class="income-sync-manual-btn" onclick="enterIncomeManually()">Enter manually</button></div>';
+      if(icon) icon.style.display='';
+      badge.innerHTML='<button onclick="enterIncomeManually()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.78rem;padding:0;font-family:inherit;text-decoration:underline;">Enter manually</button>';
     } else {
       document.getElementById('inp-gross').readOnly=false;
-      badge.innerHTML='<div class="income-sync-row"><span class="income-sync-badge income-sync-badge--override">✎ Manual entry</span><button class="income-sync-update" data-action="accept-income-sync" data-mk="'+mk2+'">↺ Re-link to Income Tracker ('+tFmt+')</button></div>';
+      if(icon) icon.style.display='none';
+      badge.innerHTML='<button class="income-sync-update" data-action="accept-income-sync" data-mk="'+mk2+'">↺ Re-link to Income Tracker ('+tFmt+')</button>';
     }
   }catch(e){badge.innerHTML='';}
 }
