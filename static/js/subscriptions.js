@@ -1212,7 +1212,7 @@ function render(){
       cdh.addEventListener('pointermove',onMove);cdh.addEventListener('pointerup',onUp);
     });
     inner.appendChild(cdh);
-    const lbl=document.createElement('input');lbl.type='text';lbl.className='th-label';lbl.value=col.label;
+    const lbl=document.createElement('input');lbl.type='text';lbl.className='th-label';lbl.size=1;lbl.value=col.label;
     lbl.addEventListener('blur',()=>{col.label=lbl.value.trim()||col.label;save();});
     lbl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbl.blur();}});
     inner.appendChild(lbl);
