@@ -581,6 +581,7 @@
     }
 
     function _showDoneCard(text,reloadOnDismiss){
+      _overlay.style.background='rgba(0,0,0,.42)';_overlay.style.display='block';
       _transition(function(){
         _avatar.textContent='🎉';_text.innerHTML=text;_btns.innerHTML='';_progress.innerHTML='';
         var b=document.createElement('button');b.className='wt-btn-primary';b.textContent="Let's go! 🚀";
