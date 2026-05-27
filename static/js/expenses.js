@@ -84,7 +84,19 @@ function loadState(){
       return s;
     }
   }catch(e){ console.warn('FiApp: loadState failed, using fresh state -',e.message); }
-  return freshState();
+  const fs=freshState();
+  try{
+    const _wt=JSON.parse(localStorage.getItem('fiapp_walkthrough_v1')||'null');
+    if(_wt&&_wt.active){
+      fs.rows=[
+        {id:uid(),label:'Groceries',  color:'#bbf7d0',textColor:'#1f2937',height:36,parentId:null},
+        {id:uid(),label:'Travel',     color:'#fed7aa',textColor:'#1f2937',height:36,parentId:null},
+        {id:uid(),label:'Transport',  color:'#fecaca',textColor:'#1f2937',height:36,parentId:null},
+        {id:uid(),label:'Savings',    color:'#e9d5ff',textColor:'#1f2937',height:36,parentId:null},
+      ];
+    }
+  }catch(_){}
+  return fs;
 }
 let state=loadState();
 
