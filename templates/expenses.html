@@ -238,7 +238,15 @@
       .num-input,input.row-label,input.th-label,
       .income-field input[type="number"],.goal-pop-inp,
       .sub-other-form input{font-size:16px!important;}
-      .subs-link-btn{display:none;}
+      /* Free up label column space: hide desktop-only controls */
+      .color-swatch-wrap{display:none;}
+      .sub-dropdown{display:none;}
+      /* Compact link arrow instead of full "→ Subscriptions" text */
+      .subs-link-btn{font-size:0;padding:2px 5px;min-width:22px;min-height:22px;justify-content:center;margin-left:2px;}
+      .subs-link-btn::before{content:'→';font-size:13px;font-weight:700;}
+      /* Tighten label cell spacing */
+      .rh-inner{gap:3px;}
+      .drag-handle{padding:0 2px;}
     }
 </style>
 {% endblock %}
