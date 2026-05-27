@@ -114,10 +114,10 @@
     .color-swatch-wrap{position:relative;display:inline-flex;flex-shrink:0;cursor:pointer;}
     .color-inp-overlay{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;margin:0;}
     .row-label{flex:1;outline:none;font-weight:600;font-size:max(16px,.85rem);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    input.row-label{background:transparent;border:none;padding:0;font-family:inherit;cursor:text;width:0;min-width:0;}
+    input.row-label{background:transparent;border:none;padding:0;font-family:inherit;cursor:text;flex:1 1 0%;width:0%;min-width:0;overflow:hidden;}
     input.row-label:read-only{cursor:default;}
     input.row-label:focus{background:var(--input-focus);}
-    input.th-label{background:transparent;border:none;padding:0;font-family:inherit;cursor:text;text-align:center;width:100%;}
+    input.th-label{background:transparent;border:none;padding:0;font-family:inherit;cursor:text;text-align:center;flex:1 1 0%;width:0%;min-width:0;}
     input.th-label:focus{background:var(--input-focus);outline:none;}
     .collapse-btn{background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--muted);padding:0 2px;flex-shrink:0;line-height:1;}
     .collapse-btn:hover{color:var(--fg);}
