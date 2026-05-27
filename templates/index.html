@@ -446,6 +446,25 @@
   // Load rates first so currency conversion is available throughout
   try{ if(typeof fiappCoreLoadRates==='function') await fiappCoreLoadRates(); }catch(e){}
 
+  // Pull server data into localStorage if this device hasn't loaded it yet.
+  // Only fetches if the key is absent — never overwrites existing local data.
+  async function _fetchIfEmpty(key, apiPath) {
+    if(localStorage.getItem(key)) return;
+    try {
+      var r = await fetch(apiPath, {credentials:'same-origin'});
+      if(!r.ok) return;
+      var d = await r.json();
+      if(d && (d.rows || d.cells || d.rowsByMonth)) localStorage.setItem(key, JSON.stringify(d));
+    } catch(e) {}
+  }
+  try {
+    await Promise.all([
+      _fetchIfEmpty('fiapp_expenses_v4',   '/api/load/expenses'),
+      _fetchIfEmpty('fiapp_income_v1',     '/api/load/income'),
+      _fetchIfEmpty('fiapp_subs_v4',       '/api/load/subscriptions'),
+    ]);
+  } catch(e) {}
+
   // Load tracker state from localStorage
   var exp  = null, inc = null, subs = null;
   try{ var _es=localStorage.getItem('fiapp_expenses_v4');     if(_es) exp  = JSON.parse(_es); }catch(e){}
