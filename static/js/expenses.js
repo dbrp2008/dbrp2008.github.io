@@ -1063,11 +1063,18 @@ function renderTemplatePrompt(){
   }
   function _renderPreview(name){
     const labels=_TEMPLATES[name]||[];
-    const chips=labels.map(l=>{
-      const c=CAT_COLORS[l]||'#e5e7eb';
-      return '<span style="display:inline-block;padding:.15rem .45rem;border-radius:4px;background:'+c+';color:#1f2937;font-size:.78rem;margin:.15rem .1rem;">'+escapeHtml(l)+'</span>';
+    const cols=['Week 1','Week 2','Week 3','Week 4'];
+    const colHeaders=cols.map(c=>'<th style="padding:.25rem .5rem;font-weight:600;font-size:.78rem;color:var(--muted);border-bottom:1px solid var(--panel-border);white-space:nowrap;">'+c+'</th>').join('');
+    const rows=labels.map(l=>{
+      const bg=CAT_COLORS[l]||'#e5e7eb';
+      const cells=cols.map(()=>'<td style="padding:.25rem .5rem;border-bottom:1px solid var(--panel-border);font-size:.78rem;color:var(--muted);text-align:right;">—</td>').join('');
+      return '<tr><td style="padding:.25rem .6rem;border-bottom:1px solid var(--panel-border);font-size:.82rem;font-weight:500;background:'+bg+';color:#1f2937;border-radius:3px 0 0 3px;white-space:nowrap;">'+escapeHtml(l)+'</td>'+cells+'</tr>';
     }).join('');
-    previewArea.innerHTML=chips
+    previewArea.innerHTML='<div style="overflow-x:auto;margin-top:.65rem;border:1px solid var(--panel-border);border-radius:6px;">'
+      +'<table style="border-collapse:collapse;width:100%;min-width:340px;">'
+      +'<thead><tr><th style="padding:.25rem .6rem;font-weight:600;font-size:.78rem;color:var(--muted);border-bottom:1px solid var(--panel-border);text-align:left;">Category</th>'+colHeaders+'</tr></thead>'
+      +'<tbody>'+rows+'</tbody>'
+      +'</table></div>'
       +'<div style="margin-top:.6rem;">'
       +'<button class="btn btn-sm" style="font-size:.82rem" onclick="applyTemplate(\''+name+'\')">Apply '+escapeHtml(name)+' →</button>'
       +'</div>';
