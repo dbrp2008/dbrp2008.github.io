@@ -323,12 +323,18 @@ function showToast(msg, isError=false, duration=4000, undoCb=null){
 let undoStack=[], redoStack=[];
 function loadHistory(){
   try{
+    const uid=window.__currentUser&&window.__currentUser.user_id;
+    if(uid&&sessionStorage.getItem('fiapp_undo_uid')&&String(sessionStorage.getItem('fiapp_undo_uid'))!==String(uid)){
+      sessionStorage.removeItem(UNDO_KEY); sessionStorage.removeItem(REDO_KEY); sessionStorage.removeItem('fiapp_undo_uid'); return;
+    }
     const u=sessionStorage.getItem(UNDO_KEY); if(u) undoStack=JSON.parse(u)||[];
     const r=sessionStorage.getItem(REDO_KEY); if(r) redoStack=JSON.parse(r)||[];
   }catch{}
 }
 function saveHistory(){
   try{
+    const uid=window.__currentUser&&window.__currentUser.user_id;
+    if(uid) sessionStorage.setItem('fiapp_undo_uid',String(uid));
     sessionStorage.setItem(UNDO_KEY,JSON.stringify(undoStack.slice(-60)));
     sessionStorage.setItem(REDO_KEY,JSON.stringify(redoStack.slice(-60)));
   }catch{}
