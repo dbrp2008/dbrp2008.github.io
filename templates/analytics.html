@@ -1079,7 +1079,7 @@ function renderMemory(root){
   let bestMK='', bestRate=-Infinity;
   _allMonths.forEach(mk2=>{
     const inc2=_monthIncomes[mk2]||0; const spend2=_monthTotals[mk2]||0;
-    if(inc2>0){ const r=(inc2-spend2)/inc2; if(r>bestRate){bestRate=r;bestMK=mk2;} }
+    if(inc2>0&&spend2>10){ const r=(inc2-spend2)/inc2; if(r>bestRate){bestRate=r;bestMK=mk2;} }
   });
   if(bestMK&&bestRate>0) observations.push('Your best savings month was '+mkLabel(bestMK)+' (saved '+Math.round(bestRate*100)+'%).');
 
@@ -1154,6 +1154,10 @@ function reRenderCharts(){
 
 window.addEventListener('storage', e=>{
   if(e.key===EXP_KEY||e.key===SUBS_KEY||e.key===INC_KEY) renderAll();
+});
+
+window.addEventListener('resize', ()=>{
+  Object.values(charts).forEach(c=>{ if(c) c.resize(); });
 });
 
 // Re-render charts when theme class changes on <html>
