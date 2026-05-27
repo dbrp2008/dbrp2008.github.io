@@ -1582,7 +1582,7 @@ function renderTableHeader(table){
       cdh.addEventListener('pointermove',onMove);cdh.addEventListener('pointerup',onUp);
     });
     inner.appendChild(cdh);
-    const lbl=document.createElement('input');lbl.type='text';lbl.className='th-label';lbl.value=col.label;
+    const lbl=document.createElement('input');lbl.type='text';lbl.className='th-label';lbl.size=1;lbl.value=col.label;
     lbl.addEventListener('blur',()=>{col.label=lbl.value.trim()||col.label;save();});
     lbl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbl.blur();}});
     inner.appendChild(lbl);
@@ -1653,7 +1653,7 @@ function renderTableBody(table){
     tcInp.addEventListener('input',()=>{row.textColor=tcInp.value;rowLabel.style.color=tcInp.value;textSwatch.style.color=tcInp.value;});
     tcInp.addEventListener('change',save);
     tcWrap.appendChild(textSwatch);tcWrap.appendChild(tcInp);
-    const rowLabel=document.createElement('input');rowLabel.type='text';rowLabel.className='row-label';rowLabel.readOnly=row.linked==='subscriptions';rowLabel.value=row.label;
+    const rowLabel=document.createElement('input');rowLabel.type='text';rowLabel.className='row-label';rowLabel.size=1;rowLabel.readOnly=row.linked==='subscriptions';rowLabel.value=row.label;
     rowLabel.style.color=row.textColor||'#1f2937';
     if(row.linked!=='subscriptions'){
       rowLabel.addEventListener('blur',()=>{row.label=rowLabel.value.trim()||row.label;save();_hideLabelSuggest();});
