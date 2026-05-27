@@ -283,7 +283,6 @@ textarea {
   color: var(--fg);
   font-family: inherit;
   box-sizing: border-box;
-  font-size: max(16px, 1rem);
 }
 
 input:focus,
@@ -494,6 +493,11 @@ h1, h2, h3, h4 { color: var(--fg); }
   left: 0;
   z-index: 2;
   background: var(--panel-bg);
+}
+
+/* ── iOS auto-zoom prevention (inputs must be ≥16px on mobile) ─ */
+@media (max-width: 640px) {
+  input, select, textarea { font-size: max(16px, 1rem); }
 }
 
 /* ── Hamburger 44×44 touch target ───────────────────────────── */
