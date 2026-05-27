@@ -1188,43 +1188,37 @@ function render(){
     th.dataset.colId=col.id;
     const inner=document.createElement('div');inner.className='th-inner';
     const cdh=document.createElement('span');cdh.className='col-drag-handle';cdh.textContent='⠿';cdh.title='Drag to reorder column';
-    cdh.addEventListener('mousedown',()=>{ th.draggable=true; });
-    cdh.addEventListener('mouseup',()=>{ th.draggable=false; });
+    cdh.addEventListener('pointerdown',e=>{
+      e.preventDefault();cdh.setPointerCapture(e.pointerId);_dragColId=col.id;
+      const onMove=e=>{
+        document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+        const over=document.elementFromPoint(e.clientX,e.clientY);
+        const tTh=over&&over.closest('th[data-col-id]');
+        if(tTh&&tTh.dataset.colId!==_dragColId){const r=tTh.getBoundingClientRect();tTh.classList.add(e.clientX<r.left+r.width/2?'th-drop-before':'th-drop-after');}
+      };
+      const onUp=e=>{
+        cdh.removeEventListener('pointermove',onMove);cdh.removeEventListener('pointerup',onUp);
+        document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
+        const over=document.elementFromPoint(e.clientX,e.clientY);
+        const tTh=over&&over.closest('th[data-col-id]');
+        if(tTh&&tTh.dataset.colId!==_dragColId){
+          const fromIdx=state.cols.findIndex(c=>c.id===_dragColId);
+          if(fromIdx!==-1){const r=tTh.getBoundingClientRect();const before=e.clientX<r.left+r.width/2;snapshot();
+            const [moved]=state.cols.splice(fromIdx,1);const insertAt=state.cols.findIndex(c=>c.id===tTh.dataset.colId);
+            state.cols.splice(insertAt!==-1?(before?insertAt:insertAt+1):state.cols.length,0,moved);save();render();}
+        }
+        _dragColId=null;
+      };
+      cdh.addEventListener('pointermove',onMove);cdh.addEventListener('pointerup',onUp);
+    });
     inner.appendChild(cdh);
-    const lbl=document.createElement('span');lbl.className='th-label';lbl.contentEditable='true';lbl.textContent=col.label;
-    lbl.addEventListener('blur',()=>{col.label=lbl.textContent.trim()||col.label;save();});
+    const lbl=document.createElement('input');lbl.type='text';lbl.className='th-label';lbl.value=col.label;
+    lbl.addEventListener('blur',()=>{col.label=lbl.value.trim()||col.label;save();});
     lbl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lbl.blur();}});
     inner.appendChild(lbl);
     const del=document.createElement('button');del.className='col-del';del.title='Delete column';del.textContent='×';del.addEventListener('click',()=>deleteCol(col.id));inner.appendChild(del);
     th.appendChild(inner);
     const cr=document.createElement('div');cr.className='col-resize';attachColResize(cr,col);th.appendChild(cr);
-    th.addEventListener('dragstart',e=>{ _dragColId=col.id; e.dataTransfer.effectAllowed='move'; });
-    th.addEventListener('dragend',()=>{
-      _dragColId=null; th.draggable=false;
-      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
-    });
-    th.addEventListener('dragover',e=>{
-      if(!_dragColId||_dragColId===col.id) return;
-      e.preventDefault();
-      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
-      const rect=th.getBoundingClientRect();
-      th.classList.add(e.clientX<rect.left+rect.width/2?'th-drop-before':'th-drop-after');
-    });
-    th.addEventListener('drop',e=>{
-      if(!_dragColId||_dragColId===col.id) return;
-      e.preventDefault();
-      document.querySelectorAll('.th-drop-before,.th-drop-after').forEach(el=>el.classList.remove('th-drop-before','th-drop-after'));
-      const fromIdx=state.cols.findIndex(c=>c.id===_dragColId);
-      const toCol=state.cols.findIndex(c=>c.id===col.id);
-      if(fromIdx===-1||toCol===-1) return;
-      const rect=th.getBoundingClientRect();
-      const before=e.clientX<rect.left+rect.width/2;
-      snapshot();
-      const [moved]=state.cols.splice(fromIdx,1);
-      const insertAt=state.cols.findIndex(c=>c.id===col.id);
-      state.cols.splice(before?insertAt:insertAt+1,0,moved);
-      save(); render();
-    });
     htr.appendChild(th);
   });
   const act=document.createElement('th');act.style.cssText='background:#f9fafb;border:1px dashed #d1d5db;';
@@ -1233,31 +1227,6 @@ function render(){
 
   const tbody=document.createElement('tbody');
   
-  tbody.addEventListener('dragover',e=>{
-    if(!_dragSubId) return;
-    e.preventDefault();
-    const trs=[...tbody.querySelectorAll('tr[data-row-id]')];
-    if(!trs.length) return;
-    document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
-    let target=null,before=true;
-    for(let i=0;i<trs.length;i++){
-      const rect=trs[i].getBoundingClientRect();
-      if(e.clientY<rect.top+rect.height/2){target=trs[i];before=true;break;}
-      if(i===trs.length-1){target=trs[i];before=false;}
-    }
-    if(target&&target.dataset.rowId!==_dragSubId) target.classList.add(before?'tr-drop-before':'tr-drop-after');
-  });
-  tbody.addEventListener('drop',e=>{
-    if(!_dragSubId) return;
-    e.preventDefault();
-    const beforeTr=tbody.querySelector('.tr-drop-before');
-    const afterTr=tbody.querySelector('.tr-drop-after');
-    const targetTr=beforeTr||afterTr;
-    if(!targetTr) return;
-    const targetId=targetTr.dataset.rowId;
-    document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
-    if(targetId&&targetId!==_dragSubId) moveSubRow(_dragSubId,targetId,!!beforeTr);
-  });
   if(!state.rows.length){
     const etr=document.createElement('tr');const etd=document.createElement('td');etd.colSpan=state.cols.length+1;etd.className='empty-msg';
     etd.textContent='No subscriptions yet. Use the dropdown above to add one.';etr.appendChild(etd);tbody.appendChild(etr);
@@ -1269,24 +1238,33 @@ function render(){
     if(st==='Cancelled') tr.classList.add('cancelled-row');
     
     tr.dataset.rowId=row.id;
-    tr.addEventListener('dragstart',e=>{
-      _dragSubId=row.id;
-      tr.classList.add('tr-dragging');
-      e.dataTransfer.effectAllowed='move';
-    });
-    tr.addEventListener('dragend',()=>{
-      _dragSubId=null;
-      tr.classList.remove('tr-dragging');
-      document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
-    });
     state.cols.forEach((col,ci)=>{
       const td=document.createElement('td');td.style.position='relative';
       if(ci===0){
         
         const dh=document.createElement('span');dh.className='drag-handle';dh.textContent='⠿';dh.title='Drag to reorder';
         dh.style.cssText+='display:inline-block;vertical-align:middle;margin-right:2px;';
-        dh.addEventListener('mousedown',()=>{ tr.draggable=true; });
-        dh.addEventListener('mouseup',()=>{ tr.draggable=false; });
+        dh.addEventListener('pointerdown',e=>{
+          e.preventDefault();dh.setPointerCapture(e.pointerId);
+          _dragSubId=row.id;tr.classList.add('tr-dragging');
+          const onMove=e=>{
+            document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+            const el=document.elementFromPoint(e.clientX,e.clientY);
+            const tTr=el&&el.closest('tr[data-row-id]');
+            if(tTr&&tTr.dataset.rowId!==_dragSubId){const r=tTr.getBoundingClientRect();tTr.classList.add(e.clientY<r.top+r.height/2?'tr-drop-before':'tr-drop-after');}
+          };
+          const onUp=e=>{
+            dh.removeEventListener('pointermove',onMove);dh.removeEventListener('pointerup',onUp);
+            tr.classList.remove('tr-dragging');
+            const beforeTr=tbody.querySelector('.tr-drop-before');
+            const afterTr=tbody.querySelector('.tr-drop-after');
+            const targetTr=beforeTr||afterTr;
+            document.querySelectorAll('.tr-drop-before,.tr-drop-after').forEach(el=>el.classList.remove('tr-drop-before','tr-drop-after'));
+            if(targetTr){const targetId=targetTr.dataset.rowId;if(targetId&&targetId!==_dragSubId)moveSubRow(_dragSubId,targetId,!!beforeTr);}
+            _dragSubId=null;
+          };
+          dh.addEventListener('pointermove',onMove);dh.addEventListener('pointerup',onUp);
+        });
         td.appendChild(dh);
         const rr=document.createElement('div');rr.className='row-resize';attachRowResize(rr,row,tr);td.appendChild(rr);
       }
@@ -1310,7 +1288,81 @@ function render(){
   const dc2=state.displayCurrency||'USD';
   const optExists=[...sel.options].some(o=>o.value===dc2);
   sel.value=optExists?dc2:'__other__';
+  renderMobileCards();
 }
+
+
+function renderMobileCards(){
+  const MOBILE=window.innerWidth<640;
+  const sheetWrap=document.querySelector('.sheet-wrap');
+  let cardsEl=document.getElementById('sub-cards-mobile');
+  if(cardsEl) cardsEl.remove();
+  if(!MOBILE){ if(sheetWrap) sheetWrap.style.display=''; return; }
+  if(sheetWrap) sheetWrap.style.display='none';
+
+  const serviceCol=colByType('text');
+  const costCol=colByType('number');
+  const billingCol=colByType('billing');
+  const dateCol=colByType('date');
+  const statusCol=colByType('status');
+  const cancelCol=colByType('canceldate');
+
+  cardsEl=document.createElement('div');
+  cardsEl.id='sub-cards-mobile';
+  cardsEl.className='sub-cards';
+  cardsEl.style.display='flex';
+
+  const visibleRows=state.rows.filter(r=>!isHiddenForMonth(r));
+  if(!visibleRows.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='color:var(--muted);font-size:.9rem;text-align:center;padding:.75rem;';
+    empty.textContent='No subscriptions yet. Use the form above to add one.';
+    cardsEl.appendChild(empty);
+  } else {
+    visibleRows.forEach(row=>{
+      const card=document.createElement('div');card.className='sub-card';
+      const status=statusCol?(getCell(row.id,statusCol.id)||'Active'):'Active';
+      const clr=STATUS_CLR[status]||'#6b7280';
+
+      // Name + status badge
+      const nameRow=document.createElement('div');nameRow.className='sub-card-row';
+      const nameEl=document.createElement('span');nameEl.className='sub-card-name';
+      nameEl.textContent=serviceCol?(getCell(row.id,serviceCol.id)||'(unnamed)'):'(unnamed)';
+      const badge=document.createElement('span');badge.className='sub-card-status';
+      badge.textContent=status;badge.style.background=clr;
+      nameRow.appendChild(nameEl);nameRow.appendChild(badge);card.appendChild(nameRow);
+
+      // Cost + billing
+      if(costCol){
+        const rawCost=parseFloat(getCell(row.id,costCol.id))||0;
+        const usd=costToUSD(rawCost,row.id);
+        const billing=billingCol?(getCell(row.id,billingCol.id)||'Monthly'):'Monthly';
+        const costEl=document.createElement('div');costEl.className='sub-card-cost';
+        costEl.textContent=fmtCost(usd)+' / '+billing.toLowerCase();
+        card.appendChild(costEl);
+      }
+
+      // Start / cancel dates
+      const meta=[];
+      if(dateCol){const s=getCell(row.id,dateCol.id);if(s){const d=new Date(s+'T00:00:00');meta.push('Since '+MONTHS_SHORT[d.getMonth()]+' '+d.getFullYear());}}
+      if(cancelCol){const s=getCell(row.id,cancelCol.id);if(s){const d=new Date(s+'T00:00:00');meta.push('Cancels '+MONTHS_SHORT[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear());}}
+      if(meta.length){const metaEl=document.createElement('div');metaEl.className='sub-card-meta';metaEl.textContent=meta.join(' · ');card.appendChild(metaEl);}
+
+      // Delete button
+      const delBtn=document.createElement('button');delBtn.className='sub-card-del';
+      delBtn.textContent='🗑';delBtn.setAttribute('aria-label','Delete subscription');
+      delBtn.addEventListener('click',()=>deleteRow(row.id));
+      card.appendChild(delBtn);
+      cardsEl.appendChild(card);
+    });
+    const addBtn=document.createElement('button');addBtn.className='btn-add-row';
+    addBtn.textContent='+ Add Blank Row';
+    addBtn.addEventListener('click',()=>{snapshot();const id=uid();state.rows.push({id,height:36});if(!state.rowCurrencies)state.rowCurrencies={};state.rowCurrencies[id]='USD';save();render();recalcTotals();});
+    cardsEl.appendChild(addBtn);
+  }
+  if(sheetWrap) sheetWrap.parentElement.insertBefore(cardsEl,sheetWrap.nextSibling);
+}
+window.addEventListener('resize',()=>renderMobileCards());
 
 
 async function preloadRates(){
