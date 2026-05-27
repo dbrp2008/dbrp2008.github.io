@@ -707,6 +707,7 @@
         _dots(dotIdx,total);
       });
       _overlay.className='';_overlay.style.display='block';
+      _overlay.style.background=targetEl?'transparent':'rgba(0,0,0,.42)';
       if(step.type==='wait'||step.allowInteract) _overlay.classList.add('wt-allow-scroll');
 
 
