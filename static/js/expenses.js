@@ -1920,7 +1920,8 @@ function renderMobileCards(){
     const card=document.createElement('div');
     card.className='mc-card'+(isChild?' mc-child':'')+(isExpanded?' mc-active':'');
     card.dataset.rowId=row.id;
-    if(row.color) card.style.borderLeft='3px solid '+row.color;
+    if(row.color) card.style.backgroundColor=row.color;
+    if(row.textColor) card.style.setProperty('--row-text',row.textColor);
 
     const top=document.createElement('div');
     top.className='mc-top'+(isExpanded?'':' mc-top-only');
