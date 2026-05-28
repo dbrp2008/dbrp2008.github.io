@@ -1277,12 +1277,25 @@ function deleteRow(id){
   forkCurrentMonth();
   snapshot();
   const mk2=currentMK();
+  const rowToDelete=getRows(mk2).find(r=>r.id===id);
+  const parentId=rowToDelete?rowToDelete.parentId:null;
   const kids=getRows(mk2).filter(r=>r.parentId===id).map(r=>r.id);
   const toDelete=[id,...kids];
   state.rowsByMonth[mk2]=getRows(mk2).filter(r=>!toDelete.includes(r.id));
   Object.keys(state.cells).forEach(k=>{ if(toDelete.some(d=>k.includes('|'+d+'|'))) delete state.cells[k]; });
+  // If the last subcategory of a parent was just deleted, clear the parent's stale cells
+  // for this month so the parent resets to blank rather than re-exposing pre-subcategory values
+  const lastChildGone=parentId&&!getRows(mk2).some(r=>r.parentId===parentId);
+  if(lastChildGone){
+    Object.keys(state.cells).forEach(k=>{ if(k.startsWith(mk2+'|'+parentId+'|')) delete state.cells[k]; });
+  }
   save();
-  (function(){var tbody=document.querySelector('#sheet tbody');if(!tbody){render();return;}toDelete.forEach(function(rId){var tr=tbody.querySelector('[data-tr-row-id="'+rId+'"]');if(tr)tr.remove();});updateGrandTotal();})();
+  if(lastChildGone){
+    // Full re-render needed: DOM surgery wouldn't update the parent row from italic aggregate to editable
+    render();
+  } else {
+    (function(){var tbody=document.querySelector('#sheet tbody');if(!tbody){render();return;}toDelete.forEach(function(rId){var tr=tbody.querySelector('[data-tr-row-id="'+rId+'"]');if(tr)tr.remove();});updateGrandTotal();})();
+  }
   showToast('Row deleted.', false, 5000, undo);
 }
 function deleteCol(id){
@@ -1917,7 +1930,8 @@ function render(){
   const eb=document.getElementById('expand-btn'), cb2=document.getElementById('collapse-btn');
   if(eb) eb.style.display=hasSubcats?'':'none';
   if(cb2) cb2.style.display=hasSubcats?'':'none';
-  if(!MOBILE) applyMobileColVisibility(currentMK());
+  if(!MOBILE){ applyMobileColVisibility(currentMK()); }
+  else { const ob=document.getElementById('mobile-col-toggle'); if(ob) ob.remove(); }
   requestAnimationFrame(function(){window.scrollTo(0,_sy);});
 }
 
@@ -2117,7 +2131,8 @@ function applyMobileColVisibility(mk){
 let _resizeRenderTimer=null;
 let _lastRenderW=window.innerWidth;
 window.addEventListener('resize',()=>{
-  _mobileColPair=null; applyMobileColVisibility(currentMK());
+  if(window.innerWidth>=640){ _mobileColPair=null; applyMobileColVisibility(currentMK()); }
+  else { const ob=document.getElementById('mobile-col-toggle'); if(ob) ob.remove(); }
   // Only re-render when WIDTH changes (keyboard open/close only changes height — re-rendering
   // on height-only resize destroys the focused input and closes the keyboard immediately).
   const w=window.innerWidth;
