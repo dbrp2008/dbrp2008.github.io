@@ -259,6 +259,43 @@
       thead .col-drag-handle{display:none;}
       thead .col-del{display:none;}
     }
+    /* ── Mobile card layout ─────────────────────────────────── */
+    .mc-card{background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:opacity .15s;}
+    .mc-card.mc-child{margin-left:18px;background:var(--th-bg);border-color:var(--panel-border);}
+    .mc-card.mc-active{border:2px solid var(--accent);box-shadow:0 2px 12px rgba(0,0,0,.1);}
+    .mc-card.mc-dim{opacity:.38;pointer-events:none;}
+    .mc-top{display:flex;align-items:flex-start;padding:9px 10px 0 8px;gap:4px;}
+    .mc-top.mc-top-only{padding-bottom:9px;}
+    .mc-drag{color:var(--muted);font-size:14px;letter-spacing:-1.5px;line-height:1;flex-shrink:0;padding-top:2px;opacity:.5;}
+    .mc-active .mc-drag{color:var(--accent);opacity:1;}
+    .mc-main{flex:1;min-width:0;}
+    .mc-hdr{display:flex;align-items:center;gap:4px;margin-bottom:5px;}
+    .mc-name{font-weight:700;font-size:13px;color:var(--fg);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .mc-child .mc-name{font-size:12px;display:flex;align-items:center;gap:4px;}
+    .mc-child .mc-name::before{content:'';width:2px;height:11px;background:var(--muted);border-radius:1px;flex-shrink:0;opacity:.5;}
+    .mc-active.mc-child .mc-name::before{background:var(--accent);opacity:1;}
+    .mc-total{font-weight:700;font-size:12px;color:var(--total-fg);background:var(--total-bg);padding:2px 7px;border-radius:10px;flex-shrink:0;}
+    .mc-active .mc-total{background:var(--accent);color:#fff;}
+    .mc-gear{background:none;border:none;font-size:13px;color:var(--muted);cursor:pointer;padding:0 1px;line-height:1;flex-shrink:0;}
+    .mc-weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:4px;}
+    .mc-wk{text-align:center;}
+    .mc-wl{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:1px;}
+    .mc-wv{font-size:11px;color:var(--fg);font-weight:500;}
+    .mc-wv-empty{color:var(--muted);opacity:.5;}
+    .mc-wc{font-size:9px;color:var(--muted);margin-top:1px;}
+    .mc-hint-edit{font-size:10px;color:var(--accent);opacity:.7;text-align:right;padding:2px 0 7px;}
+    .mc-hint-subs{font-size:10px;color:var(--muted);opacity:.6;text-align:right;font-style:italic;padding:2px 0 7px;}
+    .mc-form{padding:10px;border-top:1px solid var(--panel-border);background:var(--th-bg);border-radius:0 0 9px 9px;}
+    .mc-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .mc-ef{display:flex;flex-direction:column;gap:3px;}
+    .mc-el{font-size:9px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+    .mc-er{display:flex;gap:4px;}
+    .mc-ei{flex:1;font-size:16px!important;padding:7px 8px;border:1px solid var(--input-border);border-radius:6px;background:var(--input-bg);color:var(--fg);min-width:0;width:0;font-family:inherit;}
+    .mc-ei:focus{border-color:var(--accent);outline:none;}
+    .mc-ec{font-size:12px;padding:7px 3px;border:1px solid var(--input-border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-family:inherit;width:58px;flex-shrink:0;}
+    .mc-ebtns{display:flex;gap:7px;margin-top:9px;}
+    .mc-esave{flex:1;background:var(--accent);color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+    .mc-ecancel{flex:1;background:var(--panel-bg);color:var(--accent);border:1px solid var(--accent);border-radius:7px;padding:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;}
 </style>
 {% endblock %}
 {% block content %}
@@ -380,7 +417,8 @@
     <div class="top3" id="top3"></div>
   </div>
 
-  <div class="sheet-wrap"><table class="sheet" id="sheet"></table></div>
+  <div class="sheet-wrap" id="inc-sheet-wrap"><table class="sheet" id="sheet"></table></div>
+  <div id="inc-mobile-cards" style="display:none;padding:0 0 1rem;"></div>
 <div id="help-modal" style="display:none" class="share-overlay">
   <div class="share-modal">
     <h3>How to use - Income Tracker</h3>
