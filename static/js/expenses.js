@@ -1597,9 +1597,9 @@ function renderTableHeader(table){
   const cg=document.createElement('colgroup');
   const _mob=window.innerWidth<640;
   const _vw=window.innerWidth;
-  // Adaptive mobile widths: label~33%, each data col~27% of viewport (87% total for 2 visible cols)
-  const _hdrW=_mob?Math.max(100,Math.round(_vw*0.33)):state.headerColWidth||185;
-  const _dataW=_mob?Math.max(80,Math.round(_vw*0.27)):null;
+  // Mobile: label ~30% vw, data cols 90px fixed. Table wider than viewport — horizontal scroll is fine.
+  const _hdrW=_mob?Math.max(90,Math.round(_vw*0.30)):state.headerColWidth||185;
+  const _dataW=_mob?90:null;
   const hc=document.createElement('col');hc.id='cg-hdr';hc.style.width=_hdrW+'px';cg.appendChild(hc);
   getCols().forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(_mob?_dataW:col.width||100)+'px';cg.appendChild(c);});
   const tc=document.createElement('col');tc.style.width=(state.totalColWidth||110)+'px';cg.appendChild(tc);
@@ -1959,7 +1959,13 @@ function applyMobileColVisibility(mk){
   btn.addEventListener('click',()=>{ _mobileColPair=otherPair; applyMobileColVisibility(mk); });
   sheetWrap.parentElement.insertBefore(btn,sheetWrap);
 }
-window.addEventListener('resize',()=>{ _mobileColPair=null; applyMobileColVisibility(currentMK()); });
+let _resizeRenderTimer=null;
+window.addEventListener('resize',()=>{
+  _mobileColPair=null; applyMobileColVisibility(currentMK());
+  // Rebuild column widths after fold/unfold (debounced so it doesn't fire on every pixel)
+  clearTimeout(_resizeRenderTimer);
+  _resizeRenderTimer=setTimeout(()=>render(),300);
+});
 
 
 
