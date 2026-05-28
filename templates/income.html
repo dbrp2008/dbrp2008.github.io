@@ -251,8 +251,10 @@
       .sub-dropdown{display:none;}
       /* Show gear button */
       .row-gear-btn{display:inline-flex;}
+      /* Bleed table to screen edges — body has 1rem padding which creates ugly gap */
+      .sheet-wrap{margin-left:-1rem;margin-right:-1rem;max-width:calc(100% + 2rem);}
       /* Tighten label cell spacing (col width capped in JS) */
-      .rh-inner{gap:3px;padding-left:4px;padding-right:4px;}
+      .rh-inner{gap:3px;padding-left:6px;padding-right:4px;}
       /* Hide row drag handle — touch drag not supported, and pointer:coarse forces it to 44px eating label space */
       .drag-handle{display:none;}
       /* Hide column drag handle and delete button in headers — useless on touch, eat ~60px per cell */
