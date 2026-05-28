@@ -1027,8 +1027,8 @@ function renderTableHeader(table){
   const cg=document.createElement('colgroup');
   const _mob=window.innerWidth<640;
   const _vw=window.innerWidth;
-  // Mobile: label ~35% vw, data cols 115px (number+currency need more room than expenses cells).
-  const _hdrW=_mob?Math.max(110,Math.round(_vw*0.35)):state.headerColWidth||185;
+  // Mobile: label ~36% vw, data cols 115px (number+currency need more room than expenses cells).
+  const _hdrW=_mob?Math.max(120,Math.round(_vw*0.36)):state.headerColWidth||185;
   const _dataW=_mob?115:null;
   const hc=document.createElement('col');hc.id='cg-hdr';hc.style.width=_hdrW+'px';cg.appendChild(hc);
   getCols().forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(_mob?_dataW:col.width||120)+'px';cg.appendChild(c);});
