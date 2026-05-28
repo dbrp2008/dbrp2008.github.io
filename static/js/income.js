@@ -1027,8 +1027,8 @@ function renderTableHeader(table){
   const cg=document.createElement('colgroup');
   const _mob=window.innerWidth<640;
   const _vw=window.innerWidth;
-  // Mobile: label ~36% vw, data cols 115px (number+currency need more room than expenses cells).
-  const _hdrW=_mob?Math.max(120,Math.round(_vw*0.36)):state.headerColWidth||185;
+  // Mobile: label ~43% vw, data cols 115px. Table scrolls ~30px to show Total — better than cramping.
+  const _hdrW=_mob?Math.max(150,Math.round(_vw*0.43)):state.headerColWidth||185;
   const _dataW=_mob?115:null;
   const hc=document.createElement('col');hc.id='cg-hdr';hc.style.width=_hdrW+'px';cg.appendChild(hc);
   getCols().forEach(col=>{const c=document.createElement('col');c.id='cg-'+col.id;c.style.width=(_mob?_dataW:col.width||120)+'px';cg.appendChild(c);});
@@ -1238,12 +1238,25 @@ function renderFooter(table){
   tfoot.appendChild(ftr);table.appendChild(tfoot);
 }
 
+let _expandedCardId=null;
+
 function render(){
   const _sy=window.scrollY;
+  const MOBILE=window.innerWidth<640;
+  const sheetWrap=document.getElementById('inc-sheet-wrap');
+  const cardsDiv=document.getElementById('inc-mobile-cards');
   const table=document.getElementById('sheet'); table.innerHTML='';
-  renderTableHeader(table);
-  renderTableBody(table);
-  renderFooter(table);
+  if(MOBILE){
+    if(sheetWrap) sheetWrap.style.display='none';
+    if(cardsDiv) cardsDiv.style.display='';
+    renderMobileCards();
+  } else {
+    if(sheetWrap) sheetWrap.style.display='';
+    if(cardsDiv) cardsDiv.style.display='none';
+    renderTableHeader(table);
+    renderTableBody(table);
+    renderFooter(table);
+  }
   updateSummaryBar();
   if(chartVisible) renderChart();
   adjustBodyWidth();
@@ -1255,6 +1268,130 @@ function render(){
   if(eb) eb.style.display=hasSubcats?'':'none';
   if(cb2) cb2.style.display=hasSubcats?'':'none';
   requestAnimationFrame(function(){window.scrollTo(0,_sy);});
+}
+
+function renderMobileCards(){
+  const container=document.getElementById('inc-mobile-cards');
+  if(!container) return;
+  container.innerHTML='';
+  const cols=getCols();
+
+  function buildCard(row){
+    const isChild=!!row.parentId;
+    const hasKids=hasChildren(row.id);
+    const canEdit=!hasKids;
+    const isExpanded=_expandedCardId===row.id;
+    const cur=rowCurrency(currentMK(),row.id);
+
+    const card=document.createElement('div');
+    card.className='mc-card'+(isChild?' mc-child':'')+(isExpanded?' mc-active':'');
+    card.dataset.rowId=row.id;
+    if(row.color) card.style.backgroundColor=row.color;
+
+    const top=document.createElement('div');
+    top.className='mc-top'+(isExpanded?'':' mc-top-only');
+
+    const drag=document.createElement('span');drag.className='mc-drag';drag.textContent='⠿';drag.setAttribute('aria-label','Drag to reorder');
+    top.appendChild(drag);
+
+    const main=document.createElement('div');main.className='mc-main';
+    const hdr=document.createElement('div');hdr.className='mc-hdr';
+
+    const nameEl=document.createElement('span');nameEl.className='mc-name';nameEl.textContent=row.label;
+    if(row.textColor) nameEl.style.color=row.textColor;
+    hdr.appendChild(nameEl);
+
+    const totalEl=document.createElement('span');totalEl.className='mc-total';totalEl.textContent=fmt(rowTotal(row.id));hdr.appendChild(totalEl);
+
+    const gear=document.createElement('button');gear.className='mc-gear';gear.textContent='⚙';gear.setAttribute('aria-label','Row options');
+    gear.addEventListener('click',e=>{e.stopPropagation();_openGearMenu(gear,row,card,null,null,isChild);});
+    hdr.appendChild(gear);
+    main.appendChild(hdr);
+
+    const weeksEl=document.createElement('div');weeksEl.className='mc-weeks';
+    cols.forEach(col=>{
+      const wk=document.createElement('div');wk.className='mc-wk';
+      const lbl=document.createElement('div');lbl.className='mc-wl';lbl.textContent=col.label;
+      const v=getCell(row.id,col.id);
+      const val=document.createElement('div');val.className='mc-wv'+(v===0?' mc-wv-empty':'');
+      val.textContent=v>0?fmt(v):'—';
+      wk.appendChild(lbl);wk.appendChild(val);
+      if(v>0){const cc=document.createElement('div');cc.className='mc-wc';cc.textContent=cur;wk.appendChild(cc);}
+      weeksEl.appendChild(wk);
+    });
+    main.appendChild(weeksEl);
+
+    const hint=document.createElement('div');
+    if(!canEdit){
+      hint.className='mc-hint-subs';hint.textContent='edit via subcategories below';
+    } else {
+      hint.className='mc-hint-edit';hint.textContent='tap to edit ✏️';
+      card.style.cursor='pointer';
+      card.addEventListener('click',e=>{
+        if(e.target.closest('.mc-gear')) return;
+        _expandedCardId=isExpanded?null:row.id;
+        renderMobileCards();
+      });
+    }
+    main.appendChild(hint);
+    top.appendChild(main);
+    card.appendChild(top);
+
+    if(isExpanded){
+      const form=document.createElement('div');form.className='mc-form';
+      const grid=document.createElement('div');grid.className='mc-form-grid';
+      const inputs=[];
+      const codes=getAllUsedCurrencies();
+      if(!codes.includes(cur)) codes.push(cur);
+      cols.forEach(col=>{
+        const ef=document.createElement('div');ef.className='mc-ef';
+        const lbl=document.createElement('div');lbl.className='mc-el';lbl.textContent=col.label;
+        const er=document.createElement('div');er.className='mc-er';
+        const inp=document.createElement('input');inp.type='number';inp.inputMode='decimal';inp.className='mc-ei';
+        inp.value=getRawCell(row.id,col.id)||'';
+        const sel=document.createElement('select');sel.className='mc-ec';
+        codes.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;if(c===cur)o.selected=true;sel.appendChild(o);});
+        er.appendChild(inp);er.appendChild(sel);
+        inputs.push({inp,sel,col});
+        ef.appendChild(lbl);ef.appendChild(er);grid.appendChild(ef);
+      });
+      form.appendChild(grid);
+      const btns=document.createElement('div');btns.className='mc-ebtns';
+      const cancelBtn=document.createElement('button');cancelBtn.className='mc-ecancel';cancelBtn.textContent='Cancel';
+      cancelBtn.addEventListener('click',e=>{e.stopPropagation();_expandedCardId=null;renderMobileCards();});
+      const saveBtn=document.createElement('button');saveBtn.className='mc-esave';saveBtn.textContent='Save';
+      saveBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        snapshot();
+        const newCur=inputs[0].sel.value;
+        setRowCurrency(currentMK(),row.id,newCur);
+        inputs.forEach(({inp,col})=>{
+          const v=inp.value.trim();
+          if(v===''||isNaN(parseFloat(v))) delete state.cells[ck(row.id,col.id)];
+          else state.cells[ck(row.id,col.id)]=v;
+        });
+        _expandedCardId=null;
+        save();
+        ensureRate(newCur).then(()=>render());
+      });
+      btns.appendChild(cancelBtn);btns.appendChild(saveBtn);form.appendChild(btns);
+      card.appendChild(form);
+      setTimeout(()=>{ const first=form.querySelector('.mc-ei'); if(first) first.focus(); },50);
+    }
+
+    container.appendChild(card);
+  }
+
+  getRows().filter(r=>!r.parentId).forEach(row=>{
+    buildCard(row);
+    if(!isCollapsed(row.id)) children(row.id).forEach(buildCard);
+  });
+
+  if(_expandedCardId){
+    container.querySelectorAll('.mc-card').forEach(c=>{
+      if(c.dataset.rowId!==_expandedCardId) c.classList.add('mc-dim');
+    });
+  }
 }
 
 
