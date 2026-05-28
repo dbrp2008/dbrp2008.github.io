@@ -253,7 +253,8 @@
       .row-gear-btn{display:inline-flex;}
       /* Tighten label cell spacing */
       .rh-inner{gap:3px;padding-left:4px;padding-right:4px;}
-      .drag-handle{padding:0 2px;}
+      /* Hide row drag handle — touch drag not supported, and pointer:coarse forces it to 44px eating label space */
+      .drag-handle{display:none;}
       /* Hide recurring badge to save label space (col width capped in JS) */
       .row-recur-badge{display:none;}
       /* Hide column drag handle and delete button in headers — useless on touch, eat ~60px per cell */
