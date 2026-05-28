@@ -1796,7 +1796,7 @@ function renderTableBody(table){
       tr.appendChild(td);
     });
     const totTd=document.createElement('td');totTd.className='th-total';
-    const totInner=document.createElement('div');totInner.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:2px;';
+    const totInner=document.createElement('div');totInner.style.cssText='display:flex;align-items:center;justify-content:flex-end;gap:2px;height:100%;';
     const totSpan=document.createElement('span');totSpan.className='total-val';totSpan.id='rt-'+row.id;
     totSpan.textContent=fmt(rowTotal(row.id));totInner.appendChild(totSpan);
     if(!isChild){
