@@ -927,8 +927,60 @@
         else _go();
       })();
     };
-    window.wtStartEnhanced=function(page){
+    var MOBILE_STEPS={
+      expenses:[
+        {id:'mob-exp-cards', emoji:'📋', text:'On mobile, your expenses appear as <strong>cards</strong> — one per category. Each card shows your spending by week at a glance.'},
+        {id:'mob-exp-edit',  emoji:'✏️', text:'<strong>Tap any card</strong> to expand it and edit your weekly amounts. Tap Save when done, or Cancel to discard.'},
+        {id:'mob-exp-goal',  emoji:'🎯', text:'Tap <strong>🎯</strong> next to any total to set a monthly spending limit. The total pill turns green / amber / red as you approach or exceed it.'},
+        {id:'mob-exp-sub',   emoji:'📂', text:'Categories with <strong>subcategories</strong> show "edit via subcategories below" — tap the indented child cards to edit their values individually.'},
+        {id:'mob-exp-gear',  emoji:'⚙️', text:'Tap the <strong>⚙</strong> on any card to change its colour, add a subcategory, or delete the row.'},
+        {id:'mob-exp-subs',  emoji:'🔗', text:'A card with a <strong>pink → Subs badge</strong> is auto-filled from your Subscriptions tracker — tap the badge to view the detail.'}
+      ],
+      income:[
+        {id:'mob-inc-cards', emoji:'📋', text:'On mobile, your income sources appear as <strong>cards</strong>. Each card shows your income by week and the currency used.'},
+        {id:'mob-inc-edit',  emoji:'✏️', text:'<strong>Tap any card</strong> to expand it. Edit each week\'s amount and change the currency with the dropdown next to it.'},
+        {id:'mob-inc-gear',  emoji:'⚙️', text:'Tap the <strong>⚙</strong> on any card to change its colour, add a sub-source, or delete the row.'}
+      ],
+      subscriptions:[
+        {id:'mob-sub-cards', emoji:'📋', text:'Your subscriptions are shown as <strong>cards</strong>. Tap any card to edit its details — name, cost, billing cycle, and status.'},
+        {id:'mob-sub-gear',  emoji:'⚙️', text:'Use the <strong>🗑 delete button</strong> on a card to remove a subscription.'}
+      ]
+    };
+    function _runMobileGuide(page){
+      var steps=MOBILE_STEPS[page]||MOBILE_STEPS.expenses;
+      var idx=0;
+      function show(){
+        if(idx>=steps.length){
+          _transition(function(){
+            _avatar.textContent='✅';_text.innerHTML='You\'re all set! Those are the basics for using FiApp on your phone.';
+            _btns.innerHTML='';_progress.innerHTML='';
+            var b=document.createElement('button');b.className='wt-btn-primary';b.textContent='Done';
+            b.onclick=function(){_hideAll();};_btns.appendChild(b);
+          });
+          _setHL(null);_posBubble(null);return;
+        }
+        var s=steps[idx];
+        _transition(function(){
+          _avatar.textContent=s.emoji||'📱';
+          _text.innerHTML=s.text;_btns.innerHTML='';
+          _dots(idx,steps.length);
+          var nextBtn=document.createElement('button');nextBtn.className='wt-btn-primary';
+          nextBtn.textContent=idx===steps.length-1?'Done':'Next →';
+          nextBtn.onclick=function(){idx++;show();};
+          _btns.appendChild(nextBtn);
+          var skipBtn=document.createElement('button');skipBtn.className='wt-btn-ghost';skipBtn.textContent='Close guide';
+          skipBtn.style.cssText='width:100%;margin-top:.3rem;opacity:.7;font-size:.8rem;';
+          skipBtn.onclick=function(){_hideAll();};
+          _btns.appendChild(skipBtn);
+        });
+        _overlay.style.display='block';
+        _setHL(null);_posBubble(null);
+      }
+      show();
+    }
 
+    window.wtStartEnhanced=function(page){
+      if(window.innerWidth<640){ _runMobileGuide(page); return; }
       if(page==='expenses') _runEnhanced('expenses');
       else if(page==='income') _runEnhanced('income');
       else if(page==='subscriptions') _runEnhanced('subscriptions');
@@ -939,16 +991,12 @@
         {id:'enh-exp-tax',   text:'Did you know? Your gross income from the <strong>Income Tracker</strong> can auto-fill into the Tax Calculator. Use the <a href="/tax" style="color:var(--accent)">🧾 Tax Calculator</a> to estimate your tax - it pre-fills from income data.',           target:'[data-wt="expenses-tax-link"]', emoji:'💡'},
         {id:'enh-exp-goal',  text:'Click the <strong>🎯</strong> next to any row total to set a monthly spending limit for that category. The total turns <span style="color:#22c55e;font-weight:700">green</span> when under budget, <span style="color:#f59e0b;font-weight:700">amber</span> when close, and <span style="color:#ef4444;font-weight:700">red</span> when over.',  target:'.goal-btn', emoji:'🎯'},
         {id:'enh-exp-fore',  text:'<strong>Forecast mode</strong> - when you navigate to a future month, FiApp shows this banner. You can seed it with your spending history or copy last month\'s values - great for planning ahead.',                                                     target:'[data-wt="expenses-forecast"]', emoji:'📋', beforeShow:function(){if(typeof window.isForecastMonth==='function'&&!window.isForecastMonth()&&typeof window.jumpToMonth==='function'){var _n=new Date(),_fm=_n.getMonth()+1,_fy=_n.getFullYear();if(_fm>11){_fm=0;_fy++;}window.jumpToMonth(_fy+'-'+String(_fm+1).padStart(2,'0'));}}},
-        {id:'enh-exp-share', text:'You can <strong>share your expense sheet</strong> with others. Use the Share button in the toolbar - it generates a clean view without requiring a login, and you can export to CSV.',                                                                   target:'[data-wt="expenses-share"]',    emoji:'📤'},
-        {id:'enh-exp-m-gear',  mobileOnly:true, text:'Tap the <strong>⚙</strong> button on any row to change its background colour, text colour, or add subcategories. For rows linked to your Subscription Tracker, it also has a quick link to open it.', target:'.row-gear-btn', emoji:'📱'},
-        {id:'enh-exp-m-scroll',mobileOnly:true, text:'<strong>Scroll left/right</strong> on the table to see all your week columns. The row label column stays pinned to the left so you always know which category you\'re editing.', target:'.sheet-wrap', emoji:'👆'}
+        {id:'enh-exp-share', text:'You can <strong>share your expense sheet</strong> with others. Use the Share button in the toolbar - it generates a clean view without requiring a login, and you can export to CSV.',                                                                   target:'[data-wt="expenses-share"]',    emoji:'📤'}
       ],
       income:[
         {id:'enh-inc-gross', text:'Your <strong>total gross income</strong> here automatically appears in the Expense Tracker\'s Budget panel and pre-fills the Tax Calculator. No manual copying needed.',                                                                                  target:'[data-wt="income-tax-link"]',   emoji:'🔗'},
         {id:'enh-inc-curr',  text:'Each income source can have its <strong>own currency</strong>. FiApp converts everything to USD for comparisons - great for multi-currency earners.',                                                                                                     target:'[data-wt="income-currency"]',   emoji:'💱'},
-        {id:'enh-inc-share', text:'You can <strong>share your income sheet</strong> with others. Use the Share button to generate a clean view without requiring a login, or export to CSV.',                                                                                               target:'[data-wt="income-share"]',      emoji:'📤'},
-        {id:'enh-inc-m-gear',  mobileOnly:true, text:'Tap the <strong>⚙</strong> button on any row to change its background colour, text colour, or add sub-sources.', target:'.row-gear-btn', emoji:'📱'},
-        {id:'enh-inc-m-scroll',mobileOnly:true, text:'<strong>Scroll left/right</strong> on the table to see all your income columns. The row labels stay pinned so you always know which source you\'re editing.', target:'.sheet-wrap', emoji:'👆'}
+        {id:'enh-inc-share', text:'You can <strong>share your income sheet</strong> with others. Use the Share button to generate a clean view without requiring a login, or export to CSV.',                                                                                               target:'[data-wt="income-share"]',      emoji:'📤'}
       ],
       subscriptions:[
         {id:'enh-sub-sync',  text:'Subscriptions you log here are <strong>automatically reflected</strong> in your Expense Tracker under the Subscriptions category. No double-entry needed.',                                                                                              target:'[data-wt="subs-add"]',          emoji:'🔄'},
