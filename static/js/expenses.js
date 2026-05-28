@@ -199,7 +199,10 @@ function save(){
 function _monthSpendTotal(mk2){
   var sum=0;
   var mCols=(state.colsByMonth&&state.colsByMonth[mk2])||state.cols||[];
-  getRows(mk2).forEach(function(row){
+  var rows=getRows(mk2);
+  var hasKidsSet=new Set(rows.filter(function(r){return r.parentId;}).map(function(r){return r.parentId;}));
+  rows.forEach(function(row){
+    if(hasKidsSet.has(row.id)) return; // parent with children — children's cells are the real values
     mCols.forEach(function(col){ sum+=parseFloat((state.cells||{})[mk2+'|'+row.id+'|'+col.id]||0)||0; });
   });
   return parseFloat(sum.toFixed(2));
@@ -232,7 +235,15 @@ function checkSpendTrend(){
   var topCat='', topCatPct=0, topCatDir='up';
   getRows(mk2).forEach(function(row){
     if(row.parentId) return;
-    var t=rowTotalsThis[row.id]||0, p=rowTotalsPrev[row.id]||0;
+    var kids=getRows(mk2).filter(function(r){return r.parentId===row.id;});
+    var t=kids.length>0
+      ? kids.reduce(function(s,c){return s+(rowTotalsThis[c.id]||0);},0)
+      : (rowTotalsThis[row.id]||0);
+    var prevRowsArr=(state.rowsByMonth&&state.rowsByMonth[prevMk2])||state.rows||[];
+    var prevKids=prevRowsArr.filter(function(r){return r.parentId===row.id;});
+    var p=prevKids.length>0
+      ? prevKids.reduce(function(s,c){return s+(rowTotalsPrev[c.id]||0);},0)
+      : (rowTotalsPrev[row.id]||0);
     if(p<1) return;
     var cp=Math.round(Math.abs(t-p)/p*100);
     if(cp>topCatPct){ topCatPct=cp; topCat=row.label; topCatDir=t>p?'up':'down'; }
