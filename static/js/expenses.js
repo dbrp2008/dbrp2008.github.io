@@ -667,7 +667,9 @@ function _openGoalPopup(rId, gBtn){
     const v=parseFloat(inp.value);
     if(!state.goals) state.goals={};
     if(!isNaN(v)&&v>0) state.goals[_goalKey(rId)]=v; else delete state.goals[_goalKey(rId)];
-    save(); _renderGoalBar(rId,totTd); pop.remove(); removePL();
+    save();
+    if(totTd) _renderGoalBar(rId,totTd); else render();
+    pop.remove(); removePL();
   };
   saveBtn.addEventListener('click',applyGoal);
   clrBtn.addEventListener('click',()=>{ inp.value=''; applyGoal(); });
@@ -1977,7 +1979,21 @@ function renderMobileCards(){
     }
 
     const totalEl=document.createElement('span');totalEl.className='mc-total';
-    totalEl.textContent=fmt(rowTotal(row.id));hdr.appendChild(totalEl);
+    const _spent=rowTotal(row.id);
+    totalEl.textContent=fmt(_spent);
+    const _goal=state.goals?.[_goalKey(row.id)];
+    if(_goal&&!isNaN(_goal)&&_goal>0){
+      const _pct=Math.round(_spent/_goal*100);
+      totalEl.style.background=_pct>=100?'#ef4444':_pct>=75?'#f59e0b':'#22c55e';
+      totalEl.style.color='#fff';
+    }
+    hdr.appendChild(totalEl);
+
+    if(!isLinked){
+      const goalBtn=document.createElement('button');goalBtn.className='mc-goal-btn';goalBtn.textContent='🎯';goalBtn.setAttribute('aria-label','Set spending goal');
+      goalBtn.addEventListener('click',e=>{e.stopPropagation();_openGoalPopup(row.id,goalBtn);});
+      hdr.appendChild(goalBtn);
+    }
 
     const gear=document.createElement('button');gear.className='mc-gear';gear.textContent='⚙';gear.setAttribute('aria-label','Row options');
     gear.addEventListener('click',e=>{e.stopPropagation();_openGearMenu(gear,row,card,null,null,isChild);});
