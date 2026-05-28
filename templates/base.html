@@ -932,8 +932,9 @@
         {id:'mob-exp-cards', emoji:'📋', text:'On mobile, your expenses appear as <strong>cards</strong> — one per category. Each card shows your spending by week at a glance.', target:'#exp-mobile-cards'},
         {id:'mob-exp-edit',  emoji:'✏️', text:'<strong>Tap any card</strong> to expand it and edit your weekly amounts. Tap Save when done, or Cancel to discard.', target:'.mc-hint-edit'},
         {id:'mob-exp-goal',  emoji:'🎯', text:'Tap <strong>🎯</strong> next to any total to set a monthly spending limit. The total pill turns green / amber / red as you approach or exceed it.', target:'.mc-goal-btn'},
-        {id:'mob-exp-sub',   emoji:'📂', text:'Categories with <strong>subcategories</strong> show "edit via subcategories below" — tap the indented child cards to edit their values individually.', target:'.mc-hint-subs'},
+        {id:'mob-exp-sub',   emoji:'📂', text:'Categories with <strong>subcategories</strong> show "edit via subcategories below" — tap the indented child cards to edit their values individually.', target:'.mc-card.mc-child'},
         {id:'mob-exp-gear',  emoji:'⚙️', text:'Tap the <strong>⚙</strong> on any card to change its colour, add a subcategory, or delete the row.', target:'.mc-gear'},
+        {id:'mob-exp-fore',  emoji:'📋', text:'<strong>Forecast mode</strong> — navigate to a future month and FiApp shows this banner. Seed it with your spending history or copy last month\'s values to plan ahead.', target:'[data-wt="expenses-forecast"]', beforeShow:function(){if(typeof window.isForecastMonth==='function'&&!window.isForecastMonth()&&typeof window.jumpToMonth==='function'){var _n=new Date(),_fm=_n.getMonth()+1,_fy=_n.getFullYear();if(_fm>11){_fm=0;_fy++;}window.jumpToMonth(_fy+'-'+String(_fm+1).padStart(2,'0'));}}},
         {id:'mob-exp-subs',  emoji:'🔗', text:'A card with a <strong>pink → Subs badge</strong> is auto-filled from your Subscriptions tracker — tap the badge to view the detail.', target:'.mc-subs-badge'}
       ],
       income:[
@@ -949,17 +950,24 @@
     function _runMobileGuide(page){
       var steps=MOBILE_STEPS[page]||MOBILE_STEPS.expenses;
       var idx=0;
+      var _origMK=typeof window.currentMK==='function'?window.currentMK():null;
+      function _cleanup(){
+        if(_origMK&&typeof window.jumpToMonth==='function'&&typeof window.currentMK==='function'&&window.currentMK()!==_origMK)
+          window.jumpToMonth(_origMK);
+      }
       function show(){
         if(idx>=steps.length){
+          _cleanup();
           _transition(function(){
             _avatar.textContent='✅';_text.innerHTML='You\'re all set! Those are the basics for using FiApp on your phone.';
             _btns.innerHTML='';_progress.innerHTML='';
             var b=document.createElement('button');b.className='wt-btn-primary';b.textContent='Done';
-            b.onclick=function(){_hideAll();};_btns.appendChild(b);
+            b.onclick=function(){_cleanup();_hideAll();};_btns.appendChild(b);
           });
           _setHL(null);_posBubble(null);_trackHL(null);return;
         }
         var s=steps[idx];
+        if(s.beforeShow) s.beforeShow();
         var targetEl=s.target?document.querySelector(s.target):null;
         _transition(function(){
           _avatar.textContent=s.emoji||'📱';
@@ -971,7 +979,7 @@
           _btns.appendChild(nextBtn);
           var skipBtn=document.createElement('button');skipBtn.className='wt-btn-ghost';skipBtn.textContent='Close guide';
           skipBtn.style.cssText='width:100%;margin-top:.3rem;opacity:.7;font-size:.8rem;';
-          skipBtn.onclick=function(){_hideAll();};
+          skipBtn.onclick=function(){_cleanup();_hideAll();};
           _btns.appendChild(skipBtn);
         });
         _overlay.style.display='block';
