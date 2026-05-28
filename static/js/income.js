@@ -684,26 +684,36 @@ document.addEventListener('pointerdown',e=>{ if(!e.target.closest('.row-gear-men
 
 function _openGearMenu(btn, row, rhTd, swatch, textSwatch, isChild){
   _closeGearMenu();
+  document.querySelectorAll('input[data-gear-clr]').forEach(el=>el.remove());
+
   const menu=document.createElement('div'); menu.className='row-gear-menu';
-  function mBtn(label,fn){ const b=document.createElement('button');b.textContent=label;b.addEventListener('click',()=>{_closeGearMenu();fn();});menu.appendChild(b); }
 
-  mBtn('🎨 Background colour',()=>{
-    const tmp=document.createElement('input');tmp.type='color';tmp.value=row.color||'#ffffff';
-    tmp.style.cssText='position:fixed;opacity:0;top:-99px;left:-99px;width:1px;height:1px;';
-    document.body.appendChild(tmp);
-    tmp.addEventListener('input',()=>{ row.color=tmp.value;rhTd.style.backgroundColor=tmp.value;if(swatch)swatch.style.backgroundColor=tmp.value;if(textSwatch)textSwatch.style.backgroundColor=tmp.value; });
-    tmp.addEventListener('change',()=>{ save();tmp.remove(); });
-    tmp.click();
-  });
+  function mBtn(label,fn){
+    const b=document.createElement('button');b.textContent=label;
+    b.addEventListener('click',e=>{e.stopPropagation();_closeGearMenu();fn();});
+    menu.appendChild(b);
+  }
 
-  mBtn('A  Text colour',()=>{
-    const tmp=document.createElement('input');tmp.type='color';tmp.value=row.textColor||'#1f2937';
-    tmp.style.cssText='position:fixed;opacity:0;top:-99px;left:-99px;width:1px;height:1px;';
-    document.body.appendChild(tmp);
-    tmp.addEventListener('input',()=>{ row.textColor=tmp.value;const lbl=rhTd.querySelector('.row-label');if(lbl)lbl.style.color=tmp.value;if(textSwatch)textSwatch.style.color=tmp.value; });
-    tmp.addEventListener('change',()=>{ save();tmp.remove(); });
-    tmp.click();
-  });
+  function mColorItem(labelText, initVal, onInput){
+    const id='_gc_'+Math.random().toString(36).slice(2,8);
+    const inp=document.createElement('input');
+    inp.type='color';inp.id=id;inp.value=initVal;
+    inp.setAttribute('data-gear-clr','1');
+    inp.style.cssText='position:fixed;opacity:0;top:50%;left:50%;pointer-events:none;';
+    inp.addEventListener('input',()=>onInput(inp.value));
+    inp.addEventListener('change',()=>{ _closeGearMenu();save();inp.remove(); });
+    document.body.appendChild(inp);
+    const lbl=document.createElement('label');lbl.htmlFor=id;lbl.textContent=labelText;
+    lbl.addEventListener('click',e=>e.stopPropagation());
+    menu.appendChild(lbl);
+  }
+
+  mColorItem('🎨 Background colour', row.color||'#ffffff',
+    v=>{ row.color=v;rhTd.style.backgroundColor=v;if(swatch)swatch.style.backgroundColor=v;if(textSwatch)textSwatch.style.backgroundColor=v; }
+  );
+  mColorItem('🔤 Text colour', row.textColor||'#1f2937',
+    v=>{ row.textColor=v;const lbl=rhTd.querySelector('.row-label');if(lbl)lbl.style.color=v;if(textSwatch)textSwatch.style.color=v; }
+  );
 
   if(!isChild){
     mBtn('＋ Add sub-source',()=>{ showSubMenu(btn,row); });
