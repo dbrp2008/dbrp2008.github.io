@@ -184,6 +184,13 @@
         <button type="button" class="tax-mode-btn" id="hk-married-btn" onclick="_toggleHKMarried()">Married Person's Allowance (HK$264,000)</button>
       </div>
     </div>
+    <div id="hk-immigrant-row" style="display:none;margin-bottom:1rem;">
+      <div class="tax-src-head" style="margin-bottom:.5rem;">Immigrant Arrival</div>
+      <div class="tax-mode-bar">
+        <button type="button" class="tax-mode-btn" id="hk-immigrant-btn" onclick="_toggleHKImmigrant()">Arrived in HK mid-year</button>
+      </div>
+      <div id="hk-immigrant-picks" style="display:none;margin-top:.6rem;"></div>
+    </div>
     <div>
       <label for="income">Annual Income
         <span id="income-ccy-sym" style="font-weight:700;margin-left:.25rem;">($)</span>
@@ -265,8 +272,11 @@ const HK_TAX_RELIEF    = 3000;
 
 let _country     = 'US';
 let _inResidency = 'ROR';
-let _hkMarried   = false;
-let _nriSourced  = null;
+let _hkMarried      = false;
+let _hkImmigrant    = false;
+let _hkArrivalYear  = new Date().getFullYear();
+let _hkArrivalMonth = new Date().getMonth() + 1;
+let _nriSourced     = null;
 
 let _incomeByCountry     = {};
 let _lastResultByCountry = {};
@@ -274,6 +284,12 @@ let _lastResultByCountry = {};
 function _toggleHKMarried(){
   _hkMarried = !_hkMarried;
   document.getElementById('hk-married-btn').classList.toggle('active', _hkMarried);
+  _saveTaxUI();
+}
+function _toggleHKImmigrant(){
+  _hkImmigrant = !_hkImmigrant;
+  document.getElementById('hk-immigrant-btn').classList.toggle('active', _hkImmigrant);
+  document.getElementById('hk-immigrant-picks').style.display = _hkImmigrant ? '' : 'none';
   _saveTaxUI();
 }
 
@@ -332,6 +348,16 @@ function calcHKTax(incomeHKD, married, rentalHKD=0){
   return { tax, method: prog<=std ? 'progressive' : 'standard rate', prog, std };
 }
 
+function _hkImmigrantInfo(arrYear, arrMonth){
+  // arrMonth 1-12. First April on or after arrival = start of first full fiscal year.
+  // That year ends 12 months later. Total months from arrival to that end date.
+  const fiscalStartYear = arrMonth <= 4 ? arrYear : arrYear + 1;
+  const fiscalEndYear   = fiscalStartYear + 1;
+  const totalMonths     = (fiscalEndYear - arrYear) * 12 + (4 - arrMonth);
+  return { totalMonths, scale: totalMonths / 12,
+           janYear: fiscalEndYear, aprYear: fiscalEndYear,
+           arrivalYear: arrYear, arrivalMonth: arrMonth };
+}
 
 
 function showError(msg){
@@ -512,6 +538,7 @@ function _saveTaxUI(){
   try{
     localStorage.setItem(_TAX_UI_KEY, JSON.stringify({
       country:_country, residency:_inResidency, hkMarried:_hkMarried,
+      hkImmigrant:_hkImmigrant, hkArrivalYear:_hkArrivalYear, hkArrivalMonth:_hkArrivalMonth,
       mode:_mode, pY:_pY, pSel:_pSel,
       nriSourced:_nriSourced===null?null:[..._nriSourced],
       incomeVal:document.getElementById('income')?.value||'',
@@ -528,6 +555,9 @@ function _loadTaxUI(){
     if(['US','IN','HK'].includes(s.country))             _country=s.country;
     if(['ROR','NRI'].includes(s.residency))               _inResidency=s.residency;
     if(typeof s.hkMarried==='boolean')                    _hkMarried=s.hkMarried;
+    if(typeof s.hkImmigrant==='boolean')                  _hkImmigrant=s.hkImmigrant;
+    if(typeof s.hkArrivalYear==='number')                 _hkArrivalYear=s.hkArrivalYear;
+    if(typeof s.hkArrivalMonth==='number')                _hkArrivalMonth=s.hkArrivalMonth;
     if(['manual','1','2','3','6','12'].includes(s.mode))  _mode=s.mode;
     if(typeof s.pY==='number')                            _pY=s.pY;
     if(Array.isArray(s.pSel))                             _pSel=s.pSel;
@@ -584,6 +614,7 @@ function _setCountry(c){
 
   _country = c;
   _hkMarried = false;
+  _hkImmigrant = false;
   document.querySelectorAll('.tax-mode-btn[id^="btn-"]').forEach(b=>b.classList.remove('active'));
   document.getElementById('btn-'+c.toLowerCase()).classList.add('active');
   _renderCountryUI();
@@ -613,9 +644,12 @@ function _renderCountryUI(){
   const regimeRow = document.getElementById('regime-row');
   const ccySym    = document.getElementById('income-ccy-sym');
 
+  const immRow  = document.getElementById('hk-immigrant-row');
+  const immPick = document.getElementById('hk-immigrant-picks');
   if(_country==='US'){
     statusRow.style.display = '';
     hkRow.style.display     = 'none';
+    immRow.style.display    = 'none';
     regimeRow.style.display = 'none'; regimeRow.innerHTML='';
     ccySym.textContent = '($)';
     document.getElementById('status').required = true;
@@ -623,6 +657,7 @@ function _renderCountryUI(){
     statusRow.style.display = 'none';
     document.getElementById('status').required = false;
     hkRow.style.display     = 'none';
+    immRow.style.display    = 'none';
     ccySym.textContent = '(₹)';
     regimeRow.style.display = '';
     regimeRow.innerHTML =
@@ -637,6 +672,23 @@ function _renderCountryUI(){
     hkRow.style.display     = '';
     ccySym.textContent = '(HK$)';
     regimeRow.style.display = 'none'; regimeRow.innerHTML='';
+    // Build arrival pickers
+    immRow.style.display = '';
+    immPick.innerHTML = '';
+    const _hint = document.createElement('span'); _hint.className='tax-hint'; _hint.style.display='block'; _hint.textContent='Arrival month & year:';
+    const _sw = document.createElement('div'); _sw.style.cssText='display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.35rem;';
+    const _FMOS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const _mSel = document.createElement('select'); _mSel.className='tax-month-sel'; _mSel.style.minWidth='130px';
+    for(let _i=1;_i<=12;_i++){const _o=document.createElement('option');_o.value=_i;_o.textContent=_FMOS[_i-1];if(_i===_hkArrivalMonth)_o.selected=true;_mSel.appendChild(_o);}
+    _mSel.addEventListener('change',()=>{_hkArrivalMonth=parseInt(_mSel.value);_saveTaxUI();});
+    const _ySel = document.createElement('select'); _ySel.className='tax-month-sel'; _ySel.style.minWidth='88px';
+    const _cY2 = new Date().getFullYear();
+    for(let _y=_cY2-5;_y<=_cY2+2;_y++){const _o=document.createElement('option');_o.value=_y;_o.textContent=_y;if(_y===_hkArrivalYear)_o.selected=true;_ySel.appendChild(_o);}
+    _ySel.addEventListener('change',()=>{_hkArrivalYear=parseInt(_ySel.value);_saveTaxUI();});
+    _sw.appendChild(_mSel); _sw.appendChild(_ySel);
+    immPick.appendChild(_hint); immPick.appendChild(_sw);
+    immPick.style.display = _hkImmigrant ? '' : 'none';
+    document.getElementById('hk-immigrant-btn').classList.toggle('active', _hkImmigrant);
   }
 }
 
@@ -875,7 +927,14 @@ function _updateResultBox(d){
         ' (progressive '+fmt(d.prog,sym)+' vs standard rate '+fmt(d.std,sym)+')</p>'+
       (d.rentalHKD>0 ? '<p><strong>Rental Tax (15% on 80%):</strong> '+fmt(d.rentalHKD*.8*.15,sym)+'</p>' : '')+
       '<p><strong>Tax Reduction:</strong> −'+fmt(Math.min(HK_TAX_RELIEF,d.tax+HK_TAX_RELIEF),sym)+'</p>'+
-      '<p><strong>Salaries Tax:</strong> '+fmt(d.tax,sym)+'</p>';
+      '<p><strong>Annual Salaries Tax:</strong> '+fmt(d.tax,sym)+'</p>'+
+      (d.immigrant ?
+        '<hr style="border:none;border-top:1px solid var(--panel-border);margin:.5rem 0;">'+
+        '<p><strong>Immigrant period:</strong> '+_MOS[d.immigrant.arrivalMonth-1]+' '+d.immigrant.arrivalYear+' → Apr '+d.immigrant.aprYear+' ('+d.immigrant.totalMonths+' months, ×'+d.immigrant.totalMonths+'/12)</p>'+
+        '<p><strong>Total Tax Due:</strong> '+fmt(d.immigrant.scaledTax,sym)+'</p>'+
+        '<p><strong>Jan '+d.immigrant.janYear+' (75%):</strong> '+fmt(d.immigrant.janPayment,sym)+'</p>'+
+        '<p><strong>Apr '+d.immigrant.aprYear+' (25%):</strong> '+fmt(d.immigrant.aprPayment,sym)+'</p>'
+      : '');
     document.getElementById('tax-explain-btn').style.display = '';
   }
 }
@@ -918,7 +977,15 @@ function _openExplainer(d){
       '<p><strong>Allowances:</strong> Basic HK$132,000 · Married Person HK$264,000</p>'+
       '<p><strong>Tax reduction:</strong> HK$3,000 relief cap applied after calculation.</p>'+
       '<p><strong>Exempt income:</strong> Dividends, Interest Income, Capital Gains are not included (HK$0 tax).</p>'+
-      '<p><strong>Rental income:</strong> Taxed separately - 15% on 80% of rental (20% deemed expenses deduction).</p>';
+      '<p><strong>Rental income:</strong> Taxed separately - 15% on 80% of rental (20% deemed expenses deduction).</p>'+
+      (d.immigrant ?
+        '<hr style="border:none;border-top:1px solid var(--panel-border);margin:.75rem 0;">'+
+        '<p><strong>Immigrant first-year rule:</strong> When you arrive in HK after the fiscal year starts (1 April), the tax department levies a presumptive tax covering from your arrival through the end of your first full fiscal year. Your annual tax is scaled by the number of months in that period.</p>'+
+        '<p>Period: '+_MOS[d.immigrant.arrivalMonth-1]+' '+d.immigrant.arrivalYear+' → Apr '+d.immigrant.aprYear+' = '+d.immigrant.totalMonths+' months</p>'+
+        '<p>Total Tax Due = Annual Tax × ('+d.immigrant.totalMonths+' ÷ 12) = HK$'+d.immigrant.scaledTax.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</p>'+
+        '<p>Jan '+d.immigrant.janYear+' (75%): HK$'+d.immigrant.janPayment.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</p>'+
+        '<p>Apr '+d.immigrant.aprYear+' (25%): HK$'+d.immigrant.aprPayment.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</p>'
+      : '');
   }
   document.getElementById('tax-explainer-overlay').style.display = '';
 }
@@ -981,7 +1048,13 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
     }
     const hkResult = calcHKTax(income, married, rentalHKD);
     tax = hkResult.tax;
-    resultData = {country:'HK', income, married, rentalHKD, ...hkResult};
+    let immigrant = null;
+    if(_hkImmigrant){
+      const _info = _hkImmigrantInfo(_hkArrivalYear, _hkArrivalMonth);
+      const _scaled = hkResult.tax * _info.scale;
+      immigrant = {..._info, scaledTax: _scaled, janPayment: _scaled * 0.75, aprPayment: _scaled * 0.25};
+    }
+    resultData = {country:'HK', income, married, rentalHKD, ...hkResult, immigrant};
   }
 
   _updateResultBox(resultData);
