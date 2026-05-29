@@ -449,11 +449,13 @@
   // Always fetch fresh server data so home page reflects current state.
   // Home page is read-only — no local changes to protect, and save() in
   // each tracker already syncs every edit to the server immediately.
+  // NOTE: API returns { data: { rows, cells, ... } } — unwrap .data before storing.
   async function _fetchFresh(key, apiPath) {
     try {
       var r = await fetch(apiPath, {credentials:'same-origin'});
       if(!r.ok) return;
-      var d = await r.json();
+      var resp = await r.json();
+      var d = resp && resp.data;
       if(d && (d.rows || d.cells || d.rowsByMonth)) localStorage.setItem(key, JSON.stringify(d));
     } catch(e) {}
   }
