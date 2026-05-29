@@ -1260,6 +1260,47 @@ function renderFooter(table){
 
 let _expandedCardId=null;
 
+// ── Mobile carousel layout ────────────────────────────────────────────────
+const _MC_LAYOUT_KEY='fiapp_mc_layout_v1';
+let _mcPanel=1; // carousel mode: 0=summary, 1=cards
+function _getMCLayout(){try{return localStorage.getItem(_MC_LAYOUT_KEY)||'default';}catch(e){return 'default';}}
+function _setMCLayout(v){try{localStorage.setItem(_MC_LAYOUT_KEY,v);}catch(e){}}
+function _applyMobileLayout(){
+  if(window.innerWidth>=640) return;
+  const old=document.getElementById('mc-panel-nav');
+  if(old) old.remove();
+  const summaryEl=document.getElementById('summary-bar');
+  const cardsEl=document.getElementById('inc-mobile-cards');
+  if(!summaryEl||!cardsEl) return;
+  if(_getMCLayout()!=='carousel'){
+    summaryEl.classList.remove('mc-panel-hidden');
+    cardsEl.classList.remove('mc-panel-hidden');
+    return;
+  }
+  const panels=[summaryEl,cardsEl];
+  const labels=['Summary','Cards'];
+  const nav=document.createElement('div');
+  nav.id='mc-panel-nav'; nav.className='mc-panel-nav';
+  function showPanel(i){
+    _mcPanel=i;
+    panels.forEach((p,j)=>p.classList.toggle('mc-panel-hidden',j!==i));
+    nav.querySelectorAll('.mc-panel-dot').forEach((d,j)=>d.classList.toggle('active',j===i));
+    const lbl=nav.querySelector('.mc-panel-label'); if(lbl) lbl.textContent=labels[i];
+    nav.querySelector('.mc-panel-prev').disabled=i===0;
+    nav.querySelector('.mc-panel-next').disabled=i===panels.length-1;
+  }
+  const prevBtn=document.createElement('button'); prevBtn.className='mc-panel-arrow mc-panel-prev'; prevBtn.textContent='◀';
+  prevBtn.addEventListener('click',()=>showPanel(Math.max(0,_mcPanel-1)));
+  const dotsWrap=document.createElement('div'); dotsWrap.className='mc-panel-dots';
+  labels.forEach((_,i)=>{const dot=document.createElement('span');dot.className='mc-panel-dot';dot.addEventListener('click',()=>showPanel(i));dotsWrap.appendChild(dot);});
+  const labelEl=document.createElement('span'); labelEl.className='mc-panel-label';
+  const nextBtn=document.createElement('button'); nextBtn.className='mc-panel-arrow mc-panel-next'; nextBtn.textContent='▶';
+  nextBtn.addEventListener('click',()=>showPanel(Math.min(panels.length-1,_mcPanel+1)));
+  nav.appendChild(prevBtn); nav.appendChild(dotsWrap); nav.appendChild(labelEl); nav.appendChild(nextBtn);
+  summaryEl.parentNode.insertBefore(nav,summaryEl);
+  showPanel(_mcPanel);
+}
+
 function render(){
   const _sy=window.scrollY;
   const MOBILE=window.innerWidth<640;
@@ -1270,9 +1311,12 @@ function render(){
     if(sheetWrap) sheetWrap.style.display='none';
     if(cardsDiv) cardsDiv.style.display='';
     renderMobileCards();
+    _applyMobileLayout();
   } else {
     if(sheetWrap) sheetWrap.style.display='';
     if(cardsDiv) cardsDiv.style.display='none';
+    const _oldNav=document.getElementById('mc-panel-nav'); if(_oldNav) _oldNav.remove();
+    const _sumEl=document.getElementById('summary-bar'); if(_sumEl) _sumEl.classList.remove('mc-panel-hidden');
     renderTableHeader(table);
     renderTableBody(table);
     renderFooter(table);
@@ -1294,6 +1338,17 @@ function renderMobileCards(){
   const container=document.getElementById('inc-mobile-cards');
   if(!container) return;
   container.innerHTML='';
+  const _isCarousel=_getMCLayout()==='carousel';
+  const layoutBtn=document.createElement('button');
+  layoutBtn.className='mc-layout-btn';
+  layoutBtn.textContent=_isCarousel?'⊞ Scroll view':'⊟ Carousel view';
+  layoutBtn.addEventListener('click',()=>{
+    const newL=_isCarousel?'default':'carousel';
+    _setMCLayout(newL);
+    if(newL==='carousel') _mcPanel=1;
+    render();
+  });
+  container.appendChild(layoutBtn);
   const cols=getCols();
 
   function buildCard(row){
