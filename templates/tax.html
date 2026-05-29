@@ -1198,7 +1198,7 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
         y2Method: _y2Result.method, y2Prog: _y2Result.prog, y2Std: _y2Result.std,
         totalTax: _total,
         janPayment: _y1Tax + _y2Result.tax * 0.75,
-        aprPayment: _y2Result.tax * 0.25 };
+        aprPayment: _total - (_y1Tax + _y2Result.tax * 0.75) };
       tax = _total;
     }
     resultData = {country:'HK', income, married, singleParent:_hkSingleParent,
