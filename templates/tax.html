@@ -1172,16 +1172,20 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
     let immigrant = null;
     if(_hkImmigrant){
       const _info     = _hkImmigrantInfo(_hkArrivalYear, _hkArrivalMonth);
-      const _y1Income = income    * (_info.y1Months / 12);
-      const _y1Rental = rentalHKD * (_info.y1Months / 12);
+      const _y1Ratio  = _info.y1Months / 12;
       const _y1a      = _hkAllows(_info.arrivalFiscalYear);
       const _y2a      = _hkAllows(_info.arrivalFiscalYear + 1);
-      const _y1Result = calcHKTax(_y1Income, married, _y1Rental, true,  _hkSingleParent, _hkChildren, _hkChildrenBorn, _info.arrivalFiscalYear);
-      const _y2Result = calcHKTax(income,    married, rentalHKD, false, _hkSingleParent, _hkChildren, _hkChildrenBorn, _info.arrivalFiscalYear + 1);
-      const _total    = _y1Result.tax + _y2Result.tax;
+      // Annualisation method: compute full-year tax (no relief), scale by month ratio, then apply relief.
+      // This correctly scales the progressive brackets alongside the income.
+      const _y1AnnRes = calcHKTax(income, married, rentalHKD, false, _hkSingleParent, _hkChildren, _hkChildrenBorn, _info.arrivalFiscalYear);
+      const _y1TaxBR  = _y1AnnRes.tax * _y1Ratio;   // before relief, scaled
+      const _y1Relief = _hkRelief(_info.arrivalFiscalYear);
+      const _y1Tax    = Math.max(0, _y1TaxBR - _y1Relief);
+      const _y2Result = calcHKTax(income, married, rentalHKD, false, _hkSingleParent, _hkChildren, _hkChildrenBorn, _info.arrivalFiscalYear + 1);
+      const _total = _y1Tax + _y2Result.tax;
       immigrant = { ..._info,
-        y1Income: _y1Income, y1Tax: _y1Result.tax,
-        y1TaxBeforeRelief: _y1Result.taxBeforeRelief,
+        y1Income: income * _y1Ratio, y1Tax: _y1Tax,
+        y1TaxBeforeRelief: _y1TaxBR,
         y1BasicAllow: _y1a.basic,
         y1SpaAllow:   _hkSingleParent ? _y1a.spa : 0,
         y1BaseAllow:  married ? _y1a.mpa : (_y1a.basic + (_hkSingleParent ? _y1a.spa : 0)),
@@ -1193,7 +1197,7 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
         y2ChildAllow: _y2a.child,
         y2Method: _y2Result.method, y2Prog: _y2Result.prog, y2Std: _y2Result.std,
         totalTax: _total,
-        janPayment: _y1Result.tax + _y2Result.tax * 0.75,
+        janPayment: _y1Tax + _y2Result.tax * 0.75,
         aprPayment: _y2Result.tax * 0.25 };
       tax = _total;
     }
