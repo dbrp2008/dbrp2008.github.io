@@ -463,7 +463,7 @@
     await Promise.all([
       _fetchFresh('fiapp_expenses_v4',   '/api/load/expenses'),
       _fetchFresh('fiapp_income_v1',     '/api/load/income'),
-      _fetchFresh('fiapp_subs_v4',       '/api/load/subscriptions'),
+      _fetchFresh('fiapp_subs_v4',       '/api/load/subs'),
     ]);
   } catch(e) {}
 
