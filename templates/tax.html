@@ -387,7 +387,8 @@ function calcIndiaTax(grossINR, residency){
 
 function calcHKTax(incomeHKD, married, rentalHKD=0, applyRelief=true, singleParent=false, children=0, childrenBorn=0, yoa=null){
   const _a = yoa !== null ? _hkAllows(yoa) : {basic:HK_BASIC_ALLOW, mpa:HK_MPA, spa:HK_SPA, child:HK_CHILD_ALLOW};
-  const baseAllow  = married ? _a.mpa : (singleParent ? _a.spa : _a.basic);
+  // MPA replaces Basic; SPA stacks on top of Basic
+  const baseAllow  = married ? _a.mpa : (_a.basic + (singleParent ? _a.spa : 0));
   const allowance  = baseAllow + (children + childrenBorn) * _a.child;
   const assessable = Math.max(0, incomeHKD - allowance);
   let prog=0, prev=0;
@@ -991,16 +992,23 @@ function _updateResultBox(d){
     document.getElementById('tax-explain-btn').style.display = '';
 
   } else {
-    const sym      = 'HK$';
-    const baseAllow = d.married ? HK_MPA : (d.singleParent ? HK_SPA : HK_BASIC_ALLOW);
-    const baseLbl   = d.married ? 'Married Person' : (d.singleParent ? 'Single Parent' : 'Basic');
-    const ch        = d.children||0, chb = d.childrenBorn||0;
+    const sym = 'HK$';
+    const ch  = d.children||0, chb = d.childrenBorn||0;
+    // Build allowance lines — SPA stacks on top of Basic; MPA replaces Basic
+    function _allowLines(basicAmt, spaAmt, mpaAmt, isMarried, isSP, yearLabel){
+      const lbl = yearLabel ? yearLabel+' ' : '';
+      if(isMarried) return '<p><strong>'+lbl+'Married Person Allowance:</strong> −'+fmt(mpaAmt,sym)+'</p>';
+      return '<p><strong>'+lbl+'Basic Allowance:</strong> −'+fmt(basicAmt,sym)+'</p>'+
+             (isSP ? '<p><strong>'+lbl+'Single Parent Allowance:</strong> −'+fmt(spaAmt,sym)+'</p>' : '');
+    }
     el.innerHTML =
       '<p><strong>Income:</strong> '+fmt(d.income,sym)+'</p>'+
       (d.immigrant
-        ? '<p><strong>Year 1 '+baseLbl+' Allowance ('+d.immigrant.arrivalFiscalYear+'/'+(d.immigrant.arrivalFiscalYear+1)+'):</strong> −'+fmt(d.immigrant.y1BaseAllow,sym)+'</p>'+
-          '<p><strong>Year 2 '+baseLbl+' Allowance ('+(d.immigrant.arrivalFiscalYear+1)+'/'+(d.immigrant.arrivalFiscalYear+2)+'):</strong> −'+fmt(d.immigrant.y2BaseAllow,sym)+'</p>'
-        : '<p><strong>'+baseLbl+' Allowance:</strong> −'+fmt(baseAllow,sym)+'</p>')+
+        ? _allowLines(d.immigrant.y1BasicAllow, d.immigrant.y1SpaAllow, d.immigrant.y1BaseAllow, d.married, d.singleParent,
+                      d.immigrant.arrivalFiscalYear+'/'+(d.immigrant.arrivalFiscalYear+1))+
+          _allowLines(d.immigrant.y2BasicAllow, d.immigrant.y2SpaAllow, d.immigrant.y2BaseAllow, d.married, d.singleParent,
+                      (d.immigrant.arrivalFiscalYear+1)+'/'+(d.immigrant.arrivalFiscalYear+2))
+        : _allowLines(HK_BASIC_ALLOW, HK_SPA, HK_MPA, d.married, d.singleParent, null))+
       (ch>0  ? '<p><strong>Child Allowance ('+ch+' child'+(ch>1?'ren:':':')+'):</strong> −'+fmt(ch*HK_CHILD_ALLOW,sym)+'</p>' : '')+
       (chb>0 ? '<p><strong>Birth Allowance ('+chb+' born this year):</strong> −'+fmt(chb*HK_CHILD_ALLOW,sym)+'</p>' : '')+
       '<p><strong>Method:</strong> '+(d.immigrant ? d.immigrant.y2Method : d.method)+
@@ -1067,7 +1075,7 @@ function _openExplainer(d){
       '<tr><td>Next 50,000</td><td>14%</td></tr>'+
       '<tr><td>Remainder</td><td>17%</td></tr></table>'+
       '<p style="margin-top:.75rem"><strong>Standard rate (AY 2026-27):</strong> 15% on net assessable income up to HK$5,000,000 · 16% on the remainder (no allowance deducted). The lower of progressive vs standard rate applies.</p>'+
-      '<p><strong>Allowances:</strong> Basic HK$145,000 · Married Person HK$290,000 · Single Parent HK$145,000 · Child HK$140,000/child (doubles for birth year, 1st–9th child)</p>'+
+      '<p><strong>Allowances:</strong> Basic HK$145,000 (always granted) · Married Person HK$290,000 (replaces Basic) · Single Parent HK$145,000 (stacks on top of Basic = HK$290,000 total) · Child HK$140,000/child (doubles for birth year, 1st–9th child)</p>'+
       '<p><strong>Tax reduction:</strong> HK$3,000 relief cap applied after calculation.</p>'+
       '<p><strong>Exempt income:</strong> Dividends, Interest Income, Capital Gains are not included (HK$0 tax).</p>'+
       '<p><strong>Rental income:</strong> Taxed separately - 15% on 80% of rental (20% deemed expenses deduction).</p>'+
@@ -1165,9 +1173,13 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
       immigrant = { ..._info,
         y1Income: _y1Income, y1Tax: _y1Result.tax,
         y1TaxBeforeRelief: _y1Result.taxBeforeRelief,
-        y1BaseAllow: married ? _y1a.mpa : (_hkSingleParent ? _y1a.spa : _y1a.basic),
+        y1BasicAllow: _y1a.basic,
+        y1SpaAllow:   _hkSingleParent ? _y1a.spa : 0,
+        y1BaseAllow:  married ? _y1a.mpa : (_y1a.basic + (_hkSingleParent ? _y1a.spa : 0)),
         y2Tax: _y2Result.tax,
-        y2BaseAllow: married ? _y2a.mpa : (_hkSingleParent ? _y2a.spa : _y2a.basic),
+        y2BasicAllow: _y2a.basic,
+        y2SpaAllow:   _hkSingleParent ? _y2a.spa : 0,
+        y2BaseAllow:  married ? _y2a.mpa : (_y2a.basic + (_hkSingleParent ? _y2a.spa : 0)),
         y2Method: _y2Result.method, y2Prog: _y2Result.prog, y2Std: _y2Result.std,
         totalTax: _total,
         janPayment: _y1Result.tax + _y2Result.tax * 0.75,
