@@ -1019,7 +1019,7 @@ function _updateApplyBtns(){
     const n = d.months.length;
     selBtn.textContent = n===1
       ? '→ Apply to '+_fmtMkLabel(d.months[0])
-      : '→ Apply to '+n+' months ('+d.months.map(_fmtMkLabel).join(', ')+')';
+      : '→ Apply to '+n+' months ('+(d.months.slice().sort()).map(_fmtMkLabel).join(', ')+')';
   } else {
     selBtn.textContent = '→ Apply to current month';
   }
