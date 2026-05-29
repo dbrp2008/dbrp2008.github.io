@@ -699,6 +699,7 @@
       }
       var state=_ld()||_def();
       var targetEl=step.target?document.querySelector(step.target):null;
+      if(targetEl&&typeof window._mcShowForTarget==='function') window._mcShowForTarget(targetEl);
       _transition(function(){
         _avatar.textContent=_emojiFor(step);
         _text.innerHTML=step.text.replace(/\n/g,'<br>');
