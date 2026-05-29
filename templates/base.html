@@ -279,13 +279,13 @@
     var WT_STEPS=[
       {id:'home-welcome',  page:'/',             type:'modal',   text:'Hey there! 👋 I\'m <strong>Fi</strong>, your FiApp guide.<br><br>FiApp is a 7-in-1 personal finance toolkit. Let me walk you through the key tools - you can skip at any time.',    actions:[{label:"Let's go! →",primary:true,navigate:'/income',next:true}]},
       {id:'inc-intro',     page:'/income',        type:'modal',   text:'First stop: the <strong>Income Tracker</strong>. 💰<br><br>This is where you record all your income sources - salary, freelance, rental, anything.',                                 actions:[{label:'Show me →',primary:true,next:true}]},
-      {id:'inc-currency',  page:'/income',        type:'tooltip', target:'[data-wt="income-currency"]', text:'Each row can have its <strong>own currency</strong>. Pick it from the selector next to each cell. Great for multi-currency earners.',             actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'inc-enter',     page:'/income',        type:'wait',    target:'.sheet-wrap', text:'Now <strong>type in your monthly income</strong> - click any cell in the table below and enter a number. Go on, Fi won\'t judge! 😄',                      waitFor:'income_input',onMet:'confetti',actions:[]},
+      {id:'inc-currency',  page:'/income',        type:'tooltip', target:'[data-wt="income-currency"]', text:'Each row can have its <strong>own currency</strong>. Pick it from the selector next to each cell. Great for multi-currency earners.',  mobileText:'Each income source can have its <strong>own currency</strong> — tap a card to expand it and pick the currency from the dropdown inside.',  actions:[{label:'Got it →',primary:true,next:true}]},
+      {id:'inc-enter',     page:'/income',        type:'wait',    target:'.sheet-wrap', mobileTarget:'#inc-mobile-cards', text:'Now <strong>type in your monthly income</strong> - click any cell in the table below and enter a number. Go on, Fi won\'t judge! 😄', mobileText:'Now <strong>tap any card</strong> below to expand it and enter your income. Go on, Fi won\'t judge! 😄', waitFor:'income_input',onMet:'confetti',actions:[]},
       {id:'inc-done',      page:'/income',        type:'modal',   text:'✨ Your first income entry! You can add more rows for different sources.<br><br>Next up: log your expenses.',                                                                           actions:[{label:'Next: Expenses →',primary:true,navigate:'/expenses',next:true}]},
       {id:'exp-intro',     page:'/expenses',      type:'modal',   text:'Welcome to the <strong>Expense Tracker</strong>. 📊<br><br>Log everything you spend each month - rent, food, transport, etc. We\'ll do subscriptions separately.',                     actions:[{label:'Show me →',primary:true,next:true}]},
-      {id:'exp-col',       page:'/expenses',      type:'tooltip', target:'[data-wt="expense-month-col"]', text:'Each column is a <strong>week</strong> by default - but you can rename, add, or remove columns from the Table menu in the toolbar.',                              actions:[{label:'Got it →',primary:true,next:true}]},
-      {id:'exp-enter',     page:'/expenses',      type:'tooltip', target:'.sheet-wrap', allowInteract:true, text:'Fill in some expenses across a few categories - rent, groceries, transport, whatever fits your life. Take your time, then hit <strong>I\'m done</strong> when ready!', actions:[{label:"I'm done →",primary:true,next:true,validate:'hasExpenseData'}]},
-      {id:'exp-subs',      page:'/expenses',      type:'tooltip', target:'[data-wt="subs-link"]', text:'Subscriptions deserve their own tracker! Let\'s head there - they auto-sync back here so no double entry.',                                             actions:[{label:'Go to Subscriptions →',primary:true,navigate:'/subscriptions',next:true},{label:'Skip',gotoId:'ana-intro'}]},
+      {id:'exp-col',       page:'/expenses',      type:'tooltip', target:'[data-wt="expense-month-col"]', text:'Each column is a <strong>week</strong> by default - but you can rename, add, or remove columns from the Table menu in the toolbar.', mobileText:'Each card shows your spending split by <strong>week</strong>. Tap a card to expand it and edit each week separately.', mobileTarget:'#exp-mobile-cards', actions:[{label:'Got it →',primary:true,next:true}]},
+      {id:'exp-enter',     page:'/expenses',      type:'tooltip', target:'.sheet-wrap', mobileTarget:'#exp-mobile-cards', allowInteract:true, text:'Fill in some expenses across a few categories - rent, groceries, transport, whatever fits your life. Take your time, then hit <strong>I\'m done</strong> when ready!', mobileText:'Tap any card below to expand it and fill in your weekly spending. Take your time, then hit <strong>I\'m done</strong> when ready!', actions:[{label:"I'm done →",primary:true,next:true,validate:'hasExpenseData'}]},
+      {id:'exp-subs',      page:'/expenses',      type:'tooltip', target:'[data-wt="subs-link"]', mobileTarget:'.mc-subs-badge', text:'Subscriptions deserve their own tracker! Let\'s head there - they auto-sync back here so no double entry.',                                             actions:[{label:'Go to Subscriptions →',primary:true,navigate:'/subscriptions',next:true},{label:'Skip',gotoId:'ana-intro'}]},
       {id:'subs-intro',    page:'/subscriptions', type:'modal',   text:'The <strong>Subscription Tracker</strong> 🔄 keeps all recurring payments in one place - and they sync to the Expense Tracker automatically.',                                         actions:[{label:'Show me →',primary:true,next:true}]},
       {id:'subs-add',      page:'/subscriptions', type:'tooltip', target:'[data-wt="subs-add"]', allowInteract:true, text:'Pick a service from the dropdown (or type a custom name) and hit <strong>Add</strong>. It defaults to monthly billing - you can change any detail after adding.',  actions:[{label:"Added one →",primary:true,next:true,validate:'hasSubData'}]},
       {id:'subs-months',   page:'/subscriptions', type:'modal',   text:'The <strong>month columns</strong> mark when each sub is active. Leave a month blank = always active. Great for seasonal or annual subs.',                                              actions:[{label:function(st,vs){return vs.some(function(s){return s.id==='ana-intro';})?'Next: Analytics →':'Next →';},primary:true,navigate:'/analytics',next:true}]},
@@ -646,7 +646,7 @@
 
       _waitOff.forEach(function(f){f();});_waitOff=[];
       if(cond==='income_input'||cond==='any_expense_entered'){
-        var h=function(){if([].slice.call(document.querySelectorAll('.sheet td input,.cell input')).some(function(i){var v=parseFloat(i.value||'0');return !isNaN(v)&&v!==0;})){_clearWait();_startGuard(null,null);if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();setTimeout(cb,80);}};
+        var h=function(){if([].slice.call(document.querySelectorAll('.sheet td input,.cell input,.mc-ei')).some(function(i){var v=parseFloat(i.value||'0');return !isNaN(v)&&v!==0;})){_clearWait();_startGuard(null,null);if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();setTimeout(cb,80);}};
         document.addEventListener('input',h);_waitOff.push(function(){document.removeEventListener('input',h);});
       } else if(cond==='scroll_near_bottom'){
         var sh=function(){var sc=window.scrollY||document.documentElement.scrollTop;var tot=document.documentElement.scrollHeight-window.innerHeight;if(tot<=0||sc/tot>0.88){_clearWait();cb();}};
@@ -681,6 +681,17 @@
 
     function _showStep(step,total,dotIdx){
       _clearWait();_elevate(null);
+      // Mobile overrides: swap text/target for narrow viewports
+      var _mob=window.innerWidth<640;
+      if(_mob&&step.skipMobile){
+        var _smSt=_ld()||_def(),_smVs=_vis(_smSt),_smI=_smVs.findIndex(function(s){return s.id===step.id;});
+        var _smNxt=_smI>=0&&_smI<_smVs.length-1?_smVs[_smI+1]:null;
+        if(_smNxt){_smSt.stepId=_smNxt.id;_sv(_smSt);if(_smNxt.page!==_page)window.location.href=_smNxt.page;else _showStep(_smNxt,_smVs.length,_smVs.findIndex(function(s){return s.id===_smNxt.id;}));}
+        return;
+      }
+      if(_mob&&(step.mobileText||step.hasOwnProperty('mobileTarget'))){
+        step=Object.assign({},step,{text:step.mobileText||step.text,target:step.hasOwnProperty('mobileTarget')?step.mobileTarget:step.target});
+      }
       var state=_ld()||_def();
       var targetEl=step.target?document.querySelector(step.target):null;
       _transition(function(){
