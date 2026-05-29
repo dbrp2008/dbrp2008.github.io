@@ -1032,6 +1032,7 @@ function _updateResultBox(d){
         return '<hr style="border:none;border-top:1px solid var(--panel-border);margin:.5rem 0;">'+
           '<p><strong>Year 1 actual</strong> <span style="font-weight:400;color:var(--muted)">('+y1Label+')</span></p>'+
           '<p>Prorated income: '+fmt(im.y1Income,sym)+' ('+im.y1Months+'/12 × annual)</p>'+
+          '<p><strong>Method:</strong> '+im.y1Method+' (progressive '+fmt(im.y1ProgScaled,sym)+' vs standard rate '+fmt(im.y1StdScaled,sym)+')</p>'+
           (im.y1Tax===0 && im.y1TaxBeforeRelief===0
             ? '<p>Actual tax: '+fmt(0,sym)+' <span style="color:var(--muted);font-weight:400">— income below allowance</span></p>'
             : (reliefApplied
@@ -1095,10 +1096,11 @@ function _openExplainer(d){
           '<p>Assumed annual income: <strong>'+_f(d.income)+'</strong></p>'+
           '<p>The IRD does not prorate a single annual bill. They calculate two separate assessments on one notice:</p>'+
           '<p><strong>Year 1 — Actual tax</strong> ('+_MOS[im.arrivalMonth-1]+' '+im.arrivalYear+' → Mar '+im.y1EndYear+', '+im.y1Months+' month'+(im.y1Months>1?'s':'')+'): '+
-            'Tax is computed on your actual income for the months worked. The full annual personal allowance (HK$'+HK_BASIC_ALLOW.toLocaleString()+')<br>is still applied in full — not prorated. If prorated income &lt; allowance, actual tax = HK$0.</p>'+
+            'Full-year tax is computed on your annual income using both the progressive and standard rate methods; the lower applies. The result is then scaled by '+im.y1Months+'/12 to reflect the actual months worked. Tax reduction is applied after scaling.</p>'+
           '<p>Year 1 prorated income: '+_f(im.y1Income)+' ('+im.y1Months+'/12 × '+_f(d.income)+')</p>'+
+          '<p>Method: '+im.y1Method+' (progressive '+_f(im.y1ProgScaled)+' vs standard rate '+_f(im.y1StdScaled)+')</p>'+
           (im.y1TaxBeforeRelief > im.y1Tax
-            ? '<p>Tax before HK$3,000 reduction: '+_f(im.y1TaxBeforeRelief)+' → Actual tax: '+_f(im.y1Tax)+'</p>'
+            ? '<p>Tax before HK$'+im.y1ReliefAmt.toLocaleString()+' reduction: '+_f(im.y1TaxBeforeRelief)+' → Actual tax: '+_f(im.y1Tax)+'</p>'
             : '<p>Actual tax: '+_f(im.y1Tax)+(im.y1Tax===0?' (income below allowance)':'')+'</p>')+
           '<p><strong>Year 2 — Provisional tax</strong> (Apr '+im.y1EndYear+' → Mar '+im.payYear+'): '+
             'The IRD projects your full annual income ('+_f(d.income)+') forward. No tax concession is applied to provisional years.</p>'+
@@ -1190,6 +1192,10 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
         y1SpaAllow:   _hkSingleParent ? _y1a.spa : 0,
         y1BaseAllow:  married ? _y1a.mpa : (_y1a.basic + (_hkSingleParent ? _y1a.spa : 0)),
         y1ChildAllow: _y1a.child,
+        y1Method: _y1AnnRes.method,
+        y1ProgScaled: _y1AnnRes.prog * _y1Ratio,
+        y1StdScaled: _y1AnnRes.std * _y1Ratio,
+        y1ReliefAmt: _y1Relief,
         y2Tax: _y2Result.tax,
         y2BasicAllow: _y2a.basic,
         y2SpaAllow:   _hkSingleParent ? _y2a.spa : 0,
