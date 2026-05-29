@@ -736,7 +736,13 @@
       '</div>';
     }
   }
-  // State A: no snapshot — hero shows as-is, no injection
+  // State A: gentle placeholder so the section isn't invisible
+  if(isStateA) {
+    html += '<div class="snap-strip"><div>' +
+      '<div class="snap-strip-label">Your snapshot</div>' +
+      '<div class="snap-strip-sub">Start tracking income &amp; expenses to see your financial overview here.</div>' +
+    '</div></div>';
+  }
 
   root.innerHTML = html;
 
