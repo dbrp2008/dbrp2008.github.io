@@ -330,7 +330,7 @@ function calcIndiaTax(grossINR, residency){
 }
 
 
-function calcHKTax(incomeHKD, married, rentalHKD=0){
+function calcHKTax(incomeHKD, married, rentalHKD=0, applyRelief=true){
   const allowance  = married ? HK_MPA : HK_BASIC_ALLOW;
   const assessable = Math.max(0, incomeHKD - allowance);
   let prog=0, prev=0;
@@ -344,8 +344,9 @@ function calcHKTax(incomeHKD, married, rentalHKD=0){
     : HK_STD_TIER * HK_STD_RATE + (incomeHKD - HK_STD_TIER) * HK_STD_RATE_HIGH;
   let tax   = Math.min(prog, std);
   tax      += rentalHKD * 0.80 * 0.15;
-  tax       = Math.max(0, tax - HK_TAX_RELIEF);
-  return { tax, method: prog<=std ? 'progressive' : 'standard rate', prog, std };
+  const taxBeforeRelief = tax;
+  if(applyRelief) tax = Math.max(0, tax - HK_TAX_RELIEF);
+  return { tax, taxBeforeRelief, method: prog<=std ? 'progressive' : 'standard rate', prog, std };
 }
 
 function _hkImmigrantInfo(arrYear, arrMonth){
@@ -927,20 +928,27 @@ function _updateResultBox(d){
       '<p><strong>Method:</strong> '+d.method+
         ' (progressive '+fmt(d.prog,sym)+' vs standard rate '+fmt(d.std,sym)+')</p>'+
       (d.rentalHKD>0 ? '<p><strong>Rental Tax (15% on 80%):</strong> '+fmt(d.rentalHKD*.8*.15,sym)+'</p>' : '')+
-      '<p><strong>Tax Reduction:</strong> −'+fmt(Math.min(HK_TAX_RELIEF,d.tax+HK_TAX_RELIEF),sym)+'</p>'+
-      '<p><strong>'+(d.immigrant?'Year 2 Provisional Tax:':'Salaries Tax:')+'</strong> '+fmt(d.tax,sym)+'</p>'+
+      (d.immigrant ? '' : '<p><strong>Tax Reduction:</strong> −'+fmt(Math.min(HK_TAX_RELIEF,d.taxBeforeRelief),sym)+'</p>')+
+      '<p><strong>'+(d.immigrant?'Year 2 Provisional Tax:':'Salaries Tax:')+'</strong> '+fmt(d.immigrant ? d.immigrant.y2Tax : d.tax, sym)+'</p>'+
       (d.immigrant ? (function(im){
         const y1Label = _MOS[im.arrivalMonth-1]+' '+im.arrivalYear+' → Mar '+im.y1EndYear+' ('+im.y1Months+' month'+(im.y1Months>1?'s':'')+')';
         const y2Label = 'Apr '+im.y1EndYear+' → Mar '+im.payYear;
+        const reliefApplied = im.y1TaxBeforeRelief > im.y1Tax;
         return '<hr style="border:none;border-top:1px solid var(--panel-border);margin:.5rem 0;">'+
           '<p><strong>Year 1 actual</strong> <span style="font-weight:400;color:var(--muted)">('+y1Label+')</span></p>'+
           '<p>Prorated income: '+fmt(im.y1Income,sym)+' ('+im.y1Months+'/12 × annual)</p>'+
-          '<p>Actual tax: '+fmt(im.y1Tax,sym)+(im.y1Tax===0?' <span style="color:var(--muted);font-weight:400">— income below allowance</span>':'')+
-          '<p><strong>Year 2 provisional</strong> <span style="font-weight:400;color:var(--muted)">('+y2Label+')</span>: already shown above</p>'+
+          (im.y1Tax===0 && im.y1TaxBeforeRelief===0
+            ? '<p>Actual tax: '+fmt(0,sym)+' <span style="color:var(--muted);font-weight:400">— income below allowance</span></p>'
+            : (reliefApplied
+                ? '<p>Tax before reduction: '+fmt(im.y1TaxBeforeRelief,sym)+'</p>'+
+                  '<p>Tax reduction: −'+fmt(im.y1TaxBeforeRelief - im.y1Tax,sym)+'</p>'+
+                  '<p>Actual tax: '+fmt(im.y1Tax,sym)+'</p>'
+                : '<p>Actual tax: '+fmt(im.y1Tax,sym)+'</p>'))+
+          '<p><strong>Year 2 provisional</strong> <span style="font-weight:400;color:var(--muted)">('+y2Label+')</span>: shown above (no relief on provisional years)</p>'+
           '<hr style="border:none;border-top:1px solid var(--panel-border);margin:.5rem 0;">'+
           '<p><strong>Total obligation:</strong> '+fmt(im.totalTax,sym)+'</p>'+
-          '<p><strong>Jan '+im.payYear+' (75%):</strong> '+fmt(im.janPayment,sym)+'</p>'+
-          '<p><strong>Apr '+im.payYear+' (25%):</strong> '+fmt(im.aprPayment,sym)+'</p>';
+          '<p><strong>Jan '+im.payYear+':</strong> '+fmt(im.janPayment,sym)+' <span style="color:var(--muted);font-weight:400">(Year 1 + 75% of Year 2)</span></p>'+
+          '<p><strong>Apr '+im.payYear+':</strong> '+fmt(im.aprPayment,sym)+' <span style="color:var(--muted);font-weight:400">(25% of Year 2)</span></p>';
       })(d.immigrant) : '');
     document.getElementById('tax-explain-btn').style.display = '';
   }
@@ -993,12 +1001,15 @@ function _openExplainer(d){
           '<p>The IRD does not prorate a single annual bill. They calculate two separate assessments on one notice:</p>'+
           '<p><strong>Year 1 — Actual tax</strong> ('+_MOS[im.arrivalMonth-1]+' '+im.arrivalYear+' → Mar '+im.y1EndYear+', '+im.y1Months+' month'+(im.y1Months>1?'s':'')+'): '+
             'Tax is computed on your actual income for the months worked. The full annual personal allowance (HK$'+HK_BASIC_ALLOW.toLocaleString()+')<br>is still applied in full — not prorated. If prorated income &lt; allowance, actual tax = HK$0.</p>'+
-          '<p>Year 1 prorated income: '+_f(im.y1Income)+' ('+im.y1Months+'/12 × '+_f(d.income)+') · Actual tax: '+_f(im.y1Tax)+'</p>'+
+          '<p>Year 1 prorated income: '+_f(im.y1Income)+' ('+im.y1Months+'/12 × '+_f(d.income)+')</p>'+
+          (im.y1TaxBeforeRelief > im.y1Tax
+            ? '<p>Tax before HK$3,000 reduction: '+_f(im.y1TaxBeforeRelief)+' → Actual tax: '+_f(im.y1Tax)+'</p>'
+            : '<p>Actual tax: '+_f(im.y1Tax)+(im.y1Tax===0?' (income below allowance)':'')+'</p>')+
           '<p><strong>Year 2 — Provisional tax</strong> (Apr '+im.y1EndYear+' → Mar '+im.payYear+'): '+
-            'The IRD projects your full annual income ('+_f(d.income)+') forward and calculates a standard full-year provisional tax bill. This is the figure shown in the main breakdown above.</p>'+
+            'The IRD projects your full annual income ('+_f(d.income)+') forward. No tax concession is applied to provisional years.</p>'+
           '<p>Provisional tax: '+_f(im.y2Tax)+'</p>'+
-          '<p><strong>Total obligation</strong> = Year 1 + Year 2 = '+_f(im.y1Tax)+' + '+_f(im.y2Tax)+' = '+_f(im.totalTax)+'</p>'+
-          '<p>Jan '+im.payYear+' (75%): '+_f(im.janPayment)+'  ·  Apr '+im.payYear+' (25%): '+_f(im.aprPayment)+'</p>'+
+          '<p><strong>Total obligation</strong> = '+_f(im.y1Tax)+' + '+_f(im.y2Tax)+' = '+_f(im.totalTax)+'</p>'+
+          '<p>Jan '+im.payYear+': '+_f(im.janPayment)+' (Year 1 in full + 75% of Year 2)  ·  Apr '+im.payYear+': '+_f(im.aprPayment)+' (25% of Year 2)</p>'+
           '<p style="font-size:.8rem;color:var(--muted)">Note: allowances and brackets may differ between years as the HK Budget updates them annually. This calculator applies the currently configured rates to both assessments.</p>';
       })(d.immigrant) : '');
   }
@@ -1061,23 +1072,27 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
         rentalHKD *= 12;
       }
     }
-    const hkResult = calcHKTax(income, married, rentalHKD);
+    const hkResult = calcHKTax(income, married, rentalHKD); // relief applied — used for normal display
     tax = hkResult.tax;
     let immigrant = null;
     if(_hkImmigrant){
       const _info     = _hkImmigrantInfo(_hkArrivalYear, _hkArrivalMonth);
-      // Year 1: actual tax on prorated income (arrival → March 31), full allowance still applies
-      const _y1Income = income     * (_info.y1Months / 12);
-      const _y1Rental = rentalHKD  * (_info.y1Months / 12);
-      const _y1Result = calcHKTax(_y1Income, married, _y1Rental);
-      // Year 2: provisional tax = hkResult (full annual income, already computed)
-      const _total    = _y1Result.tax + hkResult.tax;
+      // Year 1: actual tax on prorated income; relief applies to Year 1 only
+      const _y1Income = income    * (_info.y1Months / 12);
+      const _y1Rental = rentalHKD * (_info.y1Months / 12);
+      const _y1Result = calcHKTax(_y1Income, married, _y1Rental, true);
+      // Year 2: provisional tax — IRD never applies a relief concession to provisional years
+      const _y2Tax    = calcHKTax(income, married, rentalHKD, false).tax;
+      const _total    = _y1Result.tax + _y2Tax;
       immigrant = { ..._info,
         y1Income: _y1Income, y1Tax: _y1Result.tax,
-        y2Tax:    hkResult.tax,
+        y1TaxBeforeRelief: _y1Result.taxBeforeRelief,
+        y2Tax: _y2Tax,
         totalTax: _total,
-        janPayment: _total * 0.75, aprPayment: _total * 0.25 };
-      tax = _total; // total obligation used by apply buttons
+        // Jan = full Year 1 + 75% of Year 2; Apr = 25% of Year 2
+        janPayment: _y1Result.tax + _y2Tax * 0.75,
+        aprPayment: _y2Tax * 0.25 };
+      tax = _total;
     }
     resultData = {country:'HK', income, married, rentalHKD, ...hkResult, immigrant};
   }
