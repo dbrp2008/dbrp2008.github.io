@@ -446,17 +446,10 @@
   // Load rates first so currency conversion is available throughout
   try{ if(typeof fiappCoreLoadRates==='function') await fiappCoreLoadRates(); }catch(e){}
 
-  // Pull server data into localStorage if local data is absent or empty.
-  // Skips if local data already has cells (expenses/income) or subscription rows.
-  async function _fetchIfEmpty(key, apiPath) {
-    var local = localStorage.getItem(key);
-    if(local) {
-      try {
-        var p = JSON.parse(local);
-        // Real expense/income data has cells; real subscription data has rows but no cells property
-        if((p.cells && Object.keys(p.cells).length > 0) || (!p.cells && p.rows && p.rows.length > 0)) return;
-      } catch(e) {}
-    }
+  // Always fetch fresh server data so home page reflects current state.
+  // Home page is read-only — no local changes to protect, and save() in
+  // each tracker already syncs every edit to the server immediately.
+  async function _fetchFresh(key, apiPath) {
     try {
       var r = await fetch(apiPath, {credentials:'same-origin'});
       if(!r.ok) return;
@@ -466,9 +459,9 @@
   }
   try {
     await Promise.all([
-      _fetchIfEmpty('fiapp_expenses_v4',   '/api/load/expenses'),
-      _fetchIfEmpty('fiapp_income_v1',     '/api/load/income'),
-      _fetchIfEmpty('fiapp_subs_v4',       '/api/load/subscriptions'),
+      _fetchFresh('fiapp_expenses_v4',   '/api/load/expenses'),
+      _fetchFresh('fiapp_income_v1',     '/api/load/income'),
+      _fetchFresh('fiapp_subs_v4',       '/api/load/subscriptions'),
     ]);
   } catch(e) {}
 
@@ -821,7 +814,7 @@
         });
         if(rowTotal > 0 && rowTotal < goalAmt) underCount++;
       });
-      if(underCount >= 1) wins.push('🎯 Under budget in ' + underCount + ' categor' + (underCount === 1 ? 'y' : 'ies') + ' last month.');
+      if(underCount >= 1) wins.push('🎯 You stayed under budget in ' + underCount + ' categor' + (underCount === 1 ? 'y' : 'ies') + ' last month.');
     }
 
     // Win 2: Subscription cost dropped vs month before
@@ -832,7 +825,7 @@
       var subPP   = subCostPerMonth(subs, [ppk])[0] || 0;
       if(subPrev > 0 && subPP > 0 && subPP > subPrev) {
         var drop = subPP - subPrev;
-        wins.push('📉 Subscriptions dropped $' + drop.toFixed(0) + ' vs the month before.');
+        wins.push('📉 Your subscriptions cost $' + drop.toFixed(0) + ' less than the month before.');
       }
     }
 
@@ -858,9 +851,9 @@
         prevSpent2 += rowTotal;
         if(!row.parentId && /sav/i.test(row.label || '')) savingsRowTotal += rowTotal;
       });
-      if(savingsRowTotal > 0) wins.push('💰 Set aside $' + savingsRowTotal.toFixed(0) + ' in savings last month.');
+      if(savingsRowTotal > 0) wins.push('💰 You set aside $' + savingsRowTotal.toFixed(0) + ' in savings last month.');
       var freeRate = (prevGross - prevSpent2) / prevGross;
-      if(freeRate > 0.20) wins.push('🟢 ' + Math.round(freeRate * 100) + '% of income was free money last month.');
+      if(freeRate > 0.20) wins.push('🟢 Only ' + Math.round((1 - freeRate) * 100) + '% of your income was budgeted last month.');
     }
 
     if(!wins.length) return;
