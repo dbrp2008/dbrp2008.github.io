@@ -286,11 +286,18 @@ const HK_BRACKETS = [
 const HK_STD_RATE      = 0.15;
 const HK_STD_RATE_HIGH = 0.16;
 const HK_STD_TIER      = 5000000;
-const HK_BASIC_ALLOW   = 145000;
-const HK_MPA           = 290000;
-const HK_SPA           = 145000;  // Single Parent Allowance
-const HK_CHILD_ALLOW   = 140000;  // per child; doubles for birth year
+const HK_BASIC_ALLOW   = 145000;   // 2026/27 (current) — used for non-immigrant display
+const HK_MPA           = 290000;   // 2026/27
+const HK_SPA           = 145000;   // 2026/27 Single Parent Allowance
+const HK_CHILD_ALLOW   = 140000;   // 2026/27 per child; doubles for birth year
 const HK_TAX_RELIEF    = 3000;
+
+// Allowance lookup by year of assessment (year fiscal year starts, e.g. 2026 = 2026/27)
+function _hkAllows(yoa){
+  if(yoa >= 2026) return {basic:145000, mpa:290000, spa:145000, child:140000};
+  if(yoa >= 2023) return {basic:132000, mpa:264000, spa:132000, child:130000};
+  return              {basic:132000, mpa:264000, spa:132000, child:120000};
+}
 
 
 
@@ -378,9 +385,10 @@ function calcIndiaTax(grossINR, residency){
 }
 
 
-function calcHKTax(incomeHKD, married, rentalHKD=0, applyRelief=true, singleParent=false, children=0, childrenBorn=0){
-  const baseAllow  = married ? HK_MPA : (singleParent ? HK_SPA : HK_BASIC_ALLOW);
-  const allowance  = baseAllow + (children + childrenBorn) * HK_CHILD_ALLOW;
+function calcHKTax(incomeHKD, married, rentalHKD=0, applyRelief=true, singleParent=false, children=0, childrenBorn=0, yoa=null){
+  const _a = yoa !== null ? _hkAllows(yoa) : {basic:HK_BASIC_ALLOW, mpa:HK_MPA, spa:HK_SPA, child:HK_CHILD_ALLOW};
+  const baseAllow  = married ? _a.mpa : (singleParent ? _a.spa : _a.basic);
+  const allowance  = baseAllow + (children + childrenBorn) * _a.child;
   const assessable = Math.max(0, incomeHKD - allowance);
   let prog=0, prev=0;
   for(const [lim,rate] of HK_BRACKETS){
@@ -402,12 +410,13 @@ function _hkImmigrantInfo(arrYear, arrMonth){
   // Year 1: actual tax on income from arrival → March 31 (end of arrival fiscal year)
   // Apr–Dec Y → fiscal year Y/Y+1, Year 1 ends Mar Y+1
   // Jan–Mar Y → fiscal year Y-1/Y, Year 1 ends Mar Y
-  const y1Months  = arrMonth >= 4 ? 16 - arrMonth : 4 - arrMonth;
-  const y1EndYear = arrMonth >= 4 ? arrYear + 1 : arrYear;
+  const y1Months         = arrMonth >= 4 ? 16 - arrMonth : 4 - arrMonth;
+  const y1EndYear        = arrMonth >= 4 ? arrYear + 1 : arrYear;
+  const arrivalFiscalYear = arrMonth >= 4 ? arrYear : arrYear - 1; // year the fiscal year starts
   // Year 2: provisional tax on full annual income for the following fiscal year (Apr–Mar)
   // Payment: Jan and Apr of the year after Year 2 ends
   const payYear = y1EndYear + 1;
-  return { y1Months, y1EndYear, payYear, arrivalYear: arrYear, arrivalMonth: arrMonth };
+  return { y1Months, y1EndYear, payYear, arrivalFiscalYear, arrivalYear: arrYear, arrivalMonth: arrMonth };
 }
 
 
@@ -988,11 +997,14 @@ function _updateResultBox(d){
     const ch        = d.children||0, chb = d.childrenBorn||0;
     el.innerHTML =
       '<p><strong>Income:</strong> '+fmt(d.income,sym)+'</p>'+
-      '<p><strong>'+baseLbl+' Allowance:</strong> −'+fmt(baseAllow,sym)+'</p>'+
+      (d.immigrant
+        ? '<p><strong>Year 1 '+baseLbl+' Allowance ('+d.immigrant.arrivalFiscalYear+'/'+(d.immigrant.arrivalFiscalYear+1)+'):</strong> −'+fmt(d.immigrant.y1BaseAllow,sym)+'</p>'+
+          '<p><strong>Year 2 '+baseLbl+' Allowance ('+(d.immigrant.arrivalFiscalYear+1)+'/'+(d.immigrant.arrivalFiscalYear+2)+'):</strong> −'+fmt(d.immigrant.y2BaseAllow,sym)+'</p>'
+        : '<p><strong>'+baseLbl+' Allowance:</strong> −'+fmt(baseAllow,sym)+'</p>')+
       (ch>0  ? '<p><strong>Child Allowance ('+ch+' child'+(ch>1?'ren:':':')+'):</strong> −'+fmt(ch*HK_CHILD_ALLOW,sym)+'</p>' : '')+
       (chb>0 ? '<p><strong>Birth Allowance ('+chb+' born this year):</strong> −'+fmt(chb*HK_CHILD_ALLOW,sym)+'</p>' : '')+
-      '<p><strong>Method:</strong> '+d.method+
-        ' (progressive '+fmt(d.prog,sym)+' vs standard rate '+fmt(d.std,sym)+')</p>'+
+      '<p><strong>Method:</strong> '+(d.immigrant ? d.immigrant.y2Method : d.method)+
+        ' (progressive '+fmt(d.immigrant ? d.immigrant.y2Prog : d.prog, sym)+' vs standard rate '+fmt(d.immigrant ? d.immigrant.y2Std : d.std, sym)+')</p>'+
       (d.rentalHKD>0 ? '<p><strong>Rental Tax (15% on 80%):</strong> '+fmt(d.rentalHKD*.8*.15,sym)+'</p>' : '')+
       (d.immigrant ? '' : '<p><strong>Tax Reduction:</strong> −'+fmt(Math.min(HK_TAX_RELIEF,d.taxBeforeRelief),sym)+'</p>')+
       '<p><strong>'+(d.immigrant?'Year 2 Provisional Tax:':'Salaries Tax:')+'</strong> '+fmt(d.immigrant ? d.immigrant.y2Tax : d.tax, sym)+'</p>'+
@@ -1145,16 +1157,21 @@ document.getElementById('tax-form').addEventListener('submit', async function(e)
       const _info     = _hkImmigrantInfo(_hkArrivalYear, _hkArrivalMonth);
       const _y1Income = income    * (_info.y1Months / 12);
       const _y1Rental = rentalHKD * (_info.y1Months / 12);
-      const _y1Result = calcHKTax(_y1Income, married, _y1Rental, true,  _hkSingleParent, _hkChildren, _hkChildrenBorn);
-      const _y2Tax    = calcHKTax(income,    married, rentalHKD, false, _hkSingleParent, _hkChildren, _hkChildrenBorn).tax;
-      const _total    = _y1Result.tax + _y2Tax;
+      const _y1a      = _hkAllows(_info.arrivalFiscalYear);
+      const _y2a      = _hkAllows(_info.arrivalFiscalYear + 1);
+      const _y1Result = calcHKTax(_y1Income, married, _y1Rental, true,  _hkSingleParent, _hkChildren, _hkChildrenBorn, _info.arrivalFiscalYear);
+      const _y2Result = calcHKTax(income,    married, rentalHKD, false, _hkSingleParent, _hkChildren, _hkChildrenBorn, _info.arrivalFiscalYear + 1);
+      const _total    = _y1Result.tax + _y2Result.tax;
       immigrant = { ..._info,
         y1Income: _y1Income, y1Tax: _y1Result.tax,
         y1TaxBeforeRelief: _y1Result.taxBeforeRelief,
-        y2Tax: _y2Tax,
+        y1BaseAllow: married ? _y1a.mpa : (_hkSingleParent ? _y1a.spa : _y1a.basic),
+        y2Tax: _y2Result.tax,
+        y2BaseAllow: married ? _y2a.mpa : (_hkSingleParent ? _y2a.spa : _y2a.basic),
+        y2Method: _y2Result.method, y2Prog: _y2Result.prog, y2Std: _y2Result.std,
         totalTax: _total,
-        janPayment: _y1Result.tax + _y2Tax * 0.75,
-        aprPayment: _y2Tax * 0.25 };
+        janPayment: _y1Result.tax + _y2Result.tax * 0.75,
+        aprPayment: _y2Result.tax * 0.25 };
       tax = _total;
     }
     resultData = {country:'HK', income, married, singleParent:_hkSingleParent,
