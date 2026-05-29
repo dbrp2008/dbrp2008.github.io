@@ -1263,6 +1263,7 @@ let _expandedCardId=null;
 // ── Mobile carousel layout ────────────────────────────────────────────────
 const _MC_LAYOUT_KEY='fiapp_mc_layout_v1';
 let _mcPanel=0; // carousel mode: 0=summary, 1=cards
+window._mcSetPanel=function(i){_mcPanel=i;}; // called by walkthrough in base.html
 function _getMCLayout(){try{return localStorage.getItem(_MC_LAYOUT_KEY)||'default';}catch(e){return 'default';}}
 function _setMCLayout(v){try{localStorage.setItem(_MC_LAYOUT_KEY,v);}catch(e){}}
 function _applyMobileLayout(){
@@ -1281,6 +1282,7 @@ function _applyMobileLayout(){
   ctrl.appendChild(toggleBtn);
   if(isCarousel){
     const panels=[summaryEl,cardsEl]; const labels=['Summary','Cards'];
+    panels.forEach((p,i)=>p.setAttribute('data-mc-panel',String(i)));
     const nav=document.createElement('div'); nav.className='mc-panel-nav';
     function showPanel(i){
       _mcPanel=i; panels.forEach((p,j)=>p.classList.toggle('mc-panel-hidden',j!==i));
