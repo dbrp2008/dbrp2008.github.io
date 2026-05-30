@@ -94,14 +94,15 @@ window.VoiceInput = (function () {
   }
 
   function _extractWeekIndex(lower) {
-    if (/\bweek\s*1\b|\bfirst\s+week\b|\bweek\s+one\b/.test(lower))   return 0;
-    if (/\bweek\s*2\b|\bsecond\s+week\b|\bweek\s+two\b/.test(lower))  return 1;
-    if (/\bweek\s*3\b|\bthird\s+week\b|\bweek\s+three\b/.test(lower)) return 2;
-    if (/\bweek\s*4\b|\bfourth\s+week\b|\bweek\s+four\b/.test(lower)) return 3;
+    if (/\bweek\s*(1|one|1st|first)\b|\b(first|1st)\s+week\b/.test(lower))    return { index: 0, explicit: true };
+    if (/\bweek\s*(2|two|2nd|second)\b|\b(second|2nd)\s+week\b/.test(lower))  return { index: 1, explicit: true };
+    if (/\bweek\s*(3|three|3rd|third)\b|\b(third|3rd)\s+week\b/.test(lower))  return { index: 2, explicit: true };
+    if (/\bweek\s*(4|four|4th|fourth)\b|\b(fourth|4th)\s+week\b/.test(lower)) return { index: 3, explicit: true };
     if (/\blast\s+week\b/.test(lower)) {
-      return Math.max(0, Math.min(3, Math.floor((new Date().getDate() - 1) / 7)) - 1);
+      var li = Math.max(0, Math.min(3, Math.floor((new Date().getDate() - 1) / 7)) - 1);
+      return { index: li, explicit: true };
     }
-    return Math.min(3, Math.floor((new Date().getDate() - 1) / 7));
+    return { index: Math.min(3, Math.floor((new Date().getDate() - 1) / 7)), explicit: false };
   }
 
   function _matchCategory(lower, rows) {
@@ -159,9 +160,12 @@ window.VoiceInput = (function () {
     var br      = _bridge();
     var rows    = br.getRows();
     var cols    = br.getCols();
-    var weekIdx = _extractWeekIndex(lower);
-    var col     = cols[weekIdx] || cols[0] || {};
-    var match   = _matchCategory(lower, rows);
+    var weekResult  = _extractWeekIndex(lower);
+    var isForecast  = br.isForecastMonth();
+    // On forecast months with no explicit week, default to week 1 (date-based default is meaningless)
+    var weekIdx     = (!weekResult.explicit && isForecast) ? 0 : weekResult.index;
+    var col         = cols[weekIdx] || cols[0] || {};
+    var match       = _matchCategory(lower, rows);
     var isLastWeekInWeek1 = /\blast\s+week\b/.test(lower) && weekIdx === 0;
     return {
       transcript:      transcript,
@@ -170,12 +174,14 @@ window.VoiceInput = (function () {
       amount:          _extractAmount(lower),
       relAmount:       _extractRelative(lower),
       weekIndex:       weekIdx,
+      weekExplicit:    weekResult.explicit,
       rowId:           match.rowId,
       rowLabel:        match.rowLabel,
       confidence:      match.confidence,
       colId:           col.id || null,
       colLabel:        col.label || ('Week ' + (weekIdx + 1)),
       lastWeekInWeek1: isLastWeekInWeek1,
+      isForecast:      isForecast,
     };
   }
 
@@ -243,13 +249,18 @@ window.VoiceInput = (function () {
   }
 
   function _decide(p) {
+    if (_bridge().isLockedMonth()) {
+      _toast('🔒 This month is locked — reopen it to make changes.');
+      return;
+    }
     var autoLog = (
       p.confidence >= 0.95
       && !_hasSubcategories(p.rowId)
       && p.amount !== null
-      && !p.relAmount          // relative amounts always confirm so user sees resolved value
+      && !p.relAmount              // relative amounts always confirm so user sees resolved value
       && !_alwaysConfirm()
       && !p.lastWeekInWeek1
+      && !(p.isForecast && !p.weekExplicit)  // forecast month with no stated week: confirm so user can verify which week
     );
     if (autoLog) { _applyResult(p); } else { _showConfirmSheet(p); }
   }
@@ -274,8 +285,9 @@ window.VoiceInput = (function () {
     _hideConfirmSheet();
     var verb = isRemove ? 'Removed' : 'Added';
     var prep  = isRemove ? 'from'    : 'to';
-    _speak(verb + ' ' + p.amount.toFixed(0) + ' dollars ' + prep + ' ' + p.rowLabel);
-    _toast(verb + ' $' + p.amount.toFixed(2) + ' ' + prep + ' ' + p.rowLabel);
+    var weekPart = p.colLabel ? ', ' + p.colLabel : '';
+    _speak(verb + ' ' + p.amount.toFixed(0) + ' dollars ' + prep + ' ' + p.rowLabel + weekPart);
+    _toast(verb + ' $' + p.amount.toFixed(2) + ' ' + prep + ' ' + p.rowLabel + weekPart);
   }
 
   // ── TTS ────────────────────────────────────────────────────────────────
@@ -331,6 +343,7 @@ window.VoiceInput = (function () {
 
     document.getElementById('_vi-heard').textContent = '"' + p.transcript + '"';
     document.getElementById('_vi-last-week-note').style.display = p.lastWeekInWeek1 ? '' : 'none';
+    document.getElementById('_vi-forecast-note').style.display  = p.isForecast      ? '' : 'none';
 
     // Resolve relative amount (re-runs on every refresh so week-chip changes update it)
     if (p.relAmount && p.rowId && p.colId) {
@@ -517,6 +530,9 @@ window.VoiceInput = (function () {
       '<div id="_vi-heard" class="voice-heard"></div>' +
       '<div id="_vi-last-week-note" class="voice-warning" style="display:none">' +
         'Did you mean last month’s Week 4? If so, close and navigate to that month first.' +
+      '</div>' +
+      '<div id="_vi-forecast-note" class="voice-forecast-note" style="display:none">' +
+        '📂 Forecast month — you\'re editing a future month.' +
       '</div>' +
       '<div id="_vi-no-cat" class="voice-warning" style="display:none">No category matched — tap Category to pick one.</div>' +
       '<div id="_vi-sub-section" style="display:none">' +
