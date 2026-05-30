@@ -2111,3 +2111,10 @@ document.getElementById('chart-type-doughnut').addEventListener('click',function
 document.getElementById('help-modal').addEventListener('click',function(e){if(e.target===this)closeHelp();});
 document.getElementById('help-close-btn').addEventListener('click',closeHelp);
 
+// ── Voice Input Bridge ──────────────────────────────────────────────────
+window._incVoiceBridge = {
+  getRows, getCols, currentMK, snapshot, setCell, updateAll, render,
+  addRow, forkCurrentMonth,
+  getCell: function(rId, cId) { return state.cells[currentMK()+'|'+rId+'|'+cId]; },
+};
+
