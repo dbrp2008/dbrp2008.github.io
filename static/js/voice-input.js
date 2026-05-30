@@ -72,6 +72,22 @@ window.VoiceInput = (function () {
     return 'add';
   }
 
+  function _extractRelative(lower) {
+    if (/\b(all|everything|whole|entire)\b/.test(lower))                    return 'all';
+    if (/\b(half|50\s*%|50\s*percent)\b/.test(lower))                      return 'half';
+    if (/\b(quarter|a\s+quarter|25\s*%|25\s*percent)\b/.test(lower))       return 'quarter';
+    if (/\b(third|a\s+third|one\s+third|33\s*%)\b/.test(lower))            return 'third';
+    return null;
+  }
+
+  function _resolveRelative(rel, existing) {
+    if (rel === 'all')     return existing;
+    if (rel === 'half')    return existing / 2;
+    if (rel === 'quarter') return existing / 4;
+    if (rel === 'third')   return existing / 3;
+    return null;
+  }
+
   function _extractAmount(lower) {
     var m = lower.match(/\$?\s*(\d+(?:[.,]\d+)?)/);
     return m ? parseFloat(m[1].replace(',', '.')) : null;
@@ -152,6 +168,7 @@ window.VoiceInput = (function () {
       tracker:         _detectTracker(lower),
       action:          _detectAction(lower),
       amount:          _extractAmount(lower),
+      relAmount:       _extractRelative(lower),
       weekIndex:       weekIdx,
       rowId:           match.rowId,
       rowLabel:        match.rowLabel,
@@ -230,6 +247,7 @@ window.VoiceInput = (function () {
       p.confidence >= 0.95
       && !_hasSubcategories(p.rowId)
       && p.amount !== null
+      && !p.relAmount          // relative amounts always confirm so user sees resolved value
       && !_alwaysConfirm()
       && !p.lastWeekInWeek1
     );
@@ -314,6 +332,13 @@ window.VoiceInput = (function () {
     document.getElementById('_vi-heard').textContent = '"' + p.transcript + '"';
     document.getElementById('_vi-last-week-note').style.display = p.lastWeekInWeek1 ? '' : 'none';
 
+    // Resolve relative amount (re-runs on every refresh so week-chip changes update it)
+    if (p.relAmount && p.rowId && p.colId) {
+      var _cur = parseFloat(br.getCell(p.rowId, p.colId) || '0') || 0;
+      var _resolved = _resolveRelative(p.relAmount, _cur);
+      if (_resolved !== null) p.amount = Math.max(0, _resolved);
+    }
+
     var nocat = !p.rowId;
     document.getElementById('_vi-no-cat').style.display     = nocat ? '' : 'none';
     document.getElementById('_vi-create-cat').style.display = nocat ? '' : 'none';
@@ -356,7 +381,13 @@ window.VoiceInput = (function () {
     catChip.classList.toggle('voice-chip-unset', !p.rowId);
 
     var amtChip = document.getElementById('_vi-c-amt');
-    amtChip.textContent = p.amount !== null ? '$' + p.amount.toFixed(2) : 'Amount ?';
+    if (p.amount !== null) {
+      amtChip.textContent = p.relAmount
+        ? p.relAmount + ' → $' + p.amount.toFixed(2)
+        : '$' + p.amount.toFixed(2);
+    } else {
+      amtChip.textContent = 'Amount ?';
+    }
     amtChip.classList.toggle('voice-chip-unset', p.amount === null);
 
     document.getElementById('_vi-c-wk').textContent = p.colLabel || ('Week ' + (p.weekIndex + 1));
