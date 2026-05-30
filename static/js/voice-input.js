@@ -161,7 +161,7 @@ window.VoiceInput = (function () {
     var rows    = br.getRows();
     var cols    = br.getCols();
     var weekResult  = _extractWeekIndex(lower);
-    var isForecast  = br.isForecastMonth();
+    var isForecast  = typeof br.isForecastMonth === 'function' ? br.isForecastMonth() : false;
     // On forecast months with no explicit week, default to week 1 (date-based default is meaningless)
     var weekIdx     = (!weekResult.explicit && isForecast) ? 0 : weekResult.index;
     var col         = cols[weekIdx] || cols[0] || {};
@@ -249,7 +249,7 @@ window.VoiceInput = (function () {
   }
 
   function _decide(p) {
-    if (_bridge().isLockedMonth()) {
+    if (typeof _bridge().isLockedMonth === 'function' && _bridge().isLockedMonth()) {
       _toast('🔒 This month is locked — reopen it to make changes.');
       return;
     }
