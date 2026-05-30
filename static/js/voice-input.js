@@ -456,9 +456,25 @@ window.VoiceInput = (function () {
     });
 
     document.getElementById('_vi-c-amt').addEventListener('click', function () {
-      var v = window.prompt('Enter amount:', _pendingResult.amount !== null ? _pendingResult.amount : '');
-      var n = parseFloat(v);
-      if (!isNaN(n) && n > 0) { _pendingResult.amount = n; _refreshSheet(); }
+      var inp = document.getElementById('_vi-amt-input');
+      inp.value = _pendingResult.amount !== null ? _pendingResult.amount : '';
+      document.getElementById('_vi-amt-row').style.display = 'flex';
+      document.querySelector('.voice-chips').style.display = 'none';
+      setTimeout(function () { inp.focus(); }, 50);
+    });
+
+    function _commitAmt() {
+      var inp = document.getElementById('_vi-amt-input');
+      var n = parseFloat(inp.value);
+      if (!isNaN(n) && n > 0) { _pendingResult.amount = n; }
+      document.getElementById('_vi-amt-row').style.display = 'none';
+      document.querySelector('.voice-chips').style.display = 'flex';
+      _refreshSheet();
+    }
+
+    document.getElementById('_vi-amt-ok').addEventListener('click', _commitAmt);
+    document.getElementById('_vi-amt-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); _commitAmt(); }
     });
 
     document.getElementById('_vi-c-wk').addEventListener('click', function () {
@@ -543,6 +559,10 @@ window.VoiceInput = (function () {
         '<button id="_vi-c-cat" class="voice-chip">Category ?</button>' +
         '<button id="_vi-c-amt" class="voice-chip">Amount ?</button>' +
         '<button id="_vi-c-wk"  class="voice-chip">Week ?</button>' +
+      '</div>' +
+      '<div id="_vi-amt-row" style="display:none;align-items:center;gap:.5rem;margin:.25rem 0 .6rem;">' +
+        '<input id="_vi-amt-input" type="number" inputmode="decimal" min="0" step="any" placeholder="0.00" style="flex:1;padding:.55rem .75rem;border:2px solid var(--accent);border-radius:10px;font-size:1rem;background:var(--panel-bg);color:var(--fg);font-family:inherit;">' +
+        '<button id="_vi-amt-ok" class="voice-btn-confirm" style="flex:none;padding:.55rem .9rem;">OK</button>' +
       '</div>' +
       '<div id="_vi-create-cat" style="display:none">' +
         '<button class="voice-create-cat" id="_vi-create-btn">+ Create new category</button>' +
