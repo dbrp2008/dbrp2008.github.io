@@ -570,6 +570,7 @@ h1, h2, h3, h4 { color: var(--fg); }
   font-size: .78rem; color: var(--muted); font-style: italic; margin-bottom: .55rem;
 }
 .voice-warning { font-size: .78rem; color: #ef4444; margin-bottom: .5rem; }
+.voice-forecast-note { font-size: .78rem; color: var(--muted); margin-bottom: .5rem; }
 .voice-sub-label { font-size: .8rem; font-weight: 600; color: var(--fg); margin-bottom: .35rem; }
 .voice-sub-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .6rem; }
 .voice-sub-chip {
