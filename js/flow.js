@@ -76,6 +76,18 @@
         reach[next.id] = entry;
       });
     }
+
+    // Any other pipe with its own inlet mark feeds this network too — force its
+    // direction to flow away from its marked end, regardless of which side BFS
+    // reached it from, so its animation always enters through the "IN" marker.
+    App.components.forEach(function (c) {
+      if (c.type !== 'pipe' || !c.endMarks || !reach[c.id]) return;
+      for (var e = 0; e < 2; e++) {
+        if (c.endMarks[e] && c.endMarks[e].kind === 'inlet') {
+          reach[c.id].sign = e === 0 ? 1 : -1;
+        }
+      }
+    });
     return true;
   }
 
@@ -87,6 +99,7 @@
     App.flow.running = true;
     App.flow.t = 0;
     App.dirty = true;
+    Viewer3D.rebuild();
     var n = Object.keys(App.flow.reach).length;
     var msg = 'Flow running through ' + n + ' component' + (n === 1 ? '' : 's') + '.';
     if (!App.flow.hasOutlet) msg += ' No outlet marked — flow dead-ends.';
@@ -96,6 +109,7 @@
   function stop() {
     App.flow.running = false;
     App.dirty = true;
+    Viewer3D.rebuild();
   }
 
   function tick(dtMs) {
