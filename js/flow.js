@@ -86,6 +86,21 @@
       if (solved.pipeSign[id] !== undefined) reach[id].sign = solved.pipeSign[id];
       else if (solved.fitSign[id] !== undefined) reach[id].sign = solved.fitSign[id];
     });
+
+    // Pipes in an error state — contradicting markers, or a section with no
+    // guaranteed flow — must not animate: water there is undefined, not flowing.
+    var bad = Validate.findStagnantPipes(net);
+    solved.conflicts.forEach(function (cf) { bad[cf.compId] = true; });
+    Object.keys(bad).forEach(function (id) { delete reach[id]; });
+    // fittings left stranded between removed pipes stop animating too
+    Object.keys(reach).forEach(function (id) {
+      var c = PipeState.getComp(+id);
+      if (!c || c.type === 'pipe') return;
+      var hasLivePipe = (adj[c.id] || []).some(function (link) {
+        return link.other.comp.type === 'pipe' && reach[link.other.comp.id];
+      });
+      if (!hasLivePipe) delete reach[id];
+    });
     return true;
   }
 
