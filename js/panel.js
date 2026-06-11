@@ -56,6 +56,24 @@
     return r;
   }
 
+  function colorPicker(c) {
+    var wrap = el('div', { class: 'color-picker' });
+    Comp.COLOR_PALETTE.forEach(function (col) {
+      var sw = el('button', { class: 'swatch' + (Comp.colorFor(c) === col ? ' active' : ''), title: col });
+      sw.style.background = col;
+      sw.addEventListener('click', function () {
+        mutate(function () { c.color = col; });
+      });
+      wrap.appendChild(sw);
+    });
+    var inp = el('input', { type: 'color', class: 'swatch-custom', value: Comp.colorFor(c), title: 'Custom colour' });
+    inp.addEventListener('input', function () {
+      mutate(function () { c.color = inp.value; });
+    });
+    wrap.appendChild(inp);
+    return wrap;
+  }
+
   function select(options, current, onChange) {
     var s = el('select');
     options.forEach(function (o) {
@@ -110,18 +128,25 @@
       return;
     }
 
-    propsEl.appendChild(el('h3', null, ({ pipe: 'Pipe', flange: 'Flange', elbow: 'Elbow', reducer: 'Reducer' })[c.type] + '  #' + c.id));
+    propsEl.appendChild(el('h3', null, ({ pipe: 'Pipe', flange: 'Flange', elbow: 'Elbow', reducer: 'Reducer', branch: 'Branch' })[c.type] + '  #' + c.id));
 
     if (c.type === 'reducer') {
       propsEl.appendChild(row('Large end', select(sizeOptions(), c.largeSize, function (v) {
-        mutate(function () { c.largeSize = v; });
+        mutate(function () { c.largeSize = v; PipeState.setDefaultSize(v); });
       })));
       propsEl.appendChild(row('Small end', select(sizeOptions(), c.smallSize, function (v) {
         mutate(function () { c.smallSize = v; });
       })));
     } else {
       propsEl.appendChild(row('Size', select(sizeOptions(), c.size, function (v) {
-        mutate(function () { c.size = v; });
+        mutate(function () {
+          c.size = v;
+          PipeState.setDefaultSize(v);
+          if (c.type === 'flange') {
+            var mate = Comp.flangeMate(c);
+            if (mate) mate.size = v;
+          }
+        });
       })));
     }
 
@@ -129,12 +154,18 @@
       mutate(function () { c.material = v; });
     })));
 
+    propsEl.appendChild(row('Colour', colorPicker(c)));
+
     if (c.type === 'flange') {
       var clsOpts = Object.keys(PipeStandards.STANDARDS.flangeClasses).map(function (k) {
         return { value: k, label: 'Class ' + k + ' (' + PipeStandards.STANDARDS.flangeClasses[k] + ' bar)' };
       });
       propsEl.appendChild(row('Pressure class', select(clsOpts, c.cls, function (v) {
-        mutate(function () { c.cls = v; });
+        mutate(function () {
+          c.cls = v;
+          var mate = Comp.flangeMate(c);
+          if (mate) mate.cls = v;
+        });
       })));
       var mate = Comp.flangeMate(c);
       propsEl.appendChild(readout('Pairing', mate ? 'Merged pair with #' + mate.id : 'Unpaired'));
@@ -142,6 +173,18 @@
         var btn = el('button', { class: 'btn small' }, 'Split flange pair');
         btn.addEventListener('click', function () { Editor.splitFlangePair(c); });
         propsEl.appendChild(btn);
+      }
+
+      var fd = PipeStandards.flangeDims(App.settings.family, App.settings.schedule, c.size, c.cls);
+      propsEl.appendChild(el('h4', null, 'Flange dimensions'));
+      if (fd) {
+        propsEl.appendChild(readout('Outer Ø (OD)', fd.od + ' mm'));
+        propsEl.appendChild(readout('Bore Ø (ID)', fd.id + ' mm'));
+        propsEl.appendChild(readout('Bolt circle (PCD)', fd.pcd + ' mm'));
+        propsEl.appendChild(readout('Thickness', fd.thickness + ' mm'));
+        propsEl.appendChild(readout('Bolt holes', fd.boltCount + ' × Ø' + fd.boltDia + ' mm'));
+      } else {
+        propsEl.appendChild(readout('Flange dimensions', 'n/a in this schedule'));
       }
     }
 
@@ -258,6 +301,7 @@
         c.size = remap(c.size);
       }
     });
+    if (App.settings.defaultSize) App.settings.defaultSize = remap(App.settings.defaultSize);
     History.commit();
     Validate.run();
     Flow.refresh();
