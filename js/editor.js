@@ -152,8 +152,10 @@
       var c = drag.comp;
       var g2 = Grid.snap({ x: w.x - drag.grab.x, y: w.y - drag.grab.y });
       if (g2.x !== c.pos.x || g2.y !== c.pos.y) {
+        var ox = c.pos.x, oy = c.pos.y;
         c.pos.x = g2.x; c.pos.y = g2.y;
-        drag.moved = true;
+        if (Comp.pipeOverlapsOther(c)) { c.pos.x = ox; c.pos.y = oy; }  // refuse to overlap a pipe
+        else drag.moved = true;
       }
       return;
     }
@@ -163,7 +165,11 @@
       var cs = Grid.toScreen(center.x, center.y);
       var ang = Math.atan2(m.y - cs.y, m.x - cs.x) * 180 / Math.PI;
       var newRot = snap45(ang + 90);   // handle points "up" at rot 0
-      if (newRot !== Comp.norm(rc.rot)) { rc.rot = newRot; drag.moved = true; }
+      if (newRot !== Comp.norm(rc.rot)) {
+        var orot = rc.rot; rc.rot = newRot;
+        if (Comp.pipeOverlapsOther(rc)) rc.rot = orot;
+        else drag.moved = true;
+      }
       return;
     }
     if (drag.kind === 'resize') {
@@ -174,13 +180,19 @@
       var t = ((w.x - p.pos.x) * u.x + (w.y - p.pos.y) * u.y) / sl;  // GU steps along axis
       if (drag.end === 1) {
         var nl = Math.max(1, Math.round(t));
-        if (nl !== p.lengthGU) { p.lengthGU = nl; drag.moved = true; }
+        if (nl !== p.lengthGU) {
+          var ol = p.lengthGU; p.lengthGU = nl;
+          if (Comp.pipeOverlapsOther(p)) p.lengthGU = ol;   // don't grow into another pipe
+          else drag.moved = true;
+        }
       } else {
         var shift = Math.min(p.lengthGU - 1, Math.round(t));
         if (shift !== 0) {
+          var px = p.pos.x, py = p.pos.y, pl = p.lengthGU;
           p.pos.x += s.x * shift; p.pos.y += s.y * shift;
           p.lengthGU -= shift;
-          drag.moved = true;
+          if (Comp.pipeOverlapsOther(p)) { p.pos.x = px; p.pos.y = py; p.lengthGU = pl; }
+          else drag.moved = true;
         }
       }
       return;
@@ -199,12 +211,16 @@
 
     if (d.kind === 'palette') {
       if (ghost && !ghost._offscreen && overCanvas(e)) {
-        History.capture();
-        delete ghost._offscreen;
-        PipeState.addComp(ghost);
-        App.selection = ghost.id;
-        History.commit();
-        Panel.refresh();
+        if (Comp.pipeOverlapsOther(ghost)) {
+          Panel.setFlowStatus('Cannot place a pipe overlapping another pipe.');
+        } else {
+          History.capture();
+          delete ghost._offscreen;
+          PipeState.addComp(ghost);
+          App.selection = ghost.id;
+          History.commit();
+          Panel.refresh();
+        }
       }
       ghost = null;
       App.dirty = true;
@@ -260,8 +276,10 @@
     } else if (e.key.toLowerCase() === 'r' && App.selection) {
       var c = PipeState.selected();
       History.capture();
+      var orot = c.rot;
       c.rot = Comp.norm(c.rot + 45);
-      History.commit();
+      if (Comp.pipeOverlapsOther(c)) { c.rot = orot; History.abort(); }
+      else History.commit();
       Panel.refresh();
     }
   }
