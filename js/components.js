@@ -459,7 +459,7 @@
   /* ---------- flow overlay path ---------- */
 
   // Strokes the dashed flow path for a component; dashSign flips animation direction.
-  function strokeFlowPath(ctx, c, dashOffset, dashSign) {
+  function strokeFlowPath(ctx, c, dashOffset, dashSign, ranges) {
     ctx.save();
     ctx.strokeStyle = 'rgba(80,200,255,0.95)';
     ctx.lineWidth = Math.max(2, App.view.zoom * 0.07);
@@ -468,9 +468,31 @@
     ctx.lineDashOffset = dashSign >= 0 ? -dashOffset : dashOffset;
     ctx.beginPath();
     if (c.type === 'pipe') {
+      // ranges = [[f0,f1,sign?],...] fractional live sub-spans (water may only
+      // flow through part of a tapped pipe, and spans can run opposite ways);
+      // default is the full length in the dashSign direction
       var e = pipeTrimmedEnds(c);
-      var a = Grid.toScreen(e[0].x, e[0].y), b = Grid.toScreen(e[1].x, e[1].y);
-      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      var ef = pipeEnds(c);
+      var lerp = function (f) { return { x: ef[0].x + (ef[1].x - ef[0].x) * f, y: ef[0].y + (ef[1].y - ef[0].y) * f }; };
+      var fwd = [], bwd = [];
+      ((ranges && ranges.length) ? ranges : [[0, 1]]).forEach(function (rg) {
+        var sgn = rg.length > 2 ? rg[2] : dashSign;
+        (sgn >= 0 ? fwd : bwd).push(rg);
+      });
+      [{ list: fwd, off: -dashOffset }, { list: bwd, off: dashOffset }].forEach(function (grp) {
+        if (!grp.list.length) return;
+        ctx.lineDashOffset = grp.off;
+        ctx.beginPath();
+        grp.list.forEach(function (rg) {
+          var p0 = rg[0] === 0 ? e[0] : lerp(rg[0]);
+          var p1 = rg[1] === 1 ? e[1] : lerp(rg[1]);
+          var a = Grid.toScreen(p0.x, p0.y), b = Grid.toScreen(p1.x, p1.y);
+          ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        });
+        ctx.stroke();
+      });
+      ctx.restore();
+      return;
     } else if (c.type === 'elbow') {
       var ap = elbowArcPts(c);
       var sa = Grid.toScreen(ap.a.x, ap.a.y), sb = Grid.toScreen(ap.b.x, ap.b.y), q = Grid.toScreen(ap.ctrl.x, ap.ctrl.y);
