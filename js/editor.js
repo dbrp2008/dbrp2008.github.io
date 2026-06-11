@@ -346,8 +346,53 @@
 
     if (ghost && !ghost._offscreen) Comp.drawComponent(ctx, ghost, { ghost: true });
 
+    drawPorts();
     drawIssueBadges();
     drawSelection();
+  }
+
+  // Connection nodes: every component port gets a small marker, nudged outward along
+  // its facing direction. Open ports (nothing mating) show as bright amber rings so the
+  // user can see exactly where to bring another part's end; connected ports show as small
+  // green dots. This makes the "ends must meet on the same grid point" rule visible.
+  function drawPorts() {
+    if (App.view.zoom < 18) return;
+    var byPoint = {};
+    App.components.forEach(function (c) {
+      Comp.getPorts(c).forEach(function (pt) {
+        var k = pt.p.x + ',' + pt.p.y;
+        (byPoint[k] = byPoint[k] || []).push(pt);
+      });
+    });
+    function opp(dir) { var a = dir.split(','); return (-a[0]) + ',' + (-a[1]); }
+
+    ctx.save();
+    Object.keys(byPoint).forEach(function (k) {
+      var list = byPoint[k];
+      list.forEach(function (pt) {
+        var connected = list.some(function (o) { return o.comp.id !== pt.comp.id && o.dir === opp(pt.dir); });
+        var a = pt.dir.split(',').map(Number);
+        var len = Math.hypot(a[0], a[1]) || 1;
+        var off = 0.17;
+        var sp = Grid.toScreen(pt.p.x + a[0] / len * off, pt.p.y + a[1] / len * off);
+        if (connected) {
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, Math.max(2.5, App.view.zoom * 0.05), 0, Math.PI * 2);
+          ctx.fillStyle = '#39c46c';
+          ctx.fill();
+        } else {
+          var rr = Math.max(4, App.view.zoom * 0.08);
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, rr, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(216,162,60,0.18)';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#e0a23c';
+          ctx.stroke();
+        }
+      });
+    });
+    ctx.restore();
   }
 
   function drawSelection() {
