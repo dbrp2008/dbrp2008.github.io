@@ -372,12 +372,24 @@
       }
     });
 
-    // 8. every section must be guaranteed to carry water. Build a junction
-    // graph (pipes split into sub-segments at their tee taps; fittings collapse
-    // into their junction) and try cutting each sub-segment: if BOTH halves of
-    // the network are self-sufficient — each already has its own inlet AND
-    // outlet — then nothing forces water through the cut section, so it could
-    // sit completely stagnant. That makes the layout invalid.
+    // 8. every section must be guaranteed to carry water — see findStagnantPipes.
+    var stagnant = findStagnantPipes(net);
+    Object.keys(stagnant).forEach(function (id) {
+      issues.push({ compId: +id, level: 'error', msg: 'No guaranteed flow through this section — each side of it already has its own inlet and outlet, so the water here could stand completely still' });
+    });
+
+    App.issues = issues;
+    App.dirty = true;
+    return issues;
+  }
+
+  // Pipes with no guaranteed flow. Build a junction graph (pipes split into
+  // sub-segments at their tee taps; fittings collapse into their junction) and
+  // try cutting each sub-segment: if BOTH halves of the network are
+  // self-sufficient — each already has its own inlet AND outlet — then nothing
+  // forces water through the cut section, so it could sit completely stagnant.
+  // Returns {pipeId: true}.
+  function findStagnantPipes(net) {
     var pc = 0, portKey = new Map();
     var pkey = function (p) { if (!portKey.has(p)) portKey.set(p, 'p' + (++pc)); return portKey.get(p); };
     var parent = {};
@@ -462,14 +474,13 @@
       var B = sideMarks(s.rb, i);
       if (A.ins && A.outs && B.ins && B.outs) {
         stagnantFlagged[s.pipe.id] = true;
-        issues.push({ compId: s.pipe.id, level: 'error', msg: 'No guaranteed flow through this section — each side of it already has its own inlet and outlet, so the water here could stand completely still' });
       }
     });
-
-    App.issues = issues;
-    App.dirty = true;
-    return issues;
+    return stagnantFlagged;
   }
 
-  window.Validate = { run: run, buildConnectivity: buildConnectivity, ptKey: ptKey, solveDirections: solveDirections };
+  window.Validate = {
+    run: run, buildConnectivity: buildConnectivity, ptKey: ptKey,
+    solveDirections: solveDirections, findStagnantPipes: findStagnantPipes
+  };
 })();
