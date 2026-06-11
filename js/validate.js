@@ -61,6 +61,13 @@
       });
     });
 
+    // 0b. pipe-on-pipe overlap (safety net; interactive edits already block this)
+    App.components.forEach(function (c) {
+      if (c.type === 'pipe' && Comp.pipeOverlapsOther(c)) {
+        issues.push({ compId: c.id, level: 'error', msg: 'Pipe overlaps another pipe — pipes cannot share the same run' });
+      }
+    });
+
     // 1. open pipe ends without inlet/outlet mark
     net.openPorts.forEach(function (p) {
       if (p.comp.type === 'pipe') {
