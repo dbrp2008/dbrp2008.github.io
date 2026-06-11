@@ -22,10 +22,15 @@
     return PipeStandards.sizeData(App.settings.family, App.settings.schedule, sizeKey);
   }
 
+  function colorNum(c, fallback) {
+    if (c.color) return parseInt(c.color.slice(1), 16);
+    return fallback;
+  }
+
   function matFor(c, reached) {
     var m = PipeStandards.STANDARDS.materials[c.material];
     var mat = new THREE.MeshStandardMaterial({
-      color: m ? m.color3d : 0x8a8f98,
+      color: colorNum(c, m ? m.color3d : 0x8a8f98),
       metalness: 0.6,
       roughness: 0.4
     });
@@ -68,7 +73,7 @@
       var mesh = null;
 
       if (c.type === 'pipe') {
-        var e = Comp.pipeEnds(c);
+        var e = Comp.pipeTrimmedEnds(c);
         var a = v3(e[0].x, e[0].y), b = v3(e[1].x, e[1].y);
         var len = a.distanceTo(b);
         var d = sizeOf(c.size);
@@ -83,7 +88,7 @@
         var pair = Comp.flangeMate(c);
         var thick = 0.06;
         var geoF = new THREE.CylinderGeometry(rf, rf, thick, 24);
-        mesh = new THREE.Mesh(geoF, new THREE.MeshStandardMaterial({ color: 0xc9a648, metalness: 0.7, roughness: 0.35 }));
+        mesh = new THREE.Mesh(geoF, new THREE.MeshStandardMaterial({ color: colorNum(c, 0xc9a648), metalness: 0.7, roughness: 0.35 }));
         var p = v3(c.pos.x, c.pos.y);
         if (pair) p.add(u.clone().multiplyScalar(thick / 2));   // pair renders as two touching disks
         mesh.position.copy(p);
@@ -96,6 +101,15 @@
         var de = sizeOf(c.size);
         var geoE = new THREE.TubeGeometry(curve, 16, radiusGU(de ? de.od : 60), 16, false);
         mesh = new THREE.Mesh(geoE, matFor(c, reached));
+      } else if (c.type === 'branch') {
+        var tipB = Comp.branchTip(c);
+        var ab = v3(c.pos.x, c.pos.y), bb = v3(tipB.x, tipB.y);
+        var lenB = ab.distanceTo(bb);
+        var dB = sizeOf(c.size);
+        var geoB = new THREE.CylinderGeometry(radiusGU(dB ? dB.od : 60), radiusGU(dB ? dB.od : 60), lenB, 16);
+        mesh = new THREE.Mesh(geoB, matFor(c, reached));
+        mesh.position.copy(ab).add(bb).multiplyScalar(0.5);
+        alignY(mesh, bb.clone().sub(ab));
       } else if (c.type === 'reducer') {
         var dl = sizeOf(c.largeSize), ds = sizeOf(c.smallSize);
         var h = 0.64;
