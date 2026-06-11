@@ -97,6 +97,16 @@
       }
     });
 
+    // 0. a single pipe can't have both ends marked inlet — flow can't flow away
+    // from both ends of the same run at once.
+    App.components.forEach(function (c) {
+      if (c.type === 'pipe' && c.endMarks &&
+          c.endMarks[0] && c.endMarks[0].kind === 'inlet' &&
+          c.endMarks[1] && c.endMarks[1].kind === 'inlet') {
+        issues.push({ compId: c.id, level: 'error', msg: 'Both ends of this pipe are marked as inlet — they would flow in opposite directions' });
+      }
+    });
+
     // 1. open pipe ends without inlet/outlet mark
     net.openPorts.forEach(function (p) {
       if (p.comp.type === 'pipe') {
@@ -186,38 +196,95 @@
       }
     });
 
-    // 6. multiple inlets or multiple outlets in one continuous (connected) pipe
-    // run — the flow sim only follows a single path from one inlet, so more
-    // than one inlet or outlet in the same network is invalid.
-    var netAdj = {};
-    net.edges.forEach(function (e) {
-      (netAdj[e.a.comp.id] = netAdj[e.a.comp.id] || []).push(e.b.comp.id);
-      (netAdj[e.b.comp.id] = netAdj[e.b.comp.id] || []).push(e.a.comp.id);
-    });
-    var compGroup = function (startId) {
-      var seen = {}; var stack = [startId]; seen[startId] = true;
-      while (stack.length) {
-        var id = stack.pop();
-        (netAdj[id] || []).forEach(function (n) { if (!seen[n]) { seen[n] = true; stack.push(n); } });
+    // 6. multiple outlets in one continuous (connected) pipe run — the flow sim
+    // only follows a single path from the inlet, so more than one outlet is invalid.
+    // (Multiple inlets are fine: each inlet-marked pipe is forced to flow away
+    // from its own inlet end, so several feeds can merge into one network.)
+    var outletEnds = [];
+    App.components.forEach(function (c) {
+      if (c.type === 'pipe' && c.endMarks) {
+        c.endMarks.forEach(function (m, idx) { if (m && m.kind === 'outlet') outletEnds.push({ comp: c, end: idx }); });
       }
-      return seen;
-    };
-    ['inlet', 'outlet'].forEach(function (kind) {
-      var ends = [];
-      App.components.forEach(function (c) {
-        if (c.type === 'pipe' && c.endMarks) {
-          c.endMarks.forEach(function (m, idx) { if (m && m.kind === kind) ends.push({ comp: c, end: idx }); });
+    });
+    if (outletEnds.length > 1) {
+      var adj = {};
+      net.edges.forEach(function (e) {
+        (adj[e.a.comp.id] = adj[e.a.comp.id] || []).push(e.b.comp.id);
+        (adj[e.b.comp.id] = adj[e.b.comp.id] || []).push(e.a.comp.id);
+      });
+      var compGroup = function (startId) {
+        var seen = {}; var stack = [startId]; seen[startId] = true;
+        while (stack.length) {
+          var id = stack.pop();
+          (adj[id] || []).forEach(function (n) { if (!seen[n]) { seen[n] = true; stack.push(n); } });
+        }
+        return seen;
+      };
+      outletEnds.forEach(function (o) {
+        var grp = compGroup(o.comp.id);
+        var countInGrp = outletEnds.filter(function (other) { return grp[other.comp.id]; }).length;
+        if (countInGrp > 1) {
+          issues.push({ compId: o.comp.id, level: 'error', msg: 'Multiple outlets in one continuous pipe run — only one outlet is supported per network' });
         }
       });
-      if (ends.length > 1) {
-        ends.forEach(function (o) {
-          var grp = compGroup(o.comp.id);
-          var countInGrp = ends.filter(function (other) { return grp[other.comp.id]; }).length;
-          if (countInGrp > 1) {
-            issues.push({ compId: o.comp.id, level: 'error', msg: 'Multiple ' + kind + 's in one continuous pipe run — only one ' + kind + ' is supported per network' });
-          }
-        });
+    }
+
+    // 7. contradicting inlets — propagate flow direction from every inlet end
+    // through series connections (pipe-pipe, flanges, elbows, reducers). Branch
+    // taps are skipped: a tee feed merges into whatever way the host run flows,
+    // so it never dictates direction. If two inlets force opposite directions on
+    // the same pipe (e.g. both ends of one continuous run marked IN), flag it.
+    var dirAdj = {};
+    net.edges.forEach(function (e) {
+      if (e.a.virtual || e.b.virtual) return;
+      (dirAdj[e.a.comp.id] = dirAdj[e.a.comp.id] || []).push({ own: e.a, other: e.b });
+      (dirAdj[e.b.comp.id] = dirAdj[e.b.comp.id] || []).push({ own: e.b, other: e.a });
+    });
+    var pipeSign = {};          // pipe id -> +1 (flows e0->e1) | -1
+    var conflictFlagged = {};
+    var seenFit = {};           // 'id@dir' fitting visits, to stop loops
+    var enterComp = function (port, queue) {
+      var c = port.comp;
+      if (c.type === 'pipe') {
+        queue.push({ pipe: c, sign: port.end === 0 ? 1 : -1 });
+      } else {
+        var key = c.id + '@' + port.dir;
+        if (seenFit[key]) return;
+        seenFit[key] = true;
+        queue.push({ fit: c, enteredDir: port.dir });
       }
+    };
+    var propagate = function (startPipe, startEnd) {
+      var queue = [{ pipe: startPipe, sign: startEnd === 0 ? 1 : -1 }];
+      while (queue.length) {
+        var cur = queue.shift();
+        if (cur.pipe) {
+          var p = cur.pipe;
+          if (pipeSign[p.id] !== undefined) {
+            if (pipeSign[p.id] !== cur.sign && !conflictFlagged[p.id]) {
+              conflictFlagged[p.id] = true;
+              issues.push({ compId: p.id, level: 'error', msg: 'Contradicting inlets — two inlets push flow in opposite directions through the same run' });
+            }
+            continue;
+          }
+          pipeSign[p.id] = cur.sign;
+          var exitEnd = cur.sign === 1 ? 1 : 0;
+          (dirAdj[p.id] || []).forEach(function (link) {
+            if (link.own.end === exitEnd) enterComp(link.other, queue);
+          });
+        } else {
+          // fitting: flow entered at enteredDir, exits at every other port
+          (dirAdj[cur.fit.id] || []).forEach(function (link) {
+            if (link.own.dir !== cur.enteredDir) enterComp(link.other, queue);
+          });
+        }
+      }
+    };
+    App.components.forEach(function (c) {
+      if (c.type !== 'pipe' || !c.endMarks) return;
+      c.endMarks.forEach(function (m, e) {
+        if (m && m.kind === 'inlet') propagate(c, e);
+      });
     });
 
     App.issues = issues;
