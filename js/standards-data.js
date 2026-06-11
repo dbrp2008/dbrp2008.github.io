@@ -147,6 +147,26 @@
 
   function flangeRatingBar(cls) { return STANDARDS.flangeClasses[String(cls)] || 0; }
 
+  // Approximate flange dimensions (mm) in the style of ASME B16.5: outer diameter,
+  // bolt circle diameter (PCD), thickness, bolt hole count and bolt hole diameter.
+  // Scaled from the pipe OD/ID at the given size, with a multiplier per pressure class —
+  // representative for simulator purposes rather than a literal standard lookup.
+  var FLANGE_CLASS_FACTOR = { '150': 1.0, '300': 1.15, '600': 1.3, '900': 1.45 };
+
+  function flangeDims(family, schedule, sizeKey, cls) {
+    var d = sizeData(family, schedule, sizeKey);
+    if (!d) return null;
+    var f = FLANGE_CLASS_FACTOR[String(cls)] || 1.0;
+    var od = +(d.od + Math.max(40, d.od * 0.55) * f).toFixed(1);
+    var pcd = +(od - Math.max(20, d.od * 0.22) * f).toFixed(1);
+    var thickness = +((Math.max(12, d.od * 0.12 + 4)) * f).toFixed(1);
+    var boltDia = +((Math.max(12, d.od * 0.045)) * f).toFixed(1);
+    var boltCount = 4;
+    if (d.od > 88.9) boltCount = 8;
+    if (d.od > 219.1) boltCount = 12;
+    return { od: od, id: d.id, pcd: pcd, thickness: thickness, boltCount: boltCount, boltDia: boltDia };
+  }
+
   // Display a size label with units context (e.g. NPS 2" or DN50).
   function sizeLabel(family, sizeKey) {
     var fam = STANDARDS.families[family];
@@ -161,6 +181,7 @@
     sizeData: sizeData,
     ratedPressureBar: ratedPressureBar,
     flangeRatingBar: flangeRatingBar,
+    flangeDims: flangeDims,
     sizeLabel: sizeLabel
   };
 })();
