@@ -299,6 +299,39 @@
     return { minx: minx - pad, miny: miny - pad, maxx: maxx + pad, maxy: maxy + pad };
   }
 
+  /* ---------- overlap detection (a pipe must not lie on top of another pipe) ---------- */
+
+  // The unit grid segments a pipe occupies, each keyed with endpoints in canonical order
+  // so two pipes running opposite directions over the same span produce identical keys.
+  function pipeSegKeys(c) {
+    var s = stepVec(c.rot);
+    var keys = [];
+    for (var i = 0; i < c.lengthGU; i++) {
+      var ax = c.pos.x + s.x * i, ay = c.pos.y + s.y * i;
+      var bx = c.pos.x + s.x * (i + 1), by = c.pos.y + s.y * (i + 1);
+      if (ax > bx || (ax === bx && ay > by)) {
+        var tx = ax, ty = ay; ax = bx; ay = by; bx = tx; by = ty;
+      }
+      keys.push(ax + ',' + ay + '|' + bx + ',' + by);
+    }
+    return keys;
+  }
+
+  // True if pipe c shares any unit segment with another pipe. Perpendicular pipes that
+  // merely cross at a point share no segment, so they are not treated as overlapping.
+  function pipeOverlapsOther(c) {
+    if (c.type !== 'pipe') return false;
+    var mine = {};
+    pipeSegKeys(c).forEach(function (k) { mine[k] = true; });
+    for (var i = 0; i < App.components.length; i++) {
+      var o = App.components[i];
+      if (o.type !== 'pipe' || o.id === c.id) continue;
+      var ok = pipeSegKeys(o);
+      for (var j = 0; j < ok.length; j++) if (mine[ok[j]]) return true;
+    }
+    return false;
+  }
+
   /* ---------- flow overlay path ---------- */
 
   // Strokes the dashed flow path for a component; dashSign flips animation direction.
@@ -331,6 +364,7 @@
     pipeEnds: pipeEnds, elbowLeg2Rot: elbowLeg2Rot, elbowArcPts: elbowArcPts,
     getPorts: getPorts, compCenter: compCenter, odPx: odPx,
     flangeMate: flangeMate, drawComponent: drawComponent, hitTest: hitTest,
-    screenBBox: screenBBox, strokeFlowPath: strokeFlowPath, reducerPoly: reducerPoly
+    screenBBox: screenBBox, strokeFlowPath: strokeFlowPath, reducerPoly: reducerPoly,
+    pipeOverlapsOther: pipeOverlapsOther, pipeSegKeys: pipeSegKeys
   };
 })();
