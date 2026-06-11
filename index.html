@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipe Simulator</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header id="toolbar">
+    <span class="brand">🔧 Pipe Simulator</span>
+    <button id="btnUndo" class="btn" title="Undo (Ctrl+Z)">↩ Undo</button>
+    <button id="btnRedo" class="btn" title="Redo (Ctrl+Y)">↪ Redo</button>
+    <span class="sep"></span>
+    <button id="btnZoomOut" class="btn" title="Zoom out">−</button>
+    <button id="btnZoomIn" class="btn" title="Zoom in">+</button>
+    <span class="sep"></span>
+    <button id="btnMode" class="btn" title="Toggle 2D / 3D view">3D view</button>
+    <span class="sep"></span>
+    <span class="flow-controls">
+      <label>Pressure <input id="flowPressure" type="number" min="0.1" step="0.5" value="10"> bar</label>
+      <label>Rate <input id="flowRate" type="number" min="0.1" step="1" value="36"> m³/h</label>
+      <button id="flowToggle" class="btn">▶ Start flow</button>
+    </span>
+    <span class="spacer"></span>
+    <button id="btnExport" class="btn" title="Download project as JSON">Export</button>
+    <button id="btnImport" class="btn" title="Load project from JSON">Import</button>
+    <input id="importFile" type="file" accept=".json,application/json" style="display:none">
+    <button id="btnNew" class="btn" title="Clear and start a new project">New</button>
+  </header>
+
+  <div id="body">
+    <aside id="palette">
+      <h3>Parts</h3>
+      <div class="palette-item" data-type="pipe" title="Straight pipe — drag onto the grid">
+        <svg viewBox="0 0 80 40"><line x1="8" y1="20" x2="72" y2="20" stroke="#8a8f98" stroke-width="9"/><line x1="8" y1="17" x2="72" y2="17" stroke="#ffffff55" stroke-width="2"/></svg>
+        <span>Pipe</span>
+      </div>
+      <div class="palette-item" data-type="flange" title="Flange — must be used in face-to-face pairs">
+        <svg viewBox="0 0 80 40"><line x1="40" y1="5" x2="40" y2="35" stroke="#c9a648" stroke-width="6"/></svg>
+        <span>Flange</span>
+      </div>
+      <div class="palette-item" data-type="elbow" title="Elbow — joins pipes at 90° or 45°">
+        <svg viewBox="0 0 80 40"><path d="M 14 34 Q 14 8 70 8" fill="none" stroke="#8a8f98" stroke-width="9" stroke-linecap="round"/></svg>
+        <span>Elbow</span>
+      </div>
+      <div class="palette-item" data-type="reducer" title="Reducer — joins two pipe diameters">
+        <svg viewBox="0 0 80 40"><polygon points="16,6 16,34 64,27 64,13" fill="#8a8f98" stroke="#000" stroke-width="1"/></svg>
+        <span>Reducer</span>
+      </div>
+      <p class="hint">Drag a part onto the grid. Pipes lock to grid points.</p>
+      <p class="hint">Rotate with the handle (45° steps) or press <b>R</b>. Double-click deletes.</p>
+    </aside>
+
+    <main id="canvasWrap">
+      <canvas id="canvas2d"></canvas>
+      <div id="canvas3d"></div>
+      <div id="popover"></div>
+    </main>
+
+    <aside id="sidebar">
+      <div id="propsPanel"></div>
+      <div id="flowStatus" class="hint"></div>
+      <div id="issuesPanel"></div>
+    </aside>
+  </div>
+
+  <div id="startupModal">
+    <div class="modal-card">
+      <h2>New piping project</h2>
+      <p>Choose the pipe standard and schedule. These set the available sizes, wall thicknesses and pressure ratings.</p>
+      <label>Standard
+        <select id="modalFamily"></select>
+      </label>
+      <label>Schedule / series
+        <select id="modalSchedule"></select>
+      </label>
+      <p id="modalNote" class="hint"></p>
+      <button id="modalStart" class="btn primary">Start building</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="js/standards-data.js"></script>
+<script src="js/state.js"></script>
+<script src="js/history.js"></script>
+<script src="js/grid.js"></script>
+<script src="js/components.js"></script>
+<script src="js/validate.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/panel.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/viewer3d.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
