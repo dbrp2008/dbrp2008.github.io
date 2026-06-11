@@ -156,6 +156,15 @@
       var lenInput = el('input', { type: 'number', min: 1, step: 1, value: c.lengthGU });
       lenInput.addEventListener('change', function () {
         var v = Math.max(1, Math.round(parseFloat(lenInput.value) || 1));
+        var prev = c.lengthGU;
+        c.lengthGU = v;
+        if (Comp.pipeOverlapsOther(c)) {        // reject a length that would overlap another pipe
+          c.lengthGU = prev;
+          lenInput.value = prev;
+          setFlowStatus('Length would overlap another pipe — kept at ' + prev + '.');
+          return;
+        }
+        c.lengthGU = prev;
         mutate(function () { c.lengthGU = v; });
       });
       propsEl.appendChild(row('Length (grid)', lenInput));
