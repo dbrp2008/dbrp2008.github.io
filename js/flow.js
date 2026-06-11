@@ -77,16 +77,14 @@
       });
     }
 
-    // Any other pipe with its own inlet mark feeds this network too — force its
-    // direction to flow away from its marked end, regardless of which side BFS
-    // reached it from, so its animation always enters through the "IN" marker.
-    App.components.forEach(function (c) {
-      if (c.type !== 'pipe' || !c.endMarks || !reach[c.id]) return;
-      for (var e = 0; e < 2; e++) {
-        if (c.endMarks[e] && c.endMarks[e].kind === 'inlet') {
-          reach[c.id].sign = e === 0 ? 1 : -1;
-        }
-      }
+    // The BFS above only finds WHICH components carry water; its entry order
+    // says nothing about real direction (it can run backwards up a feeder that
+    // taps in via a branch). Overrule with the same direction solver validation
+    // uses, so every run animates the way its inlet/outlet marks force it.
+    var solved = Validate.solveDirections(net);
+    Object.keys(reach).forEach(function (id) {
+      if (solved.pipeSign[id] !== undefined) reach[id].sign = solved.pipeSign[id];
+      else if (solved.fitSign[id] !== undefined) reach[id].sign = solved.fitSign[id];
     });
     return true;
   }
