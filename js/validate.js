@@ -186,36 +186,39 @@
       }
     });
 
-    // 6. multiple outlets in one continuous (connected) pipe run — the flow sim
-    // only follows a single path from the inlet, so more than one outlet is invalid.
-    var outletEnds = [];
-    App.components.forEach(function (c) {
-      if (c.type === 'pipe' && c.endMarks) {
-        c.endMarks.forEach(function (m, idx) { if (m && m.kind === 'outlet') outletEnds.push({ comp: c, end: idx }); });
+    // 6. multiple inlets or multiple outlets in one continuous (connected) pipe
+    // run — the flow sim only follows a single path from one inlet, so more
+    // than one inlet or outlet in the same network is invalid.
+    var netAdj = {};
+    net.edges.forEach(function (e) {
+      (netAdj[e.a.comp.id] = netAdj[e.a.comp.id] || []).push(e.b.comp.id);
+      (netAdj[e.b.comp.id] = netAdj[e.b.comp.id] || []).push(e.a.comp.id);
+    });
+    var compGroup = function (startId) {
+      var seen = {}; var stack = [startId]; seen[startId] = true;
+      while (stack.length) {
+        var id = stack.pop();
+        (netAdj[id] || []).forEach(function (n) { if (!seen[n]) { seen[n] = true; stack.push(n); } });
+      }
+      return seen;
+    };
+    ['inlet', 'outlet'].forEach(function (kind) {
+      var ends = [];
+      App.components.forEach(function (c) {
+        if (c.type === 'pipe' && c.endMarks) {
+          c.endMarks.forEach(function (m, idx) { if (m && m.kind === kind) ends.push({ comp: c, end: idx }); });
+        }
+      });
+      if (ends.length > 1) {
+        ends.forEach(function (o) {
+          var grp = compGroup(o.comp.id);
+          var countInGrp = ends.filter(function (other) { return grp[other.comp.id]; }).length;
+          if (countInGrp > 1) {
+            issues.push({ compId: o.comp.id, level: 'error', msg: 'Multiple ' + kind + 's in one continuous pipe run — only one ' + kind + ' is supported per network' });
+          }
+        });
       }
     });
-    if (outletEnds.length > 1) {
-      var adj = {};
-      net.edges.forEach(function (e) {
-        (adj[e.a.comp.id] = adj[e.a.comp.id] || []).push(e.b.comp.id);
-        (adj[e.b.comp.id] = adj[e.b.comp.id] || []).push(e.a.comp.id);
-      });
-      var compGroup = function (startId) {
-        var seen = {}; var stack = [startId]; seen[startId] = true;
-        while (stack.length) {
-          var id = stack.pop();
-          (adj[id] || []).forEach(function (n) { if (!seen[n]) { seen[n] = true; stack.push(n); } });
-        }
-        return seen;
-      };
-      outletEnds.forEach(function (o) {
-        var grp = compGroup(o.comp.id);
-        var countInGrp = outletEnds.filter(function (other) { return grp[other.comp.id]; }).length;
-        if (countInGrp > 1) {
-          issues.push({ compId: o.comp.id, level: 'error', msg: 'Multiple outlets in one continuous pipe run — only one outlet is supported per network' });
-        }
-      });
-    }
 
     App.issues = issues;
     App.dirty = true;
