@@ -22,84 +22,83 @@
     return +(App.flow.rateM3h / 3600 / area).toFixed(2);  // m/s
   }
 
-  // Compute reachable components and their flow direction.
-  // reach[compId] = {sign, vel} ; sign = dash animation direction.
+  // Compute which components carry water and their flow direction, at
+  // sub-segment granularity: pipes are split at their tee taps, and water
+  // spreads from EVERY inlet junction through live segments only — stagnant
+  // sections (no guaranteed flow) and contradiction pipes block it. So a dead
+  // bridge stops animating while both self-sufficient sides keep flowing.
+  // reach[compId] = {sign, vel, segs?} ; segs = [[f0,f1],...] live sub-spans
+  // of a partially flowing pipe (fractions along it; absent = full length).
   function compute() {
     var reach = {};
-    var inlet = findInlet();
     App.flow.reach = reach;
     App.flow.hasOutlet = false;
-    if (!inlet) return false;
+    if (!findInlet()) return false;
 
     var net = Validate.buildConnectivity();
-    // adjacency: comp id -> [{port (own), other (port)}]
-    var adj = {};
-    net.edges.forEach(function (e) {
-      (adj[e.a.comp.id] = adj[e.a.comp.id] || []).push({ own: e.a, other: e.b });
-      (adj[e.b.comp.id] = adj[e.b.comp.id] || []).push({ own: e.b, other: e.a });
+    var sg = Validate.buildSegmentGraph(net);
+    var stagnant = Validate.findStagnantSegs(sg);
+    var solved = Validate.solveDirections(net);
+    var conflict = {};
+    solved.conflicts.forEach(function (cf) { conflict[cf.compId] = true; });
+
+    // junction BFS from every inlet node
+    var liveNode = {}, liveSeg = {};
+    var queue = [];
+    Object.keys(sg.nodeMarks).forEach(function (n) {
+      if (sg.nodeMarks[n].ins > 0) { liveNode[n] = true; queue.push(n); }
     });
-
-    // BFS queue entries: {comp, enteredAtPortDir or end}
-    var queue = [{ comp: inlet.comp, enterEnd: inlet.end }];
-    reach[inlet.comp.id] = {
-      sign: inlet.end === 0 ? 1 : -1,    // flow e0 -> e1 when entering at end 0
-      vel: velocityFor(inlet.comp.size)
-    };
-
     while (queue.length) {
-      var cur = queue.shift();
-      var c = cur.comp;
-      if (c.type === 'pipe' && c.endMarks) {
-        c.endMarks.forEach(function (m) { if (m && m.kind === 'outlet') App.flow.hasOutlet = true; });
-      }
-      (adj[c.id] || []).forEach(function (link) {
-        var next = link.other.comp;
-        if (reach[next.id]) return;
-        var entry = { sign: 1, vel: 0 };
-        if (next.type === 'pipe') {
-          entry.sign = link.other.end === 0 ? 1 : -1;
-          entry.vel = velocityFor(next.size);
-          queue.push({ comp: next, enterEnd: link.other.end });
-        } else {
-          if (next.type === 'elbow') {
-            // drawn curve runs leg1 (rot) -> leg2; flow follows entry leg
-            var enteredLeg1 = link.other.dir === Comp.dirKey(next.rot);
-            entry.sign = enteredLeg1 ? 1 : -1;
-            entry.vel = velocityFor(next.size);
-          } else if (next.type === 'reducer') {
-            entry.vel = velocityFor(next.smallSize);
-          } else {
-            entry.vel = velocityFor(next.size);
-          }
-          queue.push({ comp: next });
-        }
-        reach[next.id] = entry;
+      var n = queue.shift();
+      (sg.segAdj[n] || []).forEach(function (i) {
+        if (liveSeg[i]) return;
+        var s = sg.segs[i];
+        if (stagnant[i] || conflict[s.pipe.id]) return;
+        liveSeg[i] = s.ra === n ? 1 : -1;        // water spreads ra->rb = f0->f1 = +1
+        var o = s.ra === n ? s.rb : s.ra;
+        if (!liveNode[o]) { liveNode[o] = true; queue.push(o); }
       });
     }
 
-    // The BFS above only finds WHICH components carry water; its entry order
-    // says nothing about real direction (it can run backwards up a feeder that
-    // taps in via a branch). Overrule with the same direction solver validation
-    // uses, so every run animates the way its inlet/outlet marks force it.
-    var solved = Validate.solveDirections(net);
-    Object.keys(reach).forEach(function (id) {
-      if (solved.pipeSign[id] !== undefined) reach[id].sign = solved.pipeSign[id];
-      else if (solved.fitSign[id] !== undefined) reach[id].sign = solved.fitSign[id];
+    // water reaching a marked outlet junction?
+    Object.keys(sg.nodeMarks).forEach(function (n) {
+      if (sg.nodeMarks[n].outs > 0 && liveNode[n] &&
+          (sg.segAdj[n] || []).some(function (i) { return liveSeg[i]; })) {
+        App.flow.hasOutlet = true;
+      }
     });
 
-    // Pipes in an error state — contradicting markers, or a section with no
-    // guaranteed flow — must not animate: water there is undefined, not flowing.
-    var bad = Validate.findStagnantPipes(net);
-    solved.conflicts.forEach(function (cf) { bad[cf.compId] = true; });
-    Object.keys(bad).forEach(function (id) { delete reach[id]; });
-    // fittings left stranded between removed pipes stop animating too
+    // pipes: animate their live sub-segments. The solver's pipe direction only
+    // holds if the whole run is sound — a stagnant segment elsewhere on the
+    // pipe invalidates it (the constraint travelled through dead water), so
+    // those segments use the direction the water actually spread in.
+    var stagnantPipe = {};
+    Object.keys(stagnant).forEach(function (i) { stagnantPipe[sg.segs[i].pipe.id] = true; });
+    Object.keys(liveSeg).forEach(function (i) {
+      var s = sg.segs[i];
+      var sgn = (!stagnantPipe[s.pipe.id] && solved.pipeSign[s.pipe.id] !== undefined)
+        ? solved.pipeSign[s.pipe.id] : liveSeg[i];
+      var r = reach[s.pipe.id];
+      if (!r) r = reach[s.pipe.id] = { sign: sgn, vel: velocityFor(s.pipe.size), segs: [] };
+      r.segs.push([s.f0, s.f1, sgn]);
+    });
     Object.keys(reach).forEach(function (id) {
-      var c = PipeState.getComp(+id);
-      if (!c || c.type === 'pipe') return;
-      var hasLivePipe = (adj[c.id] || []).some(function (link) {
-        return link.other.comp.type === 'pipe' && reach[link.other.comp.id];
-      });
-      if (!hasLivePipe) delete reach[id];
+      var r = reach[id];
+      if (r.segs.length === 1 && r.segs[0][0] === 0 && r.segs[0][1] === 1) {
+        r.sign = r.segs[0][2];
+        delete r.segs;
+      }
+    });
+
+    // fittings: animate when their junction actually carries water
+    App.components.forEach(function (c) {
+      if (c.type === 'pipe') return;
+      var n = sg.compNode[c.id];
+      if (n === undefined || !liveNode[n]) return;
+      if (!(sg.segAdj[n] || []).some(function (i) { return liveSeg[i]; })) return;
+      var sign = 1;
+      if (c.type === 'elbow' && solved.fitSign[c.id] !== undefined) sign = solved.fitSign[c.id];
+      reach[c.id] = { sign: sign, vel: velocityFor(c.type === 'reducer' ? c.smallSize : c.size) };
     });
     return true;
   }
@@ -136,7 +135,7 @@
       var c = PipeState.getComp(+id);
       if (!c) return;
       var r = App.flow.reach[id];
-      Comp.strokeFlowPath(ctx, c, App.flow.t, r.sign);
+      Comp.strokeFlowPath(ctx, c, App.flow.t, r.sign, r.segs);
     });
   }
 
