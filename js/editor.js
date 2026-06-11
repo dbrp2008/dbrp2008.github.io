@@ -211,7 +211,18 @@
 
     if (d.kind === 'palette') {
       if (ghost && !ghost._offscreen && overCanvas(e)) {
-        if (Comp.pipeOverlapsOther(ghost)) {
+        if (ghost.type === 'branch') {
+          if (!Comp.hostPipeAt(ghost.pos)) {
+            Panel.setFlowStatus('A branch must be dropped on a pipe, between its two ends.');
+          } else {
+            History.capture();
+            delete ghost._offscreen;
+            PipeState.addComp(ghost);
+            App.selection = ghost.id;
+            History.commit();
+            Panel.refresh();
+          }
+        } else if (Comp.pipeOverlapsOther(ghost)) {
           Panel.setFlowStatus('Cannot place a pipe overlapping another pipe.');
         } else {
           History.capture();
