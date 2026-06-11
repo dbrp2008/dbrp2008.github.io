@@ -7,6 +7,16 @@
 (function () {
   'use strict';
 
+  // Half-length (GU) of an elbow leg / reducer body, measured from its center point —
+  // pipes plugging into one of these are visually trimmed back by this much so they
+  // appear to terminate at the fitting rather than running through it.
+  var ELBOW_LEG = 0.45;
+  var REDUCER_HALF = 0.32;
+  // Length (GU) of a branch/lock-point stub measured outward from the host pipe —
+  // chosen as 1 GU so the open end always lands on an integer grid point another
+  // component's port can dock onto.
+  var BRANCH_LEN = 1;
+
   var SQ = Math.SQRT1_2;
   // rot (deg, 45° steps) -> exact unit vector and integer grid step
   var DIRS = {
@@ -34,8 +44,70 @@
     ];
   }
 
+  function oppDirStr(dirStr) {
+    var p = dirStr.split(',');
+    return (-p[0]) + ',' + (-p[1]);
+  }
+
+  // How far back (GU) a pipe end at `point`, whose own port faces `outDir`, should be
+  // trimmed because it plugs into an elbow or reducer body — so the pipe is drawn
+  // ending at the fitting instead of running underneath/through it.
+  function fittingTrimAt(point, outDir) {
+    var needed = oppDirStr(outDir);
+    for (var i = 0; i < App.components.length; i++) {
+      var c = App.components[i];
+      if (c.type !== 'elbow' && c.type !== 'reducer') continue;
+      if (c.pos.x !== point.x || c.pos.y !== point.y) continue;
+      var ports = getPorts(c);
+      for (var j = 0; j < ports.length; j++) {
+        if (ports[j].dir === needed) return c.type === 'elbow' ? ELBOW_LEG : REDUCER_HALF;
+      }
+    }
+    return 0;
+  }
+
+  // Pipe endpoints, trimmed back where they connect into an elbow/reducer.
+  function pipeTrimmedEnds(c) {
+    var e = pipeEnds(c);
+    var u = unitVec(c.rot);
+    var t0 = fittingTrimAt(e[0], dirKey(c.rot + 180));
+    var t1 = fittingTrimAt(e[1], dirKey(c.rot));
+    return [
+      { x: e[0].x + u.x * t0, y: e[0].y + u.y * t0 },
+      { x: e[1].x - u.x * t1, y: e[1].y - u.y * t1 }
+    ];
+  }
+
   // Second elbow leg: outward legs are (180 - bendAngle) apart.
   function elbowLeg2Rot(c) { return norm(c.rot + 180 - c.angle); }
+
+  function branchTip(c) {
+    var s = stepVec(c.rot);
+    return { x: c.pos.x + s.x * BRANCH_LEN, y: c.pos.y + s.y * BRANCH_LEN };
+  }
+
+  // True if grid point p lies strictly between pipe c's two endpoints (collinear,
+  // integer steps, not equal to either end) — i.e. p is a valid branch attach point.
+  function pointOnPipeInterior(p, c) {
+    var e = pipeEnds(c);
+    var ax = e[0].x, ay = e[0].y, bx = e[1].x, by = e[1].y;
+    if ((p.x === ax && p.y === ay) || (p.x === bx && p.y === by)) return false;
+    var dx = bx - ax, dy = by - ay;
+    var px = p.x - ax, py = p.y - ay;
+    if (dx * py - dy * px !== 0) return false;
+    var t = dx !== 0 ? px / dx : (dy !== 0 ? py / dy : -1);
+    return t > 0 && t < 1;
+  }
+
+  // The pipe (if any) that point lies on the interior of — the host run a branch
+  // dropped at that point will tee into.
+  function hostPipeAt(point) {
+    for (var i = 0; i < App.components.length; i++) {
+      var c = App.components[i];
+      if (c.type === 'pipe' && pointOnPipeInterior(point, c)) return c;
+    }
+    return null;
+  }
 
   function getPorts(c) {
     if (c.type === 'pipe') {
@@ -63,6 +135,11 @@
         { p: c.pos, dir: dirKey(c.rot + 180), comp: c, size: c.smallSize, side: 'small' }
       ];
     }
+    if (c.type === 'branch') {
+      return [
+        { p: branchTip(c), dir: dirKey(c.rot), comp: c, size: c.size }
+      ];
+    }
     return [];
   }
 
@@ -80,6 +157,21 @@
   function matColor(c) {
     var m = PipeStandards.STANDARDS.materials[c.material];
     return m ? m.color : '#8a8f98';
+  }
+
+  // Default per-component colour cycle: muted, distinct hues that read clearly
+  // against the dark canvas/3D background without being neon. New components are
+  // assigned the next colour in this list; users can override via the properties
+  // panel colour picker.
+  var COLOR_PALETTE = [
+    '#6f9bd1', '#d18f6f', '#8f6fd1', '#6fd1ad', '#d16f9b', '#b5d16f',
+    '#6fb5d1', '#d1b56f', '#9bd16f', '#d1786f', '#8a8fd1', '#c98fd1'
+  ];
+
+  // Effective draw colour: a component's own assigned colour, falling back to its
+  // material colour for components saved before colours were introduced.
+  function colorFor(c) {
+    return c.color || matColor(c);
   }
 
   // Another flange at the same point on the same axis => merged pair.
@@ -101,12 +193,13 @@
   function strokeStyleFor(c, opts) {
     if (opts && opts.ghost) return 'rgba(110,170,255,0.55)';
     if (c.condition && c.condition !== 'ok') return '#e06060';
-    return matColor(c);
+    return colorFor(c);
   }
 
   function drawPipe(ctx, c, opts) {
     var e = pipeEnds(c);
-    var a = Grid.toScreen(e[0].x, e[0].y), b = Grid.toScreen(e[1].x, e[1].y);
+    var te = pipeTrimmedEnds(c);
+    var a = Grid.toScreen(te[0].x, te[0].y), b = Grid.toScreen(te[1].x, te[1].y);
     var d = PipeStandards.sizeData(App.settings.family, App.settings.schedule, c.size);
     var w = odPx(d ? d.od : 60);
 
@@ -156,7 +249,7 @@
     ctx.moveTo(p.x - px * half, p.y - py * half);
     ctx.lineTo(p.x + px * half, p.y + py * half);
     ctx.stroke();
-    ctx.strokeStyle = opts && opts.ghost ? strokeStyleFor(c, opts) : '#c9a648';
+    ctx.strokeStyle = opts && opts.ghost ? strokeStyleFor(c, opts) : (c.color || '#c9a648');
     ctx.lineWidth = w;
     ctx.beginPath();
     ctx.moveTo(p.x - px * half, p.y - py * half);
@@ -175,7 +268,7 @@
   }
 
   function elbowArcPts(c) {
-    var L = 0.45;
+    var L = ELBOW_LEG;
     var u1 = unitVec(c.rot), u2 = unitVec(elbowLeg2Rot(c));
     return {
       a: { x: c.pos.x + u1.x * L, y: c.pos.y + u1.y * L },
@@ -213,7 +306,7 @@
     var ds = PipeStandards.sizeData(App.settings.family, App.settings.schedule, c.smallSize);
     var wL = Math.max(6, odPx(dl ? dl.od : 80) / 2 + 2);
     var wS = Math.max(4, odPx(ds ? ds.od : 50) / 2 + 1);
-    var hl = App.view.zoom * 0.32;
+    var hl = App.view.zoom * REDUCER_HALF;
     return [
       { x: p.x + u.x * hl + px * wL, y: p.y + u.y * hl + py * wL },
       { x: p.x + u.x * hl - px * wL, y: p.y + u.y * hl - py * wL },
@@ -235,11 +328,30 @@
     ctx.stroke();
   }
 
+  function drawBranch(ctx, c, opts) {
+    var tip = branchTip(c);
+    var a = Grid.toScreen(c.pos.x, c.pos.y), b = Grid.toScreen(tip.x, tip.y);
+    var d = PipeStandards.sizeData(App.settings.family, App.settings.schedule, c.size);
+    var w = odPx(d ? d.od : 60);
+
+    ctx.lineCap = 'butt';
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = w + 2;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.strokeStyle = strokeStyleFor(c, opts);
+    ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = Math.max(1, w * 0.3);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+
   function drawComponent(ctx, c, opts) {
     if (c.type === 'pipe') drawPipe(ctx, c, opts);
     else if (c.type === 'flange') drawFlange(ctx, c, opts);
     else if (c.type === 'elbow') drawElbow(ctx, c, opts);
     else if (c.type === 'reducer') drawReducer(ctx, c, opts);
+    else if (c.type === 'branch') drawBranch(ctx, c, opts);
   }
 
   /* ---------- hit testing (world coords in, px tolerances) ---------- */
@@ -262,6 +374,10 @@
       var d = PipeStandards.sizeData(App.settings.family, App.settings.schedule, c.size);
       return distToSegPx(w, e[0], e[1]) <= Math.max(7, odPx(d ? d.od : 60) / 2 + 4);
     }
+    if (c.type === 'branch') {
+      var db = PipeStandards.sizeData(App.settings.family, App.settings.schedule, c.size);
+      return distToSegPx(w, c.pos, branchTip(c)) <= Math.max(7, odPx(db ? db.od : 60) / 2 + 4);
+    }
     var distPx = Math.hypot(w.x - c.pos.x, w.y - c.pos.y) * z;
     if (c.type === 'flange') {
       var dd = PipeStandards.sizeData(App.settings.family, App.settings.schedule, c.size);
@@ -280,6 +396,11 @@
       return bbox(pts, pad);
     }
     if (c.type === 'reducer') return bbox(reducerPoly(c), 6);
+    if (c.type === 'branch') {
+      var tip = branchTip(c);
+      var dbb = PipeStandards.sizeData(App.settings.family, App.settings.schedule, c.size);
+      return bbox([Grid.toScreen(c.pos.x, c.pos.y), Grid.toScreen(tip.x, tip.y)], odPx(dbb ? dbb.od : 60) / 2 + 6);
+    }
     if (c.type === 'elbow') {
       var ap = elbowArcPts(c);
       [ap.a, ap.b, ap.ctrl].forEach(function (e) { pts.push(Grid.toScreen(e.x, e.y)); });
@@ -344,13 +465,17 @@
     ctx.lineDashOffset = dashSign >= 0 ? -dashOffset : dashOffset;
     ctx.beginPath();
     if (c.type === 'pipe') {
-      var e = pipeEnds(c);
+      var e = pipeTrimmedEnds(c);
       var a = Grid.toScreen(e[0].x, e[0].y), b = Grid.toScreen(e[1].x, e[1].y);
       ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
     } else if (c.type === 'elbow') {
       var ap = elbowArcPts(c);
       var sa = Grid.toScreen(ap.a.x, ap.a.y), sb = Grid.toScreen(ap.b.x, ap.b.y), q = Grid.toScreen(ap.ctrl.x, ap.ctrl.y);
       ctx.moveTo(sa.x, sa.y); ctx.quadraticCurveTo(q.x, q.y, sb.x, sb.y);
+    } else if (c.type === 'branch') {
+      var tip = branchTip(c);
+      var ba = Grid.toScreen(c.pos.x, c.pos.y), bb = Grid.toScreen(tip.x, tip.y);
+      ctx.moveTo(ba.x, ba.y); ctx.lineTo(bb.x, bb.y);
     } else {
       ctx.restore();
       return;
@@ -361,10 +486,13 @@
 
   window.Comp = {
     norm: norm, unitVec: unitVec, stepVec: stepVec, dirKey: dirKey, oppKey: oppKey,
-    pipeEnds: pipeEnds, elbowLeg2Rot: elbowLeg2Rot, elbowArcPts: elbowArcPts,
+    pipeEnds: pipeEnds, pipeTrimmedEnds: pipeTrimmedEnds, elbowLeg2Rot: elbowLeg2Rot, elbowArcPts: elbowArcPts,
     getPorts: getPorts, compCenter: compCenter, odPx: odPx,
     flangeMate: flangeMate, drawComponent: drawComponent, hitTest: hitTest,
     screenBBox: screenBBox, strokeFlowPath: strokeFlowPath, reducerPoly: reducerPoly,
-    pipeOverlapsOther: pipeOverlapsOther, pipeSegKeys: pipeSegKeys
+    pipeOverlapsOther: pipeOverlapsOther, pipeSegKeys: pipeSegKeys,
+    branchTip: branchTip, hostPipeAt: hostPipeAt,
+    matColor: matColor, colorFor: colorFor, COLOR_PALETTE: COLOR_PALETTE,
+    ELBOW_LEG: ELBOW_LEG, REDUCER_HALF: REDUCER_HALF, BRANCH_LEN: BRANCH_LEN
   };
 })();
