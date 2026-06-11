@@ -57,8 +57,9 @@
       rot: 0,
       material: 'carbon',
       condition: 'ok',        // hook for future repair/failure scenarios
-      color: type === 'pipe' ? '#8a8f98'
-        : Comp.CYCLE_PALETTE[(App.nextId - 1) % Comp.CYCLE_PALETTE.length]
+      color: (type === 'flange' || type === 'reducer')
+        ? Comp.CYCLE_PALETTE[(App.nextId - 1) % Comp.CYCLE_PALETTE.length]
+        : '#8a8f98'
     };
     var size = (App.settings.defaultSize &&
       PipeStandards.sizeKeys(App.settings.family, App.settings.schedule).indexOf(App.settings.defaultSize) >= 0)
