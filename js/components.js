@@ -164,9 +164,12 @@
   // assigned the next colour in this list; users can override via the properties
   // panel colour picker.
   var COLOR_PALETTE = [
-    '#6f9bd1', '#d18f6f', '#8f6fd1', '#6fd1ad', '#d16f9b', '#b5d16f',
+    '#8a8f98', '#6f9bd1', '#d18f6f', '#8f6fd1', '#6fd1ad', '#d16f9b', '#b5d16f',
     '#6fb5d1', '#d1b56f', '#9bd16f', '#d1786f', '#8a8fd1', '#c98fd1'
   ];
+
+  // Cycle colour for non-pipe parts, skipping the grey reserved as the pipe default.
+  var CYCLE_PALETTE = COLOR_PALETTE.slice(1);
 
   // Effective draw colour: a component's own assigned colour, falling back to its
   // material colour for components saved before colours were introduced.
@@ -492,7 +495,7 @@
     screenBBox: screenBBox, strokeFlowPath: strokeFlowPath, reducerPoly: reducerPoly,
     pipeOverlapsOther: pipeOverlapsOther, pipeSegKeys: pipeSegKeys,
     branchTip: branchTip, hostPipeAt: hostPipeAt,
-    matColor: matColor, colorFor: colorFor, COLOR_PALETTE: COLOR_PALETTE,
+    matColor: matColor, colorFor: colorFor, COLOR_PALETTE: COLOR_PALETTE, CYCLE_PALETTE: CYCLE_PALETTE,
     ELBOW_LEG: ELBOW_LEG, REDUCER_HALF: REDUCER_HALF, BRANCH_LEN: BRANCH_LEN
   };
 })();
