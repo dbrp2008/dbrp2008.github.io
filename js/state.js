@@ -23,7 +23,7 @@
     dirty: true               // 2d canvas needs redraw
   };
 
-  var METERS_PER_GU = 0.5;
+  var METERS_PER_GU = 0.2;
 
   function defaultSizeKey() {
     var keys = PipeStandards.sizeKeys(App.settings.family, App.settings.schedule);
@@ -41,6 +41,14 @@
     return i > 0 ? keys[i - 1] : sizeKey;
   }
 
+  // Last size the user picked anywhere in the UI; new parts default to it so a whole
+  // run stays the same diameter unless the user deliberately changes one.
+  function setDefaultSize(sizeKey) {
+    if (PipeStandards.sizeKeys(App.settings.family, App.settings.schedule).indexOf(sizeKey) >= 0) {
+      App.settings.defaultSize = sizeKey;
+    }
+  }
+
   function newComponent(type, gx, gy) {
     var c = {
       id: App.nextId++,
@@ -48,9 +56,12 @@
       pos: { x: gx, y: gy },
       rot: 0,
       material: 'carbon',
-      condition: 'ok'         // hook for future repair/failure scenarios
+      condition: 'ok',        // hook for future repair/failure scenarios
+      color: Comp.COLOR_PALETTE[(App.nextId - 1) % Comp.COLOR_PALETTE.length]
     };
-    var size = defaultSizeKey();
+    var size = (App.settings.defaultSize &&
+      PipeStandards.sizeKeys(App.settings.family, App.settings.schedule).indexOf(App.settings.defaultSize) >= 0)
+      ? App.settings.defaultSize : defaultSizeKey();
     if (type === 'pipe') {
       c.size = size;
       c.lengthGU = 4;
@@ -64,6 +75,8 @@
     } else if (type === 'reducer') {
       c.largeSize = size;
       c.smallSize = smallerSizeKey(size);
+    } else if (type === 'branch') {
+      c.size = size;
     }
     return c;
   }
@@ -133,6 +146,7 @@
     compOD: compOD,
     sizeOD: sizeOD,
     defaultSizeKey: defaultSizeKey,
+    setDefaultSize: setDefaultSize,
     serialize: serialize,
     deserialize: deserialize
   };
