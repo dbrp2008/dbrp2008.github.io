@@ -383,13 +383,15 @@
     return issues;
   }
 
-  // Pipes with no guaranteed flow. Build a junction graph (pipes split into
-  // sub-segments at their tee taps; fittings collapse into their junction) and
-  // try cutting each sub-segment: if BOTH halves of the network are
-  // self-sufficient — each already has its own inlet AND outlet — then nothing
-  // forces water through the cut section, so it could sit completely stagnant.
-  // Returns {pipeId: true}.
-  function findStagnantPipes(net) {
+  // Junction graph for hydraulic reasoning: pipes are split into sub-segments
+  // at their tee taps, fittings collapse into their junction node.
+  // Returns:
+  //   segs      [{pipe, ra, rb, f0, f1}] — sub-segments with their junction
+  //             nodes and fractional span along the pipe (0 = end0, 1 = end1)
+  //   segAdj    node -> [seg index]
+  //   nodeMarks node -> {ins, outs} inlet/outlet marks sitting on that junction
+  //   compNode  fitting/branch comp id -> its junction node
+  function buildSegmentGraph(net) {
     var pc = 0, portKey = new Map();
     var pkey = function (p) { if (!portKey.has(p)) portKey.set(p, 'p' + (++pc)); return portKey.get(p); };
     var parent = {};
@@ -428,9 +430,14 @@
         return (Math.abs(a.pos.x - e0.p.x) + Math.abs(a.pos.y - e0.p.y)) -
                (Math.abs(b.pos.x - e0.p.x) + Math.abs(b.pos.y - e0.p.y));
       });
-      var chain = [pkey(e0)].concat(taps.map(function (b) { return 'tap:' + b.id; })).concat([pkey(e1)]);
+      var sv = Comp.stepVec(c.rot);
+      var L = c.lengthGU * (sv.x * sv.x + sv.y * sv.y);
+      var frac = function (pt) { return ((pt.x - e0.p.x) * sv.x + (pt.y - e0.p.y) * sv.y) / L; };
+      var chain = [{ k: pkey(e0), f: 0 }]
+        .concat(taps.map(function (b) { return { k: 'tap:' + b.id, f: frac(b.pos) }; }))
+        .concat([{ k: pkey(e1), f: 1 }]);
       for (var i = 0; i < chain.length - 1; i++) {
-        segEdges.push({ pipe: c, a: chain[i], b: chain[i + 1] });
+        segEdges.push({ pipe: c, a: chain[i].k, b: chain[i + 1].k, f0: chain[i].f, f1: chain[i + 1].f });
       }
     });
     var nodeMarks = {};
@@ -450,6 +457,23 @@
       (segAdj[s.ra] = segAdj[s.ra] || []).push(i);
       (segAdj[s.rb] = segAdj[s.rb] || []).push(i);
     });
+    var compNode = {};
+    App.components.forEach(function (c) {
+      if (c.type === 'pipe') return;
+      if (c.type === 'branch') { compNode[c.id] = find('tap:' + c.id); return; }
+      var ps = portsOfComp[c.id] || [];
+      if (ps.length) compNode[c.id] = find(pkey(ps[0]));
+    });
+    return { segs: segEdges, segAdj: segAdj, nodeMarks: nodeMarks, compNode: compNode };
+  }
+
+  // Sub-segments with no guaranteed flow. Try cutting each segment of the
+  // junction graph: if BOTH halves of the network are self-sufficient — each
+  // already has its own inlet AND outlet — then nothing forces water through
+  // the cut section, so it could sit completely stagnant.
+  // Returns {segIndex: true}.
+  function findStagnantSegs(sg) {
+    var segEdges = sg.segs, segAdj = sg.segAdj, nodeMarks = sg.nodeMarks;
     var sideMarks = function (startNode, skipIdx) {
       var seen = {}; seen[startNode] = true;
       var stack = [startNode];
@@ -466,21 +490,31 @@
       }
       return res;
     };
-    var stagnantFlagged = {};
+    var stagnantSegs = {};
     segEdges.forEach(function (s, i) {
-      if (s.ra === s.rb || stagnantFlagged[s.pipe.id]) return;
+      if (s.ra === s.rb) return;
       var A = sideMarks(s.ra, i);
       if (A.nodes[s.rb]) return;                  // in a loop — not a clean cut
       var B = sideMarks(s.rb, i);
       if (A.ins && A.outs && B.ins && B.outs) {
-        stagnantFlagged[s.pipe.id] = true;
+        stagnantSegs[i] = true;
       }
     });
-    return stagnantFlagged;
+    return stagnantSegs;
+  }
+
+  // Convenience: pipes containing at least one stagnant sub-segment.
+  function findStagnantPipes(net) {
+    var sg = buildSegmentGraph(net);
+    var segs = findStagnantSegs(sg);
+    var pipes = {};
+    Object.keys(segs).forEach(function (i) { pipes[sg.segs[i].pipe.id] = true; });
+    return pipes;
   }
 
   window.Validate = {
     run: run, buildConnectivity: buildConnectivity, ptKey: ptKey,
-    solveDirections: solveDirections, findStagnantPipes: findStagnantPipes
+    solveDirections: solveDirections, findStagnantPipes: findStagnantPipes,
+    buildSegmentGraph: buildSegmentGraph, findStagnantSegs: findStagnantSegs
   };
 })();
