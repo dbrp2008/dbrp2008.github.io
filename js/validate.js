@@ -196,44 +196,13 @@
       }
     });
 
-    // 6. multiple outlets in one continuous (connected) pipe run — the flow sim
-    // only follows a single path from the inlet, so more than one outlet is invalid.
-    // (Multiple inlets are fine: each inlet-marked pipe is forced to flow away
-    // from its own inlet end, so several feeds can merge into one network.)
-    var outletEnds = [];
-    App.components.forEach(function (c) {
-      if (c.type === 'pipe' && c.endMarks) {
-        c.endMarks.forEach(function (m, idx) { if (m && m.kind === 'outlet') outletEnds.push({ comp: c, end: idx }); });
-      }
-    });
-    if (outletEnds.length > 1) {
-      var adj = {};
-      net.edges.forEach(function (e) {
-        (adj[e.a.comp.id] = adj[e.a.comp.id] || []).push(e.b.comp.id);
-        (adj[e.b.comp.id] = adj[e.b.comp.id] || []).push(e.a.comp.id);
-      });
-      var compGroup = function (startId) {
-        var seen = {}; var stack = [startId]; seen[startId] = true;
-        while (stack.length) {
-          var id = stack.pop();
-          (adj[id] || []).forEach(function (n) { if (!seen[n]) { seen[n] = true; stack.push(n); } });
-        }
-        return seen;
-      };
-      outletEnds.forEach(function (o) {
-        var grp = compGroup(o.comp.id);
-        var countInGrp = outletEnds.filter(function (other) { return grp[other.comp.id]; }).length;
-        if (countInGrp > 1) {
-          issues.push({ compId: o.comp.id, level: 'error', msg: 'Multiple outlets in one continuous pipe run — only one outlet is supported per network' });
-        }
-      });
-    }
-
-    // 7. contradicting inlets — propagate flow direction from every inlet end
-    // through series connections (pipe-pipe, flanges, elbows, reducers). Branch
-    // taps are skipped: a tee feed merges into whatever way the host run flows,
-    // so it never dictates direction. If two inlets force opposite directions on
-    // the same pipe (e.g. both ends of one continuous run marked IN), flag it.
+    // 6. contradicting inlets/outlets — propagate flow direction from every
+    // marked end through series connections (pipe-pipe, flanges, elbows,
+    // reducers). Inlets force flow AWAY from their end, outlets force flow
+    // TOWARD theirs. Branch taps are skipped: a tee can feed or drain the host
+    // run without dictating its direction, so branch-fed inlets and branch-fed
+    // outlets are always fine. Only true conflicts get flagged (e.g. both ends
+    // of one continuous run marked IN, or an outlet upstream of the inlet).
     var dirAdj = {};
     net.edges.forEach(function (e) {
       if (e.a.virtual || e.b.virtual) return;
@@ -242,20 +211,33 @@
     });
     var pipeSign = {};          // pipe id -> +1 (flows e0->e1) | -1
     var conflictFlagged = {};
-    var seenFit = {};           // 'id@dir' fitting visits, to stop loops
+    var seenFit = {};           // 'in:/out:id@dir' fitting visits, to stop loops
+    // Flow ENTERS comp through this port (constraint travels downstream).
     var enterComp = function (port, queue) {
       var c = port.comp;
       if (c.type === 'pipe') {
         queue.push({ pipe: c, sign: port.end === 0 ? 1 : -1 });
       } else {
-        var key = c.id + '@' + port.dir;
+        var key = 'in:' + c.id + '@' + port.dir;
         if (seenFit[key]) return;
         seenFit[key] = true;
         queue.push({ fit: c, enteredDir: port.dir });
       }
     };
-    var propagate = function (startPipe, startEnd) {
-      var queue = [{ pipe: startPipe, sign: startEnd === 0 ? 1 : -1 }];
+    // Flow EXITS comp through this port (constraint travels upstream).
+    var exitComp = function (port, queue) {
+      var c = port.comp;
+      if (c.type === 'pipe') {
+        queue.push({ pipe: c, sign: port.end === 1 ? 1 : -1 });
+      } else {
+        var key = 'out:' + c.id + '@' + port.dir;
+        if (seenFit[key]) return;
+        seenFit[key] = true;
+        queue.push({ fit: c, exitedDir: port.dir });
+      }
+    };
+    var propagate = function (startPipe, startSign) {
+      var queue = [{ pipe: startPipe, sign: startSign }];
       while (queue.length) {
         var cur = queue.shift();
         if (cur.pipe) {
@@ -263,7 +245,7 @@
           if (pipeSign[p.id] !== undefined) {
             if (pipeSign[p.id] !== cur.sign && !conflictFlagged[p.id]) {
               conflictFlagged[p.id] = true;
-              issues.push({ compId: p.id, level: 'error', msg: 'Contradicting inlets — two inlets push flow in opposite directions through the same run' });
+              issues.push({ compId: p.id, level: 'error', msg: 'Contradicting flow markers — inlet/outlet marks force opposite flow directions through the same run' });
             }
             continue;
           }
@@ -271,11 +253,18 @@
           var exitEnd = cur.sign === 1 ? 1 : 0;
           (dirAdj[p.id] || []).forEach(function (link) {
             if (link.own.end === exitEnd) enterComp(link.other, queue);
+            else exitComp(link.other, queue);          // upstream neighbour feeds us
           });
-        } else {
+        } else if (cur.enteredDir !== undefined) {
           // fitting: flow entered at enteredDir, exits at every other port
           (dirAdj[cur.fit.id] || []).forEach(function (link) {
             if (link.own.dir !== cur.enteredDir) enterComp(link.other, queue);
+          });
+        } else {
+          // fitting: flow exits at exitedDir, so it enters at every other port —
+          // the neighbours there are upstream and exit into this fitting
+          (dirAdj[cur.fit.id] || []).forEach(function (link) {
+            if (link.own.dir !== cur.exitedDir) exitComp(link.other, queue);
           });
         }
       }
@@ -283,7 +272,9 @@
     App.components.forEach(function (c) {
       if (c.type !== 'pipe' || !c.endMarks) return;
       c.endMarks.forEach(function (m, e) {
-        if (m && m.kind === 'inlet') propagate(c, e);
+        if (!m) return;
+        if (m.kind === 'inlet') propagate(c, e === 0 ? 1 : -1);          // away from inlet end
+        else if (m.kind === 'outlet') propagate(c, e === 1 ? 1 : -1);    // toward outlet end
       });
     });
 
