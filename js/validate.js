@@ -378,6 +378,28 @@
       issues.push({ compId: +id, level: 'error', msg: 'No guaranteed flow through this section — each side of it already has its own inlet and outlet, so the water here could stand completely still' });
     });
 
+    // 9. flow rate sanity vs pipe size. v = Q/A is exact, but real piping is
+    // limited by erosion/noise/water-hammer concerns long before the maths
+    // breaks down — flag sizes where the entered rate implies an unrealistic
+    // velocity (typical limits: ~1.5-3 m/s for liquids, up to ~20-30 m/s for
+    // gas/steam; API RP 14E erosional limits for low-density gas top out
+    // around 60-80 m/s).
+    var V_WARN = 30;
+    var flaggedSizes = {};
+    App.components.forEach(function (c) {
+      if (c.type !== 'pipe' || flaggedSizes[c.size]) return;
+      var v = Flow.velocityFor(c.size);
+      if (v > V_WARN) {
+        flaggedSizes[c.size] = true;
+        issues.push({
+          compId: c.id, level: 'warn',
+          msg: 'At ' + App.flow.rateM3h + ' m³/h, ' + PipeStandards.sizeLabel(fam, c.size) +
+            ' pipe carries water at ~' + v + ' m/s — well above realistic limits ' +
+            '(~1.5-3 m/s liquids, ~20-30 m/s gas/steam). Lower the flow rate or use a larger pipe.'
+        });
+      }
+    });
+
     App.issues = issues;
     App.dirty = true;
     return issues;
