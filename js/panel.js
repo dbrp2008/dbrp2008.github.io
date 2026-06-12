@@ -299,6 +299,15 @@
     wrap.appendChild(inp);
     propsEl.appendChild(row('Colour (all)', wrap));
 
+    var lockBtn = el('button', { class: 'btn small' + (App.lockRatio ? ' active' : '') },
+      App.lockRatio ? '🔒 Ratio locked' : '🔓 Lock ratio');
+    lockBtn.title = 'When locked, the 4 corner squares stretch width and height proportionally';
+    lockBtn.addEventListener('click', function () {
+      App.lockRatio = !App.lockRatio;
+      refresh();
+    });
+    propsEl.appendChild(lockBtn);
+
     var rotBtn = el('button', { class: 'btn small' }, '⟳ Rotate group 90°');
     rotBtn.addEventListener('click', function () {
       mutate(function () {
@@ -335,7 +344,10 @@
     propsEl.appendChild(clrBtn);
 
     var hint = el('p', { class: 'hint' });
-    hint.textContent = 'Changes apply to every circled part. Reducers take the picked size on their large end.';
+    hint.textContent = 'Drag the squares on the selection box to stretch/resize the group ' +
+      '(corners scale both ways, edges one way, the centre square moves it). The circle above ' +
+      'rotates the group in 90° steps. Changes here apply to every circled part; reducers take ' +
+      'the picked size on their large end.';
     propsEl.appendChild(hint);
   }
 
