@@ -56,14 +56,16 @@
   function buildScene() {
     flowMats = [];
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x11151c);
+    var lightTheme = document.body.classList.contains('light');
+    scene.background = new THREE.Color(lightTheme ? 0xe9edf3 : 0x11151c);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    scene.add(new THREE.AmbientLight(0xffffff, lightTheme ? 0.75 : 0.55));
     var sun = new THREE.DirectionalLight(0xffffff, 0.9);
     sun.position.set(8, 14, 6);
     scene.add(sun);
 
-    var grid = new THREE.GridHelper(60, 60, 0x3a4a60, 0x232b38);
+    var grid = new THREE.GridHelper(60, 60,
+      lightTheme ? 0x9fb0c8 : 0x3a4a60, lightTheme ? 0xd6deea : 0x232b38);
     scene.add(grid);
 
     var reach = App.flow.reach || {};
