@@ -16,6 +16,8 @@
     <button id="btnZoomOut" class="btn" title="Zoom out">−</button>
     <button id="btnZoomIn" class="btn" title="Zoom in">+</button>
     <span class="sep"></span>
+    <button id="btnLasso" class="btn" title="Circle parts to select them together — then change size, orientation or colour of everything inside">◯ Select</button>
+    <span class="sep"></span>
     <button id="btnMode" class="btn" title="Toggle 2D / 3D view">3D view</button>
     <span class="sep"></span>
     <span class="flow-controls">
@@ -24,6 +26,7 @@
       <button id="flowToggle" class="btn">▶ Start flow</button>
     </span>
     <span class="spacer"></span>
+    <button id="btnTheme" class="btn" title="Toggle light / dark theme">☀ Light</button>
     <button id="btnExport" class="btn" title="Download project as JSON">Export</button>
     <button id="btnImport" class="btn" title="Load project from JSON">Import</button>
     <input id="importFile" type="file" accept=".json,application/json" style="display:none">
@@ -57,6 +60,7 @@
       <p class="hint"><b style="color:#e0a23c">○</b> amber rings mark open ends; <b style="color:#39c46c">●</b> green dots mark connected ends. To join parts, drag one part's end onto the other's amber ring (the same grid point). An elbow joins at its corner dot — bring the pipe's end onto it.</p>
       <p class="hint">A <b>Branch</b> taps a lock point off the pipe it sits on, with its own amber ring another pipe can connect to. Drop it anywhere, then drag it onto a pipe run — it stands itself perpendicular to the run.</p>
       <p class="hint">Connected parts are locked together and <b>drag as one assembly</b>. <b>Right-click a joint</b> to get a Separate option — the two sides come apart, each keeping its own parts locked together. Rotate with the handle (45° steps) or press <b>R</b>. Double-click deletes.</p>
+      <p class="hint"><b>◯ Select</b> in the toolbar lets you circle several parts — then change the size, orientation or colour of everything inside at once.</p>
     </aside>
 
     <main id="canvasWrap">
