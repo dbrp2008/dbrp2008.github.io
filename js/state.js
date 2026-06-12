@@ -10,6 +10,7 @@
     components: [],
     selection: null,          // component id or null
     multiSel: [],             // ids circled with the lasso select tool
+    lockRatio: false,         // corner handles of the group box scale proportionally
     view: { zoom: 48, panX: 0, panY: 0 },   // zoom = pixels per GU
     mode: '2d',               // '2d' | '3d'
     flow: {
