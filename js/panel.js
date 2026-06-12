@@ -16,11 +16,16 @@
       this.value = App.flow.pressureBar;
       Validate.run(); refresh();
     });
-    document.getElementById('flowRate').addEventListener('change', function () {
-      App.flow.rateM3h = Math.max(0.1, parseFloat(this.value) || 36);
+    var flowRateEl = document.getElementById('flowRate');
+    var FLOW_RATE_MAX = +flowRateEl.max || 25000;
+    flowRateEl.addEventListener('input', function () { sizeFlowRateInput(this); });
+    flowRateEl.addEventListener('change', function () {
+      App.flow.rateM3h = Math.min(FLOW_RATE_MAX, Math.max(0.1, parseFloat(this.value) || 36));
       this.value = App.flow.rateM3h;
-      Flow.refresh(); refresh();
+      sizeFlowRateInput(this);
+      Validate.run(); Flow.refresh(); refresh();
     });
+    sizeFlowRateInput(flowRateEl);
     document.getElementById('flowToggle').addEventListener('click', function () {
       if (App.flow.running) {
         Flow.stop();
@@ -34,6 +39,13 @@
   }
 
   function setFlowStatus(msg) { if (flowStatusEl) flowStatusEl.textContent = msg || ''; }
+
+  // Grow the flow-rate box as the user types more digits than the default
+  // width fits, so big numbers stay fully visible while typing.
+  function sizeFlowRateInput(el) {
+    var len = String(el.value).length;
+    el.style.width = Math.max(62, (len + 1) * 9) + 'px';
+  }
 
   function el(tag, attrs, text) {
     var e = document.createElement(tag);
@@ -439,7 +451,9 @@
     ft.textContent = App.flow.running ? '⏹ Stop flow' : '▶ Start flow';
     ft.classList.toggle('active', App.flow.running);
     document.getElementById('flowPressure').value = App.flow.pressureBar;
-    document.getElementById('flowRate').value = App.flow.rateM3h;
+    var flowRateEl = document.getElementById('flowRate');
+    flowRateEl.value = App.flow.rateM3h;
+    sizeFlowRateInput(flowRateEl);
   }
 
   function refresh() {
