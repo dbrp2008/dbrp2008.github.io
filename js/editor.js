@@ -95,21 +95,9 @@
     hidePopover();
 
     if (e.button === 1 || e.button === 2) {
-      // right-click on a part: drag it ALONE, separating it from whatever it's
-      // locked to (left-drag moves the whole connected assembly); empty = pan
-      var solo = e.button === 2 ? hitAt(w) : null;
-      if (solo) {
-        App.selection = solo.id;
-        App.dirty = true;
-        History.capture();
-        drag = {
-          kind: 'move', comp: solo, members: [solo], moved: false, m0: m,
-          grab: { x: w.x - solo.pos.x, y: w.y - solo.pos.y }
-        };
-        Panel.refresh();
-      } else {
-        drag = { kind: 'pan', sx: m.x, sy: m.y, panX: App.view.panX, panY: App.view.panY };
-      }
+      // right-click on a joint: offer to separate it; anywhere else: pan
+      if (e.button === 2 && showSeparatePopover(m)) { e.preventDefault(); return; }
+      drag = { kind: 'pan', sx: m.x, sy: m.y, panX: App.view.panX, panY: App.view.panY };
       e.preventDefault();
       return;
     }
@@ -281,10 +269,6 @@
         History.commit();
       } else {
         History.abort();
-        // plain click: offer flange-pair split
-        if (d.kind === 'move' && d.comp.type === 'flange' && Comp.flangeMate(d.comp)) {
-          showSplitPopover(d.comp);
-        }
       }
       Panel.refresh();
       App.dirty = true;
@@ -349,21 +333,106 @@
     canvas.style.cursor = hitAt(w) ? 'pointer' : 'default';
   }
 
-  /* ---------- flange split popover ---------- */
+  /* ---------- joint separation popover ---------- */
 
-  function showSplitPopover(flange) {
-    var p = Grid.toScreen(flange.pos.x, flange.pos.y);
-    popover.innerHTML = '';
-    var btn = document.createElement('button');
-    btn.textContent = 'Split flange pair';
-    btn.addEventListener('click', function () {
-      splitFlangePair(flange);
-      hidePopover();
+  function compLabel(c) {
+    return c.type.charAt(0).toUpperCase() + c.type.slice(1) + ' #' + c.id;
+  }
+
+  // All components on fromComp's side of the joint when the edges matching
+  // skipFn are cut — the sub-assembly that stays locked together after
+  // separating there.
+  function sideMembers(edges, fromComp, skipFn) {
+    var adj = {};
+    edges.forEach(function (ed) {
+      if (skipFn(ed)) return;
+      (adj[ed.a.comp.id] = adj[ed.a.comp.id] || []).push(ed.b.comp.id);
+      (adj[ed.b.comp.id] = adj[ed.b.comp.id] || []).push(ed.a.comp.id);
     });
-    popover.appendChild(btn);
+    var seen = {}; seen[fromComp.id] = true;
+    var out = [fromComp], stack = [fromComp.id];
+    while (stack.length) {
+      (adj[stack.pop()] || []).forEach(function (id) {
+        if (seen[id]) return;
+        seen[id] = true;
+        var o = PipeState.getComp(id);
+        if (o) { out.push(o); stack.push(id); }
+      });
+    }
+    return out;
+  }
+
+  // Break a joint: pull one side back one grid step, away from the joint, with
+  // everything on that side moving as one piece. Retreating from the joint
+  // point physically parts ALL connections there, so the sides are computed
+  // with every edge at that point cut (e.g. at pipe-flange-pipe joints the two
+  // pipes also mate directly — cutting a single edge could never part them).
+  function separateEdge(ed, edges) {
+    var pk = ed.a.p.x + ',' + ed.a.p.y;
+    var atJoint = function (e2) { return (e2.a.p.x + ',' + e2.a.p.y) === pk; };
+    var sideA = sideMembers(edges, ed.a.comp, atJoint);
+    var inA = {};
+    sideA.forEach(function (c) { inA[c.id] = true; });
+    if (inA[ed.b.comp.id]) {
+      Panel.setFlowStatus('These parts are also connected through another path — separate that joint too.');
+      return;
+    }
+    var sideB = sideMembers(edges, ed.b.comp, atJoint);
+
+    function tryMove(side, port) {
+      var dv = port.dir.split(',').map(Number);   // port faces its neighbour
+      var dx = -dv[0], dy = -dv[1];               // so retreat the other way
+      side.forEach(function (c) { c.pos.x += dx; c.pos.y += dy; });
+      if (side.some(function (c) { return Comp.pipeOverlapsOther(c); })) {
+        side.forEach(function (c) { c.pos.x -= dx; c.pos.y -= dy; });
+        return false;
+      }
+      return true;
+    }
+
+    History.capture();
+    // a branch tap retreats off its host run (virtual edges put the branch on
+    // side a); otherwise pull back whichever side carries less with it
+    var first = (ed.a.virtual || sideA.length <= sideB.length)
+      ? { side: sideA, port: ed.a } : { side: sideB, port: ed.b };
+    var second = first.side === sideA
+      ? { side: sideB, port: ed.b } : { side: sideA, port: ed.a };
+    if (tryMove(first.side, first.port) || tryMove(second.side, second.port)) {
+      History.commit();
+      App.dirty = true;
+      Panel.refresh();
+    } else {
+      History.abort();
+      Panel.setFlowStatus('No room to separate here — clear some space first.');
+    }
+  }
+
+  // Returns true if any joint was close enough to offer separation.
+  function showSeparatePopover(m) {
+    var edges = Validate.buildConnectivity().edges;
+    var opts = [];
+    edges.forEach(function (ed) {
+      var sp = Grid.toScreen(ed.a.p.x, ed.a.p.y);
+      var dist = Math.hypot(m.x - sp.x, m.y - sp.y);
+      if (dist <= 20) opts.push({ edge: ed, dist: dist });
+    });
+    if (!opts.length) return false;
+    opts.sort(function (x, y) { return x.dist - y.dist; });
+
+    popover.innerHTML = '';
+    opts.slice(0, 4).forEach(function (o) {
+      var btn = document.createElement('button');
+      btn.textContent = 'Separate ' + compLabel(o.edge.a.comp) + ' ↔ ' + compLabel(o.edge.b.comp);
+      btn.addEventListener('click', function () {
+        separateEdge(o.edge, edges);
+        hidePopover();
+      });
+      popover.appendChild(btn);
+    });
     popover.style.display = 'block';
-    popover.style.left = (p.x + 14) + 'px';
-    popover.style.top = (p.y - 14) + 'px';
+    popover.style.left = (m.x + 14) + 'px';
+    popover.style.top = (m.y - 14) + 'px';
+    return true;
   }
 
   function splitFlangePair(flange) {
