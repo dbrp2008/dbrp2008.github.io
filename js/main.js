@@ -109,6 +109,23 @@
       Grid.zoomAt(canvas.width / 2, canvas.height / 2, 1 / 1.25);
     });
 
+    document.getElementById('btnLasso').addEventListener('click', function () {
+      Editor.toggleLasso();
+    });
+
+    var btnTheme = document.getElementById('btnTheme');
+    function applyTheme(light) {
+      document.body.classList.toggle('light', light);
+      btnTheme.textContent = light ? '🌙 Dark' : '☀ Light';
+      try { localStorage.setItem('pipe-theme', light ? 'light' : 'dark'); } catch (err) {}
+      App.dirty = true;
+      Viewer3D.rebuild();
+    }
+    btnTheme.addEventListener('click', function () {
+      applyTheme(!document.body.classList.contains('light'));
+    });
+    try { if (localStorage.getItem('pipe-theme') === 'light') applyTheme(true); } catch (err) {}
+
     var btnMode = document.getElementById('btnMode');
     btnMode.addEventListener('click', function () {
       if (App.mode === '2d') {
