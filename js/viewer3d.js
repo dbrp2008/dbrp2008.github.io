@@ -10,6 +10,13 @@
   var flowMats = [];   // materials of flow-reached meshes, pulsed while running
   var AXIS_H = 0.5;    // centerline height above ground
 
+  // Ground/grid extend dynamically with camera distance so the world never
+  // looks like it ends in a void, but stay capped at 100 divisions so the
+  // geometry never gets big regardless of zoom level.
+  var GRID_BUCKETS = [40, 80, 160, 320, 640, 1280, 2560, 5120, 10240];
+  var gridHelper = null, gridBucket = 0, gridCX = null, gridCZ = null;
+  var gridMinorColor = 0x3a4a60, gridMajorColor = 0x232b38;
+
   function available() { return typeof THREE !== 'undefined'; }
 
   function init() {
@@ -64,9 +71,21 @@
     sun.position.set(8, 14, 6);
     scene.add(sun);
 
-    var grid = new THREE.GridHelper(60, 60,
-      lightTheme ? 0x9fb0c8 : 0x3a4a60, lightTheme ? 0xd6deea : 0x232b38);
-    scene.add(grid);
+    // Large flat ground so the world doesn't look like it ends in a black
+    // void past the grid; lit so it still reads as "ground" rather than
+    // a flat background-colour cutout.
+    var groundColor = lightTheme ? 0xdde3ec : 0x161c26;
+    var groundMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(20000, 20000),
+      new THREE.MeshStandardMaterial({ color: groundColor, roughness: 1, metalness: 0 })
+    );
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.position.y = -0.02;
+    scene.add(groundMesh);
+
+    gridMinorColor = lightTheme ? 0x9fb0c8 : 0x3a4a60;
+    gridMajorColor = lightTheme ? 0xd6deea : 0x232b38;
+    gridHelper = null; gridBucket = 0; gridCX = null; gridCZ = null;
 
     var reach = App.flow.reach || {};
 
@@ -145,7 +164,39 @@
       camera.position.copy(center).add(new THREE.Vector3(size * 0.7, size * 0.8, size * 0.7));
       controls.update();
     }
+    updateGrid();
     built = true;
+  }
+
+  function pickGridSize(dist) {
+    for (var i = 0; i < GRID_BUCKETS.length; i++) {
+      if (dist * 2.2 <= GRID_BUCKETS[i]) return GRID_BUCKETS[i];
+    }
+    return GRID_BUCKETS[GRID_BUCKETS.length - 1];
+  }
+
+  // Re-centers and resizes the ground grid around the camera's look-at point
+  // as the user zooms/pans, so it always extends past the visible area.
+  // Divisions are capped at 100 regardless of size, so memory stays bounded —
+  // the grid only gets coarser, never heavier, as it grows.
+  function updateGrid() {
+    if (!scene || !camera || !controls) return;
+    var dist = camera.position.distanceTo(controls.target);
+    var size = pickGridSize(dist);
+    var step = Math.max(10, size / 8);
+    var cx = Math.round(controls.target.x / step) * step;
+    var cz = Math.round(controls.target.z / step) * step;
+    if (gridHelper && gridBucket === size && gridCX === cx && gridCZ === cz) return;
+    if (gridHelper) {
+      scene.remove(gridHelper);
+      gridHelper.geometry.dispose();
+      gridHelper.material.dispose();
+    }
+    var divisions = Math.min(size, 100);
+    gridHelper = new THREE.GridHelper(size, divisions, gridMajorColor, gridMinorColor);
+    gridHelper.position.set(cx, 0, cz);
+    scene.add(gridHelper);
+    gridBucket = size; gridCX = cx; gridCZ = cz;
   }
 
   function enter() {
@@ -200,6 +251,7 @@
   function tick() {
     if (App.mode !== '3d' || !renderer || !built) return;
     controls.update();
+    updateGrid();
     if (App.flow.running) {
       var pulse = 0.35 + 0.3 * Math.sin(performance.now() * 0.005);
       flowMats.forEach(function (m) { m.emissiveIntensity = pulse; });
