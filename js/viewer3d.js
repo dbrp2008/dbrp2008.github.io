@@ -102,7 +102,7 @@
         var geoE = new THREE.TubeGeometry(curve, 16, radiusGU(de ? de.od : 60), 16, false);
         mesh = new THREE.Mesh(geoE, matFor(c, reached));
       } else if (c.type === 'branch') {
-        var tipB = Comp.branchTip(c);
+        var tipB = Comp.branchTrimmedTip(c);
         var ab = v3(c.pos.x, c.pos.y), bb = v3(tipB.x, tipB.y);
         var lenB = ab.distanceTo(bb);
         var dB = sizeOf(c.size);
