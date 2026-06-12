@@ -28,7 +28,9 @@
 
   function drawGrid(ctx, w, h) {
     var z = App.view.zoom;
-    var styles = getComputedStyle(document.documentElement);
+    var styles = getComputedStyle(document.body);   // body carries the .light theme class
+    var lineMinor = styles.getPropertyValue('--grid-line').trim() || 'rgba(140,160,190,0.10)';
+    var lineMajor = styles.getPropertyValue('--grid-line-major').trim() || 'rgba(140,160,190,0.22)';
     ctx.fillStyle = styles.getPropertyValue('--canvas-bg').trim() || '#11151c';
     ctx.fillRect(0, 0, w, h);
 
@@ -38,18 +40,18 @@
     ctx.lineWidth = 1;
     for (var gx = x0; gx <= x1; gx++) {
       var sx = Math.round(gx * z + App.view.panX) + 0.5;
-      ctx.strokeStyle = gx % 5 === 0 ? 'rgba(140,160,190,0.22)' : 'rgba(140,160,190,0.10)';
+      ctx.strokeStyle = gx % 5 === 0 ? lineMajor : lineMinor;
       ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
     }
     for (var gy = y0; gy <= y1; gy++) {
       var sy = Math.round(gy * z + App.view.panY) + 0.5;
-      ctx.strokeStyle = gy % 5 === 0 ? 'rgba(140,160,190,0.22)' : 'rgba(140,160,190,0.10)';
+      ctx.strokeStyle = gy % 5 === 0 ? lineMajor : lineMinor;
       ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(w, sy); ctx.stroke();
     }
 
     // grid intersection dots (snap points), only when zoomed in enough
     if (z >= 28) {
-      ctx.fillStyle = 'rgba(140,160,190,0.28)';
+      ctx.fillStyle = styles.getPropertyValue('--grid-dot').trim() || 'rgba(140,160,190,0.28)';
       for (gx = x0; gx <= x1; gx++) {
         for (gy = y0; gy <= y1; gy++) {
           var p = toScreen(gx, gy);
