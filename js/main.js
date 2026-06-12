@@ -14,6 +14,7 @@
     window.addEventListener('resize', function () { sizeCanvas(); Viewer3D.resize(); });
 
     wireToolbar();
+    wirePaletteResizer();
 
     History.onChange(function () {
       Validate.run();
@@ -94,6 +95,44 @@
     };
 
     modal.style.display = 'flex';
+  }
+
+  /* ---------- palette resizer ---------- */
+
+  function wirePaletteResizer() {
+    var palette = document.getElementById('palette');
+    var resizer = document.getElementById('paletteResizer');
+    var MIN_W = 100, MAX_W = 420;
+
+    try {
+      var saved = parseInt(localStorage.getItem('palette-width'), 10);
+      if (saved >= MIN_W && saved <= MAX_W) palette.style.flexBasis = saved + 'px';
+    } catch (err) {}
+
+    resizer.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+
+      function onMove(ev) {
+        var rect = palette.getBoundingClientRect();
+        var w = Math.max(MIN_W, Math.min(MAX_W, ev.clientX - rect.left));
+        palette.style.flexBasis = w + 'px';
+        sizeCanvas();
+        Viewer3D.resize();
+      }
+      function onUp() {
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        try { localStorage.setItem('palette-width', palette.getBoundingClientRect().width.toFixed(0)); } catch (err) {}
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
   }
 
   /* ---------- toolbar ---------- */
