@@ -118,22 +118,122 @@
     return out;
   }
 
+  // Connections inside the selection, captured when a scale drag starts:
+  // joints between selected parts plus each branch's tap fraction along its
+  // (selected) host run.
+  function captureGroupNet(mcs) {
+    var inSel = {};
+    mcs.forEach(function (c) { inSel[c.id] = true; });
+    var edges = Validate.buildConnectivity().edges.filter(function (e) {
+      return inSel[e.a.comp.id] && inSel[e.b.comp.id];
+    });
+    var frac = {};
+    mcs.forEach(function (c) {
+      if (c.type !== 'branch') return;
+      var host = Comp.hostPipeAt(c.pos);
+      if (!host || !inSel[host.id]) return;
+      var he = Comp.pipeEnds(host);
+      var t = (he[1].x !== he[0].x)
+        ? (c.pos.x - he[0].x) / (he[1].x - he[0].x)
+        : (c.pos.y - he[0].y) / (he[1].y - he[0].y);
+      frac[c.id] = t;
+    });
+    return { edges: edges, frac: frac };
+  }
+
   // Re-derive the group from its captured start state at scale (sx, sy) about
-  // the world anchor: positions scale per axis, pipe lengths scale along the
-  // pipe's own axis. Always recomputed from the originals so rounding never
-  // accumulates. Returns false (without reverting) if a pipe would overlap.
+  // the world anchor. Pipe lengths scale along the pipe's own axis; then,
+  // because fittings and branch stubs have FIXED sizes, raw position scaling
+  // would open gaps at their joints — so positions are rebuilt by walking the
+  // captured connection graph, seating each part on its neighbour's port.
+  // Always recomputed from the originals so rounding never accumulates.
+  // Returns false (without reverting) if a pipe would overlap.
   function applyGroupScale(d, sx, sy) {
     var wa = Grid.toWorld(d.ax, d.ay);
+    var target = {};
     d.orig.forEach(function (st) {
       var c = st.c;
-      c.pos.x = Math.round(wa.x + (st.x - wa.x) * sx);
-      c.pos.y = Math.round(wa.y + (st.y - wa.y) * sy);
       if (c.type === 'pipe') {
         var rr = Comp.norm(c.rot) % 180;
         var f = rr === 0 ? sx : (rr === 90 ? sy : (sx + sy) / 2);
         c.lengthGU = Math.max(1, Math.round(st.len * f));
       }
+      target[c.id] = {
+        x: Math.round(wa.x + (st.x - wa.x) * sx),
+        y: Math.round(wa.y + (st.y - wa.y) * sy)
+      };
     });
+
+    var adj = {};
+    d.net.edges.forEach(function (e) {
+      (adj[e.a.comp.id] = adj[e.a.comp.id] || []).push(e);
+      (adj[e.b.comp.id] = adj[e.b.comp.id] || []).push(e);
+    });
+
+    // tap grid-step along a host run for a branch's stored fraction
+    function tapStep(host, branchId) {
+      var f = d.net.frac[branchId] !== undefined ? d.net.frac[branchId] : 0.5;
+      return Math.max(1, Math.min(host.lengthGU - 1, Math.round(f * host.lengthGU)));
+    }
+
+    // the joint's world point, from the already-placed side's current geometry
+    function jointFromPlaced(e, cur) {
+      if (e.a.virtual) {           // virtual edge: a = branch base, b = host run
+        if (cur.type === 'pipe') {
+          var k = tapStep(cur, e.a.comp.id);
+          var s = Comp.stepVec(cur.rot);
+          return { x: cur.pos.x + s.x * k, y: cur.pos.y + s.y * k };
+        }
+        return { x: cur.pos.x, y: cur.pos.y };
+      }
+      var port = e.a.comp === cur ? e.a : e.b;
+      if (cur.type === 'pipe') return Comp.pipeEnds(cur)[port.end];
+      if (cur.type === 'branch') return Comp.branchTip(cur);
+      return { x: cur.pos.x, y: cur.pos.y };
+    }
+
+    // move c so its side of the joint lands on pt
+    function seatAt(e, c, pt) {
+      if (e.a.virtual && c.type === 'pipe') {     // host placed from its branch
+        var hk = tapStep(c, e.a.comp.id);
+        var hs = Comp.stepVec(c.rot);
+        c.pos.x = pt.x - hs.x * hk; c.pos.y = pt.y - hs.y * hk;
+        return;
+      }
+      if (!e.a.virtual && c.type === 'pipe') {
+        var port = e.a.comp === c ? e.a : e.b;
+        var sv = Comp.stepVec(c.rot);
+        if (port.end === 0) { c.pos.x = pt.x; c.pos.y = pt.y; }
+        else { c.pos.x = pt.x - sv.x * c.lengthGU; c.pos.y = pt.y - sv.y * c.lengthGU; }
+        return;
+      }
+      if (!e.a.virtual && c.type === 'branch') {  // joined at its tip
+        var sb = Comp.stepVec(c.rot);
+        c.pos.x = pt.x - sb.x * Comp.BRANCH_LEN; c.pos.y = pt.y - sb.y * Comp.BRANCH_LEN;
+        return;
+      }
+      c.pos.x = pt.x; c.pos.y = pt.y;             // branch base / fittings sit on the point
+    }
+
+    var seated = {};
+    d.orig.forEach(function (st) {
+      var c = st.c;
+      if (seated[c.id]) return;
+      c.pos.x = target[c.id].x; c.pos.y = target[c.id].y;
+      seated[c.id] = true;
+      var queue = [c];
+      while (queue.length) {
+        var cur = queue.shift();
+        (adj[cur.id] || []).forEach(function (e) {
+          var other = e.a.comp === cur ? e.b.comp : e.a.comp;
+          if (seated[other.id]) return;
+          seatAt(e, other, jointFromPlaced(e, cur));
+          seated[other.id] = true;
+          queue.push(other);
+        });
+      }
+    });
+
     return !d.orig.some(function (st) { return Comp.pipeOverlapsOther(st.c); });
   }
 
@@ -208,7 +308,8 @@
             kind: 'mscale', hx: hd.hx, hy: hd.hy, h0: { x: hd.x, y: hd.y },
             ax: hd.hx === 0 ? mbb.maxx : mbb.minx,
             ay: hd.hy === 0 ? mbb.maxy : mbb.miny,
-            orig: orig, goodSx: 1, goodSy: 1, moved: false
+            orig: orig, net: captureGroupNet(mcs),
+            goodSx: 1, goodSy: 1, moved: false
           };
         }
         return;
