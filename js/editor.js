@@ -45,6 +45,34 @@
 
   function snap45(deg) { return Comp.norm(Math.round(deg / 45) * 45); }
 
+  // A branch lying ALONG its host run is always wrong — stand it up perpendicular.
+  // Branches already across the run (either side) are left as the user set them.
+  function orientBranch(b) {
+    var host = Comp.hostPipeAt(b.pos);
+    if (host && Comp.norm(b.rot - host.rot) % 180 === 0) b.rot = Comp.norm(host.rot + 90);
+  }
+
+  // Everything connected to c through mating ports (and branch taps) — the rigid
+  // assembly that moves together when c is dragged.
+  function connectedGroup(c) {
+    var adj = {};
+    Validate.buildConnectivity().edges.forEach(function (e) {
+      (adj[e.a.comp.id] = adj[e.a.comp.id] || []).push(e.b.comp.id);
+      (adj[e.b.comp.id] = adj[e.b.comp.id] || []).push(e.a.comp.id);
+    });
+    var seen = {}; seen[c.id] = true;
+    var out = [c], stack = [c.id];
+    while (stack.length) {
+      (adj[stack.pop()] || []).forEach(function (id) {
+        if (seen[id]) return;
+        seen[id] = true;
+        var o = PipeState.getComp(id);
+        if (o) { out.push(o); stack.push(id); }
+      });
+    }
+    return out;
+  }
+
   function stepLen(rot) { return Comp.norm(rot) % 90 === 0 ? 1 : Math.SQRT2; }
 
   /* ---------- selection chrome geometry ---------- */
@@ -67,7 +95,21 @@
     hidePopover();
 
     if (e.button === 1 || e.button === 2) {
-      drag = { kind: 'pan', sx: m.x, sy: m.y, panX: App.view.panX, panY: App.view.panY };
+      // right-click on a part: drag it ALONE, separating it from whatever it's
+      // locked to (left-drag moves the whole connected assembly); empty = pan
+      var solo = e.button === 2 ? hitAt(w) : null;
+      if (solo) {
+        App.selection = solo.id;
+        App.dirty = true;
+        History.capture();
+        drag = {
+          kind: 'move', comp: solo, members: [solo], moved: false, m0: m,
+          grab: { x: w.x - solo.pos.x, y: w.y - solo.pos.y }
+        };
+        Panel.refresh();
+      } else {
+        drag = { kind: 'pan', sx: m.x, sy: m.y, panX: App.view.panX, panY: App.view.panY };
+      }
       e.preventDefault();
       return;
     }
@@ -99,7 +141,7 @@
       App.dirty = true;
       History.capture();
       drag = {
-        kind: 'move', comp: hit, moved: false, m0: m,
+        kind: 'move', comp: hit, members: connectedGroup(hit), moved: false, m0: m,
         grab: { x: w.x - hit.pos.x, y: w.y - hit.pos.y }
       };
       Panel.refresh();
@@ -144,6 +186,7 @@
       if (ghost) {
         var g = Grid.snap(w);
         ghost.pos.x = g.x; ghost.pos.y = g.y;
+        if (ghost.type === 'branch') orientBranch(ghost);
         ghost._offscreen = !overCanvas(e);
       }
       return;
@@ -151,10 +194,12 @@
     if (drag.kind === 'move') {
       var c = drag.comp;
       var g2 = Grid.snap({ x: w.x - drag.grab.x, y: w.y - drag.grab.y });
-      if (g2.x !== c.pos.x || g2.y !== c.pos.y) {
-        var ox = c.pos.x, oy = c.pos.y;
-        c.pos.x = g2.x; c.pos.y = g2.y;
-        if (Comp.pipeOverlapsOther(c)) { c.pos.x = ox; c.pos.y = oy; }  // refuse to overlap a pipe
+      var mdx = g2.x - c.pos.x, mdy = g2.y - c.pos.y;
+      if (mdx !== 0 || mdy !== 0) {
+        drag.members.forEach(function (mm) { mm.pos.x += mdx; mm.pos.y += mdy; });
+        // group keeps its internal geometry, so only outside pipes can clash
+        var clash = drag.members.some(function (mm) { return Comp.pipeOverlapsOther(mm); });
+        if (clash) drag.members.forEach(function (mm) { mm.pos.x -= mdx; mm.pos.y -= mdy; });
         else drag.moved = true;
       }
       return;
@@ -211,20 +256,12 @@
 
     if (d.kind === 'palette') {
       if (ghost && !ghost._offscreen && overCanvas(e)) {
-        if (ghost.type === 'branch') {
-          if (!Comp.hostPipeAt(ghost.pos)) {
-            Panel.setFlowStatus('A branch must be dropped on a pipe, between its two ends.');
-          } else {
-            History.capture();
-            delete ghost._offscreen;
-            PipeState.addComp(ghost);
-            App.selection = ghost.id;
-            History.commit();
-            Panel.refresh();
-          }
-        } else if (Comp.pipeOverlapsOther(ghost)) {
+        if (Comp.pipeOverlapsOther(ghost)) {
           Panel.setFlowStatus('Cannot place a pipe overlapping another pipe.');
         } else {
+          if (ghost.type === 'branch' && !Comp.hostPipeAt(ghost.pos)) {
+            Panel.setFlowStatus('Branch placed off-pipe — move it onto a pipe run to tap in.');
+          }
           History.capture();
           delete ghost._offscreen;
           PipeState.addComp(ghost);
@@ -239,6 +276,8 @@
     }
     if (d.kind === 'move' || d.kind === 'rotate' || d.kind === 'resize') {
       if (d.moved) {
+        // only when moved alone — rotating would tear it off parts dragged with it
+        if (d.kind === 'move' && d.comp.type === 'branch' && d.members.length === 1) orientBranch(d.comp);
         History.commit();
       } else {
         History.abort();
