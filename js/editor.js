@@ -9,6 +9,7 @@
   var drag = null;       // active drag descriptor
   var ghost = null;      // palette-drag preview component
   var hoverPt = null;
+  var lassoArmed = false;   // next left-drag draws a circle-select lasso
 
   var ROT_HANDLE_DIST = 28;
 
@@ -103,6 +104,11 @@
     }
     if (e.button !== 0) return;
 
+    if (lassoArmed) {
+      drag = { kind: 'lasso', pts: [m] };
+      return;
+    }
+
     var sel = PipeState.selected();
     if (sel) {
       var rh = rotHandlePos(sel);
@@ -126,6 +132,7 @@
     var hit = hitAt(w);
     if (hit) {
       App.selection = hit.id;
+      App.multiSel = [];
       App.dirty = true;
       History.capture();
       drag = {
@@ -136,7 +143,9 @@
       return;
     }
 
-    if (App.selection !== null) { App.selection = null; App.dirty = true; Panel.refresh(); }
+    if (App.selection !== null || (App.multiSel && App.multiSel.length)) {
+      App.selection = null; App.multiSel = []; App.dirty = true; Panel.refresh();
+    }
     drag = { kind: 'pan', sx: m.x, sy: m.y, panX: App.view.panX, panY: App.view.panY };
   }
 
@@ -168,6 +177,11 @@
     if (drag.kind === 'pan') {
       App.view.panX = drag.panX + (m.x - drag.sx);
       App.view.panY = drag.panY + (m.y - drag.sy);
+      return;
+    }
+    if (drag.kind === 'lasso') {
+      var lp = drag.pts[drag.pts.length - 1];
+      if (Math.hypot(m.x - lp.x, m.y - lp.y) > 4) drag.pts.push(m);
       return;
     }
     if (drag.kind === 'palette') {
@@ -242,6 +256,22 @@
     var d = drag;
     drag = null;
 
+    if (d.kind === 'lasso') {
+      setLasso(false);
+      if (d.pts.length >= 3) {
+        var ids = [];
+        App.components.forEach(function (c) {
+          var ct = Comp.compCenter(c);
+          if (pointInPoly(Grid.toScreen(ct.x, ct.y), d.pts)) ids.push(c.id);
+        });
+        if (ids.length === 1) { App.selection = ids[0]; App.multiSel = []; }
+        else { App.multiSel = ids; App.selection = null; }
+        Panel.refresh();
+      }
+      App.dirty = true;
+      return;
+    }
+
     if (d.kind === 'palette') {
       if (ghost && !ghost._offscreen && overCanvas(e)) {
         if (Comp.pipeOverlapsOther(ghost)) {
@@ -300,13 +330,20 @@
       e.preventDefault(); History.undo(); Panel.refresh();
     } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
       e.preventDefault(); History.redo(); Panel.refresh();
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && App.selection) {
+    } else if ((e.key === 'Delete' || e.key === 'Backspace') &&
+               (App.selection || (App.multiSel && App.multiSel.length))) {
       History.capture();
-      PipeState.removeComp(App.selection);
+      if (App.multiSel && App.multiSel.length) {
+        App.multiSel.forEach(function (id) { PipeState.removeComp(id); });
+        App.multiSel = [];
+      } else {
+        PipeState.removeComp(App.selection);
+      }
       History.commit();
       Panel.refresh();
     } else if (e.key === 'Escape') {
-      App.selection = null; App.dirty = true; Panel.refresh(); hidePopover();
+      App.selection = null; App.multiSel = []; setLasso(false);
+      App.dirty = true; Panel.refresh(); hidePopover();
     } else if (e.key.toLowerCase() === 'r' && App.selection) {
       var c = PipeState.selected();
       History.capture();
@@ -319,6 +356,7 @@
   }
 
   function updateCursor(m, w) {
+    if (lassoArmed) { canvas.style.cursor = 'crosshair'; return; }
     var sel = PipeState.selected();
     if (sel) {
       var rh = rotHandlePos(sel);
@@ -331,6 +369,60 @@
       }
     }
     canvas.style.cursor = hitAt(w) ? 'pointer' : 'default';
+  }
+
+  /* ---------- lasso (circle) selection ---------- */
+
+  function setLasso(on) {
+    lassoArmed = on;
+    var btn = document.getElementById('btnLasso');
+    if (btn) btn.classList.toggle('active', on);
+    if (on) { App.selection = null; Panel.refresh(); }
+    App.dirty = true;
+  }
+
+  function toggleLasso() { setLasso(!lassoArmed); return lassoArmed; }
+
+  function pointInPoly(p, pts) {
+    var inside = false;
+    for (var i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      if ((pts[i].y > p.y) !== (pts[j].y > p.y) &&
+          p.x < (pts[j].x - pts[i].x) * (p.y - pts[i].y) / (pts[j].y - pts[i].y) + pts[i].x) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  function drawLasso() {
+    if (!drag || drag.kind !== 'lasso' || drag.pts.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = '#5b9dff';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.moveTo(drag.pts[0].x, drag.pts[0].y);
+    drag.pts.forEach(function (p) { ctx.lineTo(p.x, p.y); });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(91,157,255,0.07)';
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawMultiSel() {
+    if (!App.multiSel || !App.multiSel.length) return;
+    ctx.save();
+    ctx.strokeStyle = '#5b9dff';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    App.multiSel.forEach(function (id) {
+      var c = PipeState.getComp(id);
+      if (!c) return;
+      var bb = Comp.screenBBox(c);
+      ctx.strokeRect(bb.minx, bb.miny, bb.maxx - bb.minx, bb.maxy - bb.miny);
+    });
+    ctx.restore();
   }
 
   /* ---------- joint separation popover ---------- */
@@ -468,6 +560,8 @@
     drawPorts();
     drawIssueBadges();
     drawSelection();
+    drawMultiSel();
+    drawLasso();
   }
 
   // Connection nodes: every component port gets a small marker, nudged outward along
@@ -581,5 +675,8 @@
     ctx.restore();
   }
 
-  window.Editor = { init: init, render: render, hidePopover: hidePopover, splitFlangePair: splitFlangePair };
+  window.Editor = {
+    init: init, render: render, hidePopover: hidePopover,
+    splitFlangePair: splitFlangePair, toggleLasso: toggleLasso
+  };
 })();
