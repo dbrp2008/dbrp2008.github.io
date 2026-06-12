@@ -86,6 +86,15 @@
     return { x: c.pos.x + s.x * BRANCH_LEN, y: c.pos.y + s.y * BRANCH_LEN };
   }
 
+  // Branch tip pulled back where it plugs into an elbow/reducer, same as pipes,
+  // so the stub terminates at the fitting body instead of poking through it.
+  function branchTrimmedTip(c) {
+    var tip = branchTip(c);
+    var t = fittingTrimAt(tip, dirKey(c.rot));
+    var u = unitVec(c.rot);
+    return { x: tip.x - u.x * t, y: tip.y - u.y * t };
+  }
+
   // True if grid point p lies strictly between pipe c's two endpoints (collinear,
   // integer steps, not equal to either end) — i.e. p is a valid branch attach point.
   function pointOnPipeInterior(p, c) {
@@ -332,7 +341,7 @@
   }
 
   function drawBranch(ctx, c, opts) {
-    var tip = branchTip(c);
+    var tip = branchTrimmedTip(c);
     var a = Grid.toScreen(c.pos.x, c.pos.y), b = Grid.toScreen(tip.x, tip.y);
     var d = PipeStandards.sizeData(App.settings.family, App.settings.schedule, c.size);
     var w = odPx(d ? d.od : 60);
@@ -498,7 +507,7 @@
       var sa = Grid.toScreen(ap.a.x, ap.a.y), sb = Grid.toScreen(ap.b.x, ap.b.y), q = Grid.toScreen(ap.ctrl.x, ap.ctrl.y);
       ctx.moveTo(sa.x, sa.y); ctx.quadraticCurveTo(q.x, q.y, sb.x, sb.y);
     } else if (c.type === 'branch') {
-      var tip = branchTip(c);
+      var tip = branchTrimmedTip(c);
       var ba = Grid.toScreen(c.pos.x, c.pos.y), bb = Grid.toScreen(tip.x, tip.y);
       ctx.moveTo(ba.x, ba.y); ctx.lineTo(bb.x, bb.y);
     } else {
@@ -516,7 +525,7 @@
     flangeMate: flangeMate, drawComponent: drawComponent, hitTest: hitTest,
     screenBBox: screenBBox, strokeFlowPath: strokeFlowPath, reducerPoly: reducerPoly,
     pipeOverlapsOther: pipeOverlapsOther, pipeSegKeys: pipeSegKeys,
-    branchTip: branchTip, hostPipeAt: hostPipeAt,
+    branchTip: branchTip, branchTrimmedTip: branchTrimmedTip, hostPipeAt: hostPipeAt,
     matColor: matColor, colorFor: colorFor, COLOR_PALETTE: COLOR_PALETTE, CYCLE_PALETTE: CYCLE_PALETTE,
     ELBOW_LEG: ELBOW_LEG, REDUCER_HALF: REDUCER_HALF, BRANCH_LEN: BRANCH_LEN
   };
