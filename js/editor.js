@@ -87,6 +87,80 @@
     return Comp.pipeEnds(c).map(function (e) { return Grid.toScreen(e.x, e.y); });
   }
 
+  /* ---------- multi-selection (lasso group) chrome ---------- */
+
+  function multiComps() {
+    return (App.multiSel || []).map(PipeState.getComp).filter(Boolean);
+  }
+
+  function multiBBox(mcs) {
+    if (!mcs.length) return null;
+    var bb = { minx: Infinity, miny: Infinity, maxx: -Infinity, maxy: -Infinity };
+    mcs.forEach(function (c) {
+      var b = Comp.screenBBox(c);
+      bb.minx = Math.min(bb.minx, b.minx); bb.miny = Math.min(bb.miny, b.miny);
+      bb.maxx = Math.max(bb.maxx, b.maxx); bb.maxy = Math.max(bb.maxy, b.maxy);
+    });
+    return bb;
+  }
+
+  // 9 transform handles on the group box: 8 around the edge for stretching,
+  // one in the center for moving the whole selection.
+  function multiHandles(bb) {
+    var xs = [bb.minx, (bb.minx + bb.maxx) / 2, bb.maxx];
+    var ys = [bb.miny, (bb.miny + bb.maxy) / 2, bb.maxy];
+    var out = [];
+    for (var iy = 0; iy < 3; iy++) {
+      for (var ix = 0; ix < 3; ix++) {
+        out.push({ x: xs[ix], y: ys[iy], hx: ix, hy: iy });
+      }
+    }
+    return out;
+  }
+
+  // Re-derive the group from its captured start state at scale (sx, sy) about
+  // the world anchor: positions scale per axis, pipe lengths scale along the
+  // pipe's own axis. Always recomputed from the originals so rounding never
+  // accumulates. Returns false (without reverting) if a pipe would overlap.
+  function applyGroupScale(d, sx, sy) {
+    var wa = Grid.toWorld(d.ax, d.ay);
+    d.orig.forEach(function (st) {
+      var c = st.c;
+      c.pos.x = Math.round(wa.x + (st.x - wa.x) * sx);
+      c.pos.y = Math.round(wa.y + (st.y - wa.y) * sy);
+      if (c.type === 'pipe') {
+        var rr = Comp.norm(c.rot) % 180;
+        var f = rr === 0 ? sx : (rr === 90 ? sy : (sx + sy) / 2);
+        c.lengthGU = Math.max(1, Math.round(st.len * f));
+      }
+    });
+    return !d.orig.some(function (st) { return Comp.pipeOverlapsOther(st.c); });
+  }
+
+  // Rigid 90°-step rotation of the group about its snapped centroid (45° would
+  // leave the grid for mixed orientations). Reverts on pipe overlap.
+  function rotateGroup90(comps, k) {
+    k = ((k % 4) + 4) % 4;
+    if (!k || !comps.length) return true;
+    var cx = 0, cy = 0;
+    comps.forEach(function (c) { var ct = Comp.compCenter(c); cx += ct.x; cy += ct.y; });
+    cx = Math.round(cx / comps.length); cy = Math.round(cy / comps.length);
+    var before = comps.map(function (c) { return { x: c.pos.x, y: c.pos.y, rot: c.rot }; });
+    for (var n = 0; n < k; n++) {
+      comps.forEach(function (c) {
+        var dx = c.pos.x - cx, dy = c.pos.y - cy;
+        c.pos.x = cx - dy;
+        c.pos.y = cy + dx;
+        c.rot = Comp.norm(c.rot + 90);
+      });
+    }
+    if (comps.some(function (c) { return Comp.pipeOverlapsOther(c); })) {
+      comps.forEach(function (c, i) { c.pos.x = before[i].x; c.pos.y = before[i].y; c.rot = before[i].rot; });
+      return false;
+    }
+    return true;
+  }
+
   /* ---------- events ---------- */
 
   function onMouseDown(e) {
@@ -107,6 +181,38 @@
     if (lassoArmed) {
       drag = { kind: 'lasso', pts: [m] };
       return;
+    }
+
+    // group chrome: rotation circle above the lasso selection, plus the usual
+    // square end handles on every selected pipe
+    var mcs = multiComps();
+    if (mcs.length > 1) {
+      var mbb = multiBBox(mcs);
+      var mrh = { x: (mbb.minx + mbb.maxx) / 2, y: mbb.miny - ROT_HANDLE_DIST };
+      if (Math.hypot(m.x - mrh.x, m.y - mrh.y) <= 11) {
+        History.capture();
+        var mc = { x: (mbb.minx + mbb.maxx) / 2, y: (mbb.miny + mbb.maxy) / 2 };
+        drag = { kind: 'mrotate', center: mc, a0: Math.atan2(m.y - mc.y, m.x - mc.x), applied: 0, moved: false };
+        return;
+      }
+      var hs = multiHandles(mbb);
+      for (var hi = 0; hi < hs.length; hi++) {
+        var hd = hs[hi];
+        if (Math.hypot(m.x - hd.x, m.y - hd.y) > 8) continue;
+        History.capture();
+        var orig = mcs.map(function (c) { return { c: c, x: c.pos.x, y: c.pos.y, len: c.lengthGU }; });
+        if (hd.hx === 1 && hd.hy === 1) {
+          drag = { kind: 'mmove', w0: w, orig: orig, goodDx: 0, goodDy: 0, moved: false };
+        } else {
+          drag = {
+            kind: 'mscale', hx: hd.hx, hy: hd.hy, h0: { x: hd.x, y: hd.y },
+            ax: hd.hx === 0 ? mbb.maxx : mbb.minx,
+            ay: hd.hy === 0 ? mbb.maxy : mbb.miny,
+            orig: orig, goodSx: 1, goodSy: 1, moved: false
+          };
+        }
+        return;
+      }
     }
 
     var sel = PipeState.selected();
@@ -182,6 +288,42 @@
     if (drag.kind === 'lasso') {
       var lp = drag.pts[drag.pts.length - 1];
       if (Math.hypot(m.x - lp.x, m.y - lp.y) > 4) drag.pts.push(m);
+      return;
+    }
+    if (drag.kind === 'mscale') {
+      var sx2 = 1, sy2 = 1;
+      if (drag.hx !== 1) sx2 = Math.max(0.05, (m.x - drag.ax) / (drag.h0.x - drag.ax));
+      if (drag.hy !== 1) sy2 = Math.max(0.05, (m.y - drag.ay) / (drag.h0.y - drag.ay));
+      if (App.lockRatio && drag.hx !== 1 && drag.hy !== 1) {
+        // proportional corner: follow whichever axis the cursor pulled harder
+        var su = Math.abs(sx2 - 1) >= Math.abs(sy2 - 1) ? sx2 : sy2;
+        sx2 = sy2 = su;
+      }
+      if (applyGroupScale(drag, sx2, sy2)) {
+        drag.goodSx = sx2; drag.goodSy = sy2; drag.moved = true;
+      } else {
+        applyGroupScale(drag, drag.goodSx, drag.goodSy);   // back to last valid shape
+      }
+      return;
+    }
+    if (drag.kind === 'mmove') {
+      var mdx2 = Math.round(w.x - drag.w0.x), mdy2 = Math.round(w.y - drag.w0.y);
+      drag.orig.forEach(function (st) { st.c.pos.x = st.x + mdx2; st.c.pos.y = st.y + mdy2; });
+      if (drag.orig.some(function (st) { return Comp.pipeOverlapsOther(st.c); })) {
+        drag.orig.forEach(function (st) { st.c.pos.x = st.x + drag.goodDx; st.c.pos.y = st.y + drag.goodDy; });
+      } else {
+        drag.goodDx = mdx2; drag.goodDy = mdy2;
+        if (mdx2 || mdy2) drag.moved = true;
+      }
+      return;
+    }
+    if (drag.kind === 'mrotate') {
+      var mAng = Math.atan2(m.y - drag.center.y, m.x - drag.center.x);
+      var q = Math.round((mAng - drag.a0) / (Math.PI / 2));
+      if (q !== drag.applied && rotateGroup90(multiComps(), q - drag.applied)) {
+        drag.applied = q;
+        drag.moved = true;
+      }
       return;
     }
     if (drag.kind === 'palette') {
@@ -292,7 +434,8 @@
       App.dirty = true;
       return;
     }
-    if (d.kind === 'move' || d.kind === 'rotate' || d.kind === 'resize') {
+    if (d.kind === 'move' || d.kind === 'rotate' || d.kind === 'resize' ||
+        d.kind === 'mrotate' || d.kind === 'mscale' || d.kind === 'mmove') {
       if (d.moved) {
         // only when moved alone — rotating would tear it off parts dragged with it
         if (d.kind === 'move' && d.comp.type === 'branch' && d.members.length === 1) orientBranch(d.comp);
@@ -357,6 +500,22 @@
 
   function updateCursor(m, w) {
     if (lassoArmed) { canvas.style.cursor = 'crosshair'; return; }
+    var mcs = multiComps();
+    if (mcs.length > 1) {
+      var gb = multiBBox(mcs);
+      var grh = { x: (gb.minx + gb.maxx) / 2, y: gb.miny - ROT_HANDLE_DIST };
+      if (Math.hypot(m.x - grh.x, m.y - grh.y) <= 11) { canvas.style.cursor = 'grab'; return; }
+      var ghs = multiHandles(gb);
+      for (var gi = 0; gi < ghs.length; gi++) {
+        var gh = ghs[gi];
+        if (Math.hypot(m.x - gh.x, m.y - gh.y) > 8) continue;
+        if (gh.hx === 1 && gh.hy === 1) canvas.style.cursor = 'move';
+        else if (gh.hx === 1) canvas.style.cursor = 'ns-resize';
+        else if (gh.hy === 1) canvas.style.cursor = 'ew-resize';
+        else canvas.style.cursor = (gh.hx === gh.hy) ? 'nwse-resize' : 'nesw-resize';
+        return;
+      }
+    }
     var sel = PipeState.selected();
     if (sel) {
       var rh = rotHandlePos(sel);
@@ -411,17 +570,48 @@
   }
 
   function drawMultiSel() {
-    if (!App.multiSel || !App.multiSel.length) return;
+    var mcs = multiComps();
+    if (!mcs.length) return;
     ctx.save();
     ctx.strokeStyle = '#5b9dff';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 3]);
-    App.multiSel.forEach(function (id) {
-      var c = PipeState.getComp(id);
-      if (!c) return;
+    mcs.forEach(function (c) {
       var bb = Comp.screenBBox(c);
       ctx.strokeRect(bb.minx, bb.miny, bb.maxx - bb.minx, bb.maxy - bb.miny);
     });
+
+    if (mcs.length > 1) {
+      var gb = multiBBox(mcs);
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(gb.minx, gb.miny, gb.maxx - gb.minx, gb.maxy - gb.miny);
+      ctx.setLineDash([]);
+
+      // same rotation handle as a single part (snaps in 90° steps for groups)
+      var rh = { x: (gb.minx + gb.maxx) / 2, y: gb.miny - ROT_HANDLE_DIST };
+      ctx.beginPath();
+      ctx.moveTo((gb.minx + gb.maxx) / 2, gb.miny);
+      ctx.lineTo(rh.x, rh.y + 7);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(rh.x, rh.y, 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(rh.x, rh.y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#5b9dff';
+      ctx.fill();
+
+      // 9 transform squares: 8 around the box stretch the group, center moves it
+      multiHandles(gb).forEach(function (hd) {
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#5b9dff';
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(hd.x - 5, hd.y - 5, 10, 10);
+        ctx.strokeRect(hd.x - 5, hd.y - 5, 10, 10);
+      });
+    }
     ctx.restore();
   }
 
