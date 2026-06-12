@@ -9,6 +9,41 @@
   --warn: #d8a23c;
   --error: #d84b4b;
   --ok: #39c46c;
+  --btn-bg: #202836;
+  --btn-hover: #283244;
+  --btn-hover-bd: #36425a;
+  --input-bg: #0f1420;
+  --item-bg: #1b2230;
+  --item-hover: #202a3c;
+  --issue-bg: #1d1f27;
+  --issue-hover: #242837;
+  --grid-line: rgba(140,160,190,0.10);
+  --grid-line-major: rgba(140,160,190,0.22);
+  --grid-dot: rgba(140,160,190,0.28);
+}
+
+body.light {
+  --bg: #e9edf3;
+  --panel-bg: #f7f9fc;
+  --panel-border: #d4dbe6;
+  --canvas-bg: #fdfdfe;
+  --text: #20283a;
+  --text-dim: #5c6878;
+  --accent: #2f6fe0;
+  --warn: #a87716;
+  --error: #c43c3c;
+  --ok: #1f9e54;
+  --btn-bg: #e7ecf4;
+  --btn-hover: #dde4ef;
+  --btn-hover-bd: #b9c5d6;
+  --input-bg: #ffffff;
+  --item-bg: #eef2f8;
+  --item-hover: #e3eaf4;
+  --issue-bg: #f0f2f7;
+  --issue-hover: #e7ebf2;
+  --grid-line: rgba(60,80,110,0.10);
+  --grid-line-major: rgba(60,80,110,0.24);
+  --grid-dot: rgba(60,80,110,0.32);
 }
 
 * { box-sizing: border-box; }
@@ -37,7 +72,7 @@ html, body {
 .spacer { flex: 1; }
 
 .btn {
-  background: #202836;
+  background: var(--btn-bg);
   color: var(--text);
   border: 1px solid var(--panel-border);
   border-radius: 6px;
@@ -46,7 +81,7 @@ html, body {
   font: inherit;
   white-space: nowrap;
 }
-.btn:hover:not(:disabled) { background: #283244; border-color: #36425a; }
+.btn:hover:not(:disabled) { background: var(--btn-hover); border-color: var(--btn-hover-bd); }
 .btn:disabled { opacity: 0.4; cursor: default; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 .btn.primary:hover { background: #4a8cf0; }
@@ -58,7 +93,7 @@ html, body {
 .flow-controls input { width: 62px; }
 
 input, select {
-  background: #0f1420;
+  background: var(--input-bg);
   color: var(--text);
   border: 1px solid var(--panel-border);
   border-radius: 5px;
@@ -82,7 +117,7 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 #palette h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
 
 .palette-item {
-  background: #1b2230;
+  background: var(--item-bg);
   border: 1px solid var(--panel-border);
   border-radius: 8px;
   padding: 6px;
@@ -91,7 +126,7 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
   text-align: center;
   user-select: none;
 }
-.palette-item:hover { border-color: var(--accent); background: #202a3c; }
+.palette-item:hover { border-color: var(--accent); background: var(--item-hover); }
 .palette-item svg { width: 100%; height: 38px; display: block; }
 .palette-item span { font-size: 12px; color: var(--text-dim); }
 
@@ -159,14 +194,14 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 #issuesPanel { margin-top: 14px; border-top: 1px solid var(--panel-border); padding-top: 10px; }
 .issue {
   border-left: 3px solid var(--warn);
-  background: #1d1f27;
+  background: var(--issue-bg);
   border-radius: 0 6px 6px 0;
   padding: 6px 8px;
   margin-bottom: 6px;
   font-size: 12.5px;
   cursor: pointer;
 }
-.issue:hover { background: #242837; }
+.issue:hover { background: var(--issue-hover); }
 .issue.error { border-left-color: var(--error); }
 
 #flowStatus { margin: 8px 0; min-height: 16px; }
