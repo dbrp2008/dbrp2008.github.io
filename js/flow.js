@@ -42,23 +42,59 @@
     var conflict = {};
     solved.conflicts.forEach(function (cf) { conflict[cf.compId] = true; });
 
-    // junction BFS from every inlet node
+    // junction BFS over sound segments, seeded from every node carrying the
+    // given mark kind ('ins' or 'outs')
+    function spreadFrom(kind) {
+      var node = {}, seg = {};
+      var queue = [];
+      Object.keys(sg.nodeMarks).forEach(function (n) {
+        if (sg.nodeMarks[n][kind] > 0) { node[n] = true; queue.push(n); }
+      });
+      while (queue.length) {
+        var n = queue.shift();
+        (sg.segAdj[n] || []).forEach(function (i) {
+          if (seg[i]) return;
+          var s = sg.segs[i];
+          if (stagnant[i] || conflict[s.pipe.id]) return;
+          seg[i] = s.ra === n ? 1 : -1;        // spread ra->rb = f0->f1 = +1
+          var o = s.ra === n ? s.rb : s.ra;
+          if (!node[o]) { node[o] = true; queue.push(o); }
+        });
+      }
+      return { node: node, seg: seg };
+    }
+
+    // Water is only guaranteed to MOVE where a segment lies on some
+    // inlet->outlet path: reachable from an inlet AND from an outlet. A
+    // dead-ended spur, or a detached piece carrying a lone IN mark, fills up
+    // but has no through-flow — it must not animate.
+    var fromIn = spreadFrom('ins'), fromOut = spreadFrom('outs');
     var liveNode = {}, liveSeg = {};
-    var queue = [];
-    Object.keys(sg.nodeMarks).forEach(function (n) {
-      if (sg.nodeMarks[n].ins > 0) { liveNode[n] = true; queue.push(n); }
+    Object.keys(fromIn.seg).forEach(function (i) {
+      if (fromOut.seg[i]) liveSeg[i] = fromIn.seg[i];   // keep the inlet-side direction
     });
-    while (queue.length) {
-      var n = queue.shift();
-      (sg.segAdj[n] || []).forEach(function (i) {
-        if (liveSeg[i]) return;
+
+    // prune dead-end spurs: a live segment ending at an unmarked junction with
+    // no other live segment is a cul-de-sac — water fills it but never moves
+    var pruned = true;
+    while (pruned) {
+      pruned = false;
+      Object.keys(liveSeg).forEach(function (i) {
         var s = sg.segs[i];
-        if (stagnant[i] || conflict[s.pipe.id]) return;
-        liveSeg[i] = s.ra === n ? 1 : -1;        // water spreads ra->rb = f0->f1 = +1
-        var o = s.ra === n ? s.rb : s.ra;
-        if (!liveNode[o]) { liveNode[o] = true; queue.push(o); }
+        [s.ra, s.rb].forEach(function (n) {
+          if (!liveSeg[i]) return;
+          var mk = sg.nodeMarks[n];
+          if (mk && (mk.ins > 0 || mk.outs > 0)) return;
+          var deg = (sg.segAdj[n] || []).filter(function (j) { return liveSeg[j]; }).length;
+          if (deg === 1) { delete liveSeg[i]; pruned = true; }
+        });
       });
     }
+
+    Object.keys(liveSeg).forEach(function (i) {
+      var s = sg.segs[i];
+      liveNode[s.ra] = true; liveNode[s.rb] = true;
+    });
 
     // water reaching a marked outlet junction?
     Object.keys(sg.nodeMarks).forEach(function (n) {
@@ -90,12 +126,19 @@
       }
     });
 
-    // fittings: animate when their junction actually carries water
+    // fittings: animate when their junction actually carries water. A branch
+    // stub only carries water when its TIP side flows — its host run flowing
+    // past the tap doesn't move the water standing in the stub — and tip and
+    // tap collapse to one node, so test for a live segment off the host pipe.
     App.components.forEach(function (c) {
       if (c.type === 'pipe') return;
       var n = sg.compNode[c.id];
       if (n === undefined || !liveNode[n]) return;
-      if (!(sg.segAdj[n] || []).some(function (i) { return liveSeg[i]; })) return;
+      var host = c.type === 'branch' ? Comp.hostPipeAt(c.pos) : null;
+      var carries = (sg.segAdj[n] || []).some(function (i) {
+        return liveSeg[i] && (!host || sg.segs[i].pipe !== host);
+      });
+      if (!carries) return;
       var sign = 1;
       if (c.type === 'elbow' && solved.fitSign[c.id] !== undefined) sign = solved.fitSign[c.id];
       reach[c.id] = { sign: sign, vel: velocityFor(c.type === 'reducer' ? c.smallSize : c.size) };
