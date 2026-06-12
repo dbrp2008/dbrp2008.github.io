@@ -121,6 +121,13 @@
 
   function buildProps() {
     propsEl.innerHTML = '';
+
+    var ms = (App.multiSel || []).map(PipeState.getComp).filter(Boolean);
+    if (ms.length > 1) {
+      buildMultiProps(ms);
+      return;
+    }
+
     var c = PipeState.selected();
 
     if (!c) {
@@ -249,6 +256,86 @@
     var hint = el('p', { class: 'hint' });
     hint.textContent = 'Drag to move · handle above rotates (45° steps, or press R) · double-click deletes' +
       (c.type === 'pipe' ? ' · drag square end handles to resize' : '');
+    propsEl.appendChild(hint);
+  }
+
+  // Group editing for everything circled with the lasso select tool.
+  function buildMultiProps(ms) {
+    propsEl.appendChild(el('h3', null, ms.length + ' parts selected'));
+
+    propsEl.appendChild(row('Size (all)', select(
+      [{ value: '', label: '— pick —' }].concat(sizeOptions()), '',
+      function (v) {
+        if (!v) return;
+        mutate(function () {
+          var keys = PipeStandards.sizeKeys(App.settings.family, App.settings.schedule);
+          ms.forEach(function (c) {
+            if (c.type === 'reducer') {
+              c.largeSize = v;
+              var i = keys.indexOf(v);
+              c.smallSize = i > 0 ? keys[i - 1] : v;
+            } else {
+              c.size = v;
+            }
+          });
+          PipeState.setDefaultSize(v);
+        });
+      }
+    )));
+
+    var wrap = el('div', { class: 'color-picker' });
+    Comp.COLOR_PALETTE.forEach(function (col) {
+      var sw = el('button', { class: 'swatch', title: col });
+      sw.style.background = col;
+      sw.addEventListener('click', function () {
+        mutate(function () { ms.forEach(function (c) { c.color = col; }); });
+      });
+      wrap.appendChild(sw);
+    });
+    var inp = el('input', { type: 'color', class: 'swatch-custom', value: '#8a8f98', title: 'Custom colour' });
+    inp.addEventListener('input', function () {
+      mutate(function () { ms.forEach(function (c) { c.color = inp.value; }); });
+    });
+    wrap.appendChild(inp);
+    propsEl.appendChild(row('Colour (all)', wrap));
+
+    var rotBtn = el('button', { class: 'btn small' }, '⟳ Rotate group 90°');
+    rotBtn.addEventListener('click', function () {
+      mutate(function () {
+        // rigid rotation about the selection's snapped centroid keeps every
+        // joint mated; 90° steps because 45° would leave the grid
+        var cx = 0, cy = 0;
+        ms.forEach(function (c) { var ct = Comp.compCenter(c); cx += ct.x; cy += ct.y; });
+        cx = Math.round(cx / ms.length); cy = Math.round(cy / ms.length);
+        ms.forEach(function (c) {
+          var dx = c.pos.x - cx, dy = c.pos.y - cy;
+          c.pos.x = cx - dy;
+          c.pos.y = cy + dx;
+          c.rot = Comp.norm(c.rot + 90);
+        });
+      });
+    });
+    propsEl.appendChild(rotBtn);
+
+    var delBtn = el('button', { class: 'btn small' }, '🗑 Delete selected');
+    delBtn.addEventListener('click', function () {
+      mutate(function () {
+        ms.forEach(function (c) { PipeState.removeComp(c.id); });
+        App.multiSel = [];
+      });
+    });
+    propsEl.appendChild(delBtn);
+
+    var clrBtn = el('button', { class: 'btn small' }, 'Clear selection');
+    clrBtn.addEventListener('click', function () {
+      App.multiSel = [];
+      App.dirty = true;
+      refresh();
+    });
+    propsEl.appendChild(clrBtn);
+
+    var hint = el('p', { class: 'hint' });
+    hint.textContent = 'Changes apply to every circled part. Reducers take the picked size on their large end.';
     propsEl.appendChild(hint);
   }
 
