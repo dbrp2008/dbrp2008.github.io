@@ -224,6 +224,8 @@
       }
     });
 
+    document.getElementById('btnDrawing').addEventListener('click', function () { Drawing.generate(); });
+
     document.getElementById('btnExport').addEventListener('click', function () { Storage2.exportFile(); });
 
     var importInput = document.getElementById('importFile');
