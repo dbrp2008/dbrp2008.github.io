@@ -8,6 +8,7 @@
   var renderer, scene, camera, controls, container;
   var built = false;
   var flowMats = [];   // {mat,tex,dir,speed,...} for flow-reached meshes, animated while running
+  var warnMarkers = []; // {mesh,mat,...} pulsing red markers over over-pressure parts
   var prevNow = 0;     // last tick timestamp, for frame-rate-independent band scrolling
   var AXIS_H = 0.5;    // centerline height above ground
 
@@ -114,6 +115,7 @@
 
   function buildScene() {
     flowMats = [];
+    warnMarkers = [];
     scene = new THREE.Scene();
     var lightTheme = document.body.classList.contains('light');
     scene.background = new THREE.Color(lightTheme ? 0xe9edf3 : 0x11151c);
@@ -202,6 +204,31 @@
       }
 
       if (mesh) scene.add(mesh);
+    });
+
+    // Over-pressure warning markers: a pulsing red diamond floats above every
+    // component whose pressure rating the system pressure exceeds, so the danger
+    // spots are obvious in 3D (the flow bands' red means over-VELOCITY instead).
+    var overP = {};
+    (App.issues || []).forEach(function (iss) {
+      if (iss.kind === 'overpressure' && iss.compId != null) overP[iss.compId] = true;
+    });
+    App.components.forEach(function (c) {
+      if (!overP[c.id]) return;
+      var ctr = Comp.compCenter(c);
+      var markMat = new THREE.MeshStandardMaterial({
+        color: 0x4a0a06, emissive: new THREE.Color(0xff2a18),
+        emissiveIntensity: 1.0, metalness: 0.1, roughness: 0.5
+      });
+      var mk = new THREE.Mesh(new THREE.OctahedronGeometry(0.26), markMat);
+      mk.position.set(ctr.x, AXIS_H + 1.0, ctr.y);
+      scene.add(mk);
+      // a faint stem so it's clear which part the marker belongs to
+      var stemMat = new THREE.MeshBasicMaterial({ color: 0xff4530, transparent: true, opacity: 0.5 });
+      var stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.9, 6), stemMat);
+      stem.position.set(ctr.x, AXIS_H + 0.55, ctr.y);
+      scene.add(stem);
+      warnMarkers.push({ mesh: mk, mat: markMat, base: 1, phase: Math.random() * 6.283 });
     });
 
     // center camera on layout
@@ -328,8 +355,8 @@
     if (App.mode !== '3d' || !renderer || !built) return;
     controls.update();
     updateGrid();
+    var now = performance.now();
     if (App.flow.running) {
-      var now = performance.now();
       var dt = prevNow ? Math.min(80, now - prevNow) : 16;
       prevNow = now;
       flowMats.forEach(function (f) {
@@ -341,6 +368,14 @@
     } else {
       prevNow = 0;
     }
+    // over-pressure markers throb and bob whether or not flow is animating
+    warnMarkers.forEach(function (w) {
+      var p = 0.5 + 0.5 * Math.sin(now * 0.006 + w.phase);
+      w.mat.emissiveIntensity = 0.55 + 1.0 * p;
+      var s = w.base * (0.82 + 0.32 * p);
+      w.mesh.scale.set(s, s, s);
+      w.mesh.rotation.y += 0.02;
+    });
     renderer.render(scene, camera);
   }
 
