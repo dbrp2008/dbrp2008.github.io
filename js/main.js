@@ -95,10 +95,25 @@
     famSel.addEventListener('change', fillSchedules);
     fillSchedules();
 
+    // Show a Cancel option only when there's an existing project to keep, so
+    // opening this dialog from "New" is non-destructive until the user commits.
+    var cancelBtn = document.getElementById('modalCancel');
+    cancelBtn.style.display = App.components.length ? 'block' : 'none';
+    cancelBtn.onclick = function () { modal.style.display = 'none'; };
+
     document.getElementById('modalStart').onclick = function () {
       App.settings.family = famSel.value;
       App.settings.schedule = schSel.value;
+      // The actual (destructive) "start fresh" happens here on commit — not in
+      // the New handler — so New never depends on a native confirm() dialog
+      // (which some browsers suppress, making New appear to do nothing).
+      App.components = [];
+      App.selection = null;
+      App.multiSel = [];
+      App.flow.running = false;
+      Storage2.clear();
       modal.style.display = 'none';
+      if (App.mode === '3d') document.getElementById('btnMode').click();
       History.reset();
       Validate.run();
       Panel.refresh();
@@ -163,6 +178,20 @@
       Editor.toggleLasso();
     });
 
+    var btnIso = document.getElementById('btnIso');
+    btnIso.addEventListener('click', function () {
+      // Keep the view centred on the same world point when switching projection.
+      var cx = canvas.width / 2, cy = canvas.height / 2;
+      var w = Grid.toWorld(cx, cy);
+      App.view.iso = !App.view.iso;
+      btnIso.classList.toggle('active', App.view.iso);
+      var after = Grid.toScreen(w.x, w.y);
+      App.view.panX += cx - after.x;
+      App.view.panY += cy - after.y;
+      App.dirty = true;
+      Viewer3D.rebuild();   // grid-Y becomes height (or ground) in 3D — refresh it
+    });
+
     var btnTheme = document.getElementById('btnTheme');
     function applyTheme(light) {
       document.body.classList.toggle('light', light);
@@ -215,15 +244,8 @@
     });
 
     document.getElementById('btnNew').addEventListener('click', function () {
-      if (App.components.length && !confirm('Start a new project? The current layout will be cleared.')) return;
-      App.components = [];
-      App.selection = null;
-      App.flow.running = false;
-      Storage2.clear();
-      History.reset();
-      if (App.mode === '3d') document.getElementById('btnMode').click();
-      Validate.run();
-      Panel.refresh();
+      // Just open the setup dialog; it confirms (Start building) or cancels.
+      // Works whether or not a layout exists — no reliance on native confirm().
       showStartupModal();
     });
   }
