@@ -217,8 +217,14 @@
     });
   }
 
-  // Re-derive reach after edits while running.
-  function refresh() { if (App.flow.running) compute(); }
+  // Re-derive reach after edits while running, and rebuild the 3D view so its
+  // baked-in band speed/colour/direction pick up the change immediately (the 2D
+  // overlay reads reach live each frame, but 3D materials don't).
+  function refresh() {
+    if (!App.flow.running) return;
+    compute();
+    Viewer3D.rebuild();
+  }
 
   window.Flow = {
     start: start, stop: stop, tick: tick, drawOverlay: drawOverlay,
