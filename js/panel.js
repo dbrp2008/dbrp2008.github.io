@@ -173,6 +173,18 @@
       mutate(function () { c.material = v; });
     })));
 
+    if (c.type === 'pipe' || c.type === 'branch') {
+      propsEl.appendChild(row('Pipe type', select(Comp.PIPE_TYPES, c.pipeType || 'STPG-E', function (v) {
+        mutate(function () { c.pipeType = v; App.settings.defaultPipeType = v; });
+      })));
+    }
+
+    propsEl.appendChild(row('Galvanised', select(
+      [{ value: 'no', label: 'Ungalvanised' }, { value: 'yes', label: 'Galvanised' }],
+      c.galvanized ? 'yes' : 'no',
+      function (v) { mutate(function () { c.galvanized = v === 'yes'; }); }
+    )));
+
     propsEl.appendChild(row('Colour', colorPicker(c)));
 
     if (c.type === 'flange') {
@@ -295,6 +307,25 @@
       }
     )));
 
+    propsEl.appendChild(row('Pipe type (all)', select(
+      [{ value: '', label: '— pick —' }].concat(Comp.PIPE_TYPES), '',
+      function (v) {
+        if (!v) return;
+        mutate(function () {
+          ms.forEach(function (c) { if (c.type === 'pipe' || c.type === 'branch') c.pipeType = v; });
+          App.settings.defaultPipeType = v;
+        });
+      }
+    )));
+
+    propsEl.appendChild(row('Galvanised (all)', select(
+      [{ value: '', label: '— pick —' }, { value: 'yes', label: 'Galvanised' }, { value: 'no', label: 'Ungalvanised' }], '',
+      function (v) {
+        if (!v) return;
+        mutate(function () { ms.forEach(function (c) { c.galvanized = v === 'yes'; }); });
+      }
+    )));
+
     var wrap = el('div', { class: 'color-picker' });
     Comp.COLOR_PALETTE.forEach(function (col) {
       var sw = el('button', { class: 'swatch', title: col });
@@ -380,6 +411,14 @@
     var note = el('p', { class: 'hint' });
     note.textContent = fams[App.settings.family].note;
     propsEl.appendChild(note);
+
+    propsEl.appendChild(el('h4', null, 'Defaults for new parts'));
+    propsEl.appendChild(row('Pipe type', select(Comp.PIPE_TYPES, App.settings.defaultPipeType || 'STPG-E',
+      function (v) { App.settings.defaultPipeType = v; Storage2.save(); })));
+    propsEl.appendChild(row('Galvanised', select(
+      [{ value: 'no', label: 'Ungalvanised' }, { value: 'yes', label: 'Galvanised' }],
+      App.settings.defaultGalvanized ? 'yes' : 'no',
+      function (v) { App.settings.defaultGalvanized = v === 'yes'; Storage2.save(); })));
 
     var help = el('p', { class: 'hint' });
     help.textContent = 'Drag parts from the left palette onto the grid. Click a part to edit its dimensions here. ' +
