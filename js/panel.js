@@ -14,7 +14,7 @@
     document.getElementById('flowPressure').addEventListener('change', function () {
       App.flow.pressureBar = Math.max(0.1, parseFloat(this.value) || 10);
       this.value = App.flow.pressureBar;
-      Validate.run(); refresh();
+      Validate.run(); Flow.refresh(); refresh();
     });
     var flowRateEl = document.getElementById('flowRate');
     var FLOW_RATE_MAX = +flowRateEl.max || 25000;
