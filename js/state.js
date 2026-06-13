@@ -6,12 +6,12 @@
   'use strict';
 
   var App = {
-    settings: { family: 'ASME', schedule: '40' },
+    settings: { family: 'ASME', schedule: '40', defaultPipeType: 'STPG-E', defaultGalvanized: false },
     components: [],
     selection: null,          // component id or null
     multiSel: [],             // ids circled with the lasso select tool
     lockRatio: false,         // corner handles of the group box scale proportionally
-    view: { zoom: 48, panX: 0, panY: 0 },   // zoom = pixels per GU
+    view: { zoom: 48, panX: 0, panY: 0, iso: false },   // zoom = pixels per GU; iso = isometric grid projection
     mode: '2d',               // '2d' | '3d'
     flow: {
       running: false,
@@ -61,8 +61,13 @@
       condition: 'ok',        // hook for future repair/failure scenarios
       color: (type === 'flange' || type === 'reducer')
         ? Comp.CYCLE_PALETTE[(App.nextId - 1) % Comp.CYCLE_PALETTE.length]
-        : '#8a8f98'
+        : '#8a8f98',
+      galvanized: !!App.settings.defaultGalvanized   // applies to every part for the spec table
     };
+    // Pipe product spec (STPG-E / STPL / SGP / seamless) — meaningful for pipe runs.
+    if (type === 'pipe' || type === 'branch') {
+      c.pipeType = App.settings.defaultPipeType || 'STPG-E';
+    }
     var size = (App.settings.defaultSize &&
       PipeStandards.sizeKeys(App.settings.family, App.settings.schedule).indexOf(App.settings.defaultSize) >= 0)
       ? App.settings.defaultSize : defaultSizeKey();
@@ -128,6 +133,8 @@
     var data = JSON.parse(json);
     if (!data || !data.components) throw new Error('Invalid project file');
     App.settings = data.settings || App.settings;
+    if (!App.settings.defaultPipeType) App.settings.defaultPipeType = 'STPG-E';
+    if (App.settings.defaultGalvanized === undefined) App.settings.defaultGalvanized = false;
     App.components = data.components;
     App.nextId = data.nextId || (App.components.reduce(function (m, c) { return Math.max(m, c.id); }, 0) + 1);
     if (data.flow) {
