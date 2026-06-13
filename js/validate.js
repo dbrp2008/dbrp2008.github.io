@@ -273,7 +273,7 @@
         if (c.type === 'flange') {
           var fr = PipeStandards.flangeRatingBar(c.cls);
           if (P > fr) {
-            issues.push({ compId: c.id, level: 'error', msg: 'System pressure ' + P + ' bar exceeds Class ' + c.cls + ' flange rating (' + fr + ' bar)' });
+            issues.push({ compId: c.id, level: 'error', kind: 'overpressure', msg: 'System pressure ' + P + ' bar exceeds Class ' + c.cls + ' flange rating (' + fr + ' bar)' });
           }
           return;
         }
@@ -283,7 +283,7 @@
           if (!d) return;
           var rating = PipeStandards.ratedPressureBar(d.od, d.wall, c.material);
           if (P > rating) {
-            issues.push({ compId: c.id, level: 'error', msg: 'System pressure ' + P + ' bar exceeds ' + c.type + ' rating ' + rating + ' bar (' + k + ', sch ' + sch + ')' });
+            issues.push({ compId: c.id, level: 'error', kind: 'overpressure', msg: 'System pressure ' + P + ' bar exceeds ' + c.type + ' rating ' + rating + ' bar (' + k + ', sch ' + sch + ')' });
           }
         });
       });
