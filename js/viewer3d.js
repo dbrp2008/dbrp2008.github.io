@@ -77,7 +77,10 @@
     var groundColor = lightTheme ? 0xdde3ec : 0x161c26;
     var groundMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(20000, 20000),
-      new THREE.MeshStandardMaterial({ color: groundColor, roughness: 1, metalness: 0 })
+      new THREE.MeshStandardMaterial({
+        color: groundColor, roughness: 1, metalness: 0,
+        polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1
+      })
     );
     groundMesh.rotation.x = -Math.PI / 2;
     groundMesh.position.y = -0.02;
@@ -182,11 +185,24 @@
   function updateGrid() {
     if (!scene || !camera || !controls) return;
     var dist = camera.position.distanceTo(controls.target);
+    var tx = controls.target.x, tz = controls.target.z;
+
+    // Hysteresis: only rebuild once the camera has moved meaningfully past
+    // the current grid's bounds. Without this, tiny per-frame jitter from
+    // OrbitControls damping near a bucket/recenter boundary flips the grid
+    // between two sizes or positions every frame, causing flicker.
+    if (gridHelper) {
+      var dx = tx - gridCX, dz = tz - gridCZ;
+      var driftedTooFar = Math.sqrt(dx * dx + dz * dz) > gridBucket / 4;
+      var tooSmall = dist * 2.2 > gridBucket;
+      var tooLarge = dist * 2.2 < gridBucket / 2.5 && gridBucket > GRID_BUCKETS[0];
+      if (!driftedTooFar && !tooSmall && !tooLarge) return;
+    }
+
     var size = pickGridSize(dist);
     var step = Math.max(10, size / 8);
-    var cx = Math.round(controls.target.x / step) * step;
-    var cz = Math.round(controls.target.z / step) * step;
-    if (gridHelper && gridBucket === size && gridCX === cx && gridCZ === cz) return;
+    var cx = Math.round(tx / step) * step;
+    var cz = Math.round(tz / step) * step;
     if (gridHelper) {
       scene.remove(gridHelper);
       gridHelper.geometry.dispose();
