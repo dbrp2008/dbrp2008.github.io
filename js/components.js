@@ -180,6 +180,14 @@
   // Cycle colour for non-pipe parts, skipping the grey reserved as the pipe default.
   var CYCLE_PALETTE = COLOR_PALETTE.slice(1);
 
+  // Pipe product specifications a fabricator picks between (JIS designations).
+  var PIPE_TYPES = [
+    { value: 'STPG-E', label: 'STPG-E — pressure service (ERW)' },
+    { value: 'STPL', label: 'STPL — low-temperature service' },
+    { value: 'SGP', label: 'SGP — ordinary piping' },
+    { value: 'seamless', label: 'Seamless' }
+  ];
+
   // Effective draw colour: a component's own assigned colour, falling back to its
   // material colour for components saved before colours were introduced.
   function colorFor(c) {
@@ -527,6 +535,7 @@
     pipeOverlapsOther: pipeOverlapsOther, pipeSegKeys: pipeSegKeys,
     branchTip: branchTip, branchTrimmedTip: branchTrimmedTip, hostPipeAt: hostPipeAt,
     matColor: matColor, colorFor: colorFor, COLOR_PALETTE: COLOR_PALETTE, CYCLE_PALETTE: CYCLE_PALETTE,
+    PIPE_TYPES: PIPE_TYPES,
     ELBOW_LEG: ELBOW_LEG, REDUCER_HALF: REDUCER_HALF, BRANCH_LEN: BRANCH_LEN
   };
 })();
