@@ -22,6 +22,14 @@
     return +(App.flow.rateM3h / 3600 / area).toFixed(2);  // m/s
   }
 
+  // Maps a fluid velocity (m/s) to an animation-speed multiplier shared by the
+  // 2D dash scroll and the 3D band scroll, so a fast line clearly animates
+  // faster than a slow one. Clamped so slow flow still visibly creeps and
+  // extreme velocities don't strobe into a blur.
+  function speedFactor(vel) {
+    return Math.max(0.3, Math.min(5, (vel || 0) / 5));
+  }
+
   // Compute which components carry water and their flow direction, at
   // sub-segment granularity: pipes are split at their tee taps, and water
   // spreads from EVERY inlet junction through live segments only — stagnant
@@ -205,7 +213,7 @@
       var c = PipeState.getComp(+id);
       if (!c) return;
       var r = App.flow.reach[id];
-      Comp.strokeFlowPath(ctx, c, App.flow.t, r.sign, r.segs);
+      Comp.strokeFlowPath(ctx, c, App.flow.t * speedFactor(r.vel), r.sign, r.segs);
     });
   }
 
@@ -214,6 +222,7 @@
 
   window.Flow = {
     start: start, stop: stop, tick: tick, drawOverlay: drawOverlay,
-    compute: compute, refresh: refresh, findInlet: findInlet, velocityFor: velocityFor
+    compute: compute, refresh: refresh, findInlet: findInlet,
+    velocityFor: velocityFor, speedFactor: speedFactor
   };
 })();
