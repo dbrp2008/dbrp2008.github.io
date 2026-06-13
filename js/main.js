@@ -18,9 +18,11 @@
 
     // Clicking into the canvas should commit & blur a focused toolbar field
     // (pressure/rate). The canvas/OrbitControls handlers preventDefault, which
-    // otherwise cancels the browser's default blur, so the field would stay
-    // focused and uncommitted. Capture phase runs before those handlers.
-    document.getElementById('canvasWrap').addEventListener('mousedown', function () {
+    // otherwise cancels the browser's default blur. We use pointerdown (not
+    // mousedown) because OrbitControls preventDefaults its pointerdown, which
+    // suppresses the compatibility mousedown entirely in 3D. Capture phase runs
+    // before those handlers, so this works in both 2D and 3D.
+    document.getElementById('canvasWrap').addEventListener('pointerdown', function () {
       var ae = document.activeElement;
       if (ae && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) ae.blur();
     }, true);
