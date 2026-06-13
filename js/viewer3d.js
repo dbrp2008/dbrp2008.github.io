@@ -55,7 +55,9 @@
 
   // reachEntry: the App.flow.reach[id] record for this component, or null when
   // it carries no flow. lenHint (world units) sets how many bands tile the part.
-  function matFor(c, reachEntry, lenHint) {
+  // flip negates the band scroll direction for meshes whose geometry is built
+  // rotated 180° (the reducer), so the slugs still travel WITH the flow.
+  function matFor(c, reachEntry, lenHint, flip) {
     var m = PipeStandards.STANDARDS.materials[c.material];
     var base = colorNum(c, m ? m.color3d : 0x8a8f98);
     if (!reachEntry) {
@@ -82,7 +84,7 @@
     // band scroll speed scales gently with velocity; sign sets travel direction
     var speed = (crit ? 0.0022 : 0.0012) * (0.7 + Math.min(vel, 30) / 30 * 0.6);
     flowMats.push({
-      mat: mat, tex: tex, dir: reachEntry.sign || 1, speed: speed,
+      mat: mat, tex: tex, dir: (reachEntry.sign || 1) * (flip ? -1 : 1), speed: speed,
       base: crit ? 1.15 : 0.95, amp: crit ? 0.4 : 0.2, phase: Math.random() * 6.283
     });
     return mat;
@@ -122,7 +124,10 @@
       })
     );
     groundMesh.rotation.x = -Math.PI / 2;
-    groundMesh.position.y = -0.02;
+    // sit the ground well below the grid lines (y=0); a generous gap plus the
+    // polygon offset keeps the two from z-fighting (which flickers) at the poor
+    // depth precision you get out near the far plane.
+    groundMesh.position.y = -0.6;
     scene.add(groundMesh);
 
     gridMinorColor = lightTheme ? 0x9fb0c8 : 0x3a4a60;
@@ -178,7 +183,7 @@
         var h = 0.64;
         // CylinderGeometry: top (+Y) gets radiusTop -> small end faces away from rot
         var geoR = new THREE.CylinderGeometry(radiusGU(ds ? ds.od : 50), radiusGU(dl ? dl.od : 80), h, 20);
-        mesh = new THREE.Mesh(geoR, matFor(c, rEntry, h));
+        mesh = new THREE.Mesh(geoR, matFor(c, rEntry, h, true));
         mesh.position.copy(v3(c.pos.x, c.pos.y));
         alignY(mesh, dir3(c.rot + 180));
       }
@@ -269,7 +274,10 @@
     renderer.setPixelRatio(window.devicePixelRatio || 1);
     container.appendChild(renderer.domElement);
 
-    camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 500);
+    // far plane must clear the largest dynamic grid (up to ~10k wide) plus the
+    // camera's distance from it, or the grid's far edge gets clipped away as
+    // you zoom/orbit out — which looked like the grid flickering off entirely.
+    camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 60000);
     camera.position.set(8, 10, 8);
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
