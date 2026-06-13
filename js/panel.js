@@ -431,7 +431,7 @@
       return;
     }
     App.issues.forEach(function (iss) {
-      var d = el('div', { class: 'issue ' + iss.level });
+      var d = el('div', { class: 'issue ' + iss.level + (iss.anim ? ' pulse' : '') });
       d.textContent = iss.msg;
       if (iss.compId) {
         d.addEventListener('click', function () {
