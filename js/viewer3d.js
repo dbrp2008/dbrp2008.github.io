@@ -118,7 +118,7 @@
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
   }
 
-  function buildScene() {
+  function buildScene(recenter) {
     flowMats = [];
     warnMarkers = [];
     scene = new THREE.Scene();
@@ -249,9 +249,11 @@
     } else {
       box.expandByPoint(new THREE.Vector3(0, 0, 0));
     }
-    var center = box.getCenter(new THREE.Vector3());
-    var size = Math.max(6, box.getSize(new THREE.Vector3()).length());
-    if (controls) {
+    // Only frame the layout on the first build (entering 3D). Rebuilds from
+    // flow toggles, theme changes or edits must keep the user's current POV.
+    if (recenter && controls) {
+      var center = box.getCenter(new THREE.Vector3());
+      var size = Math.max(6, box.getSize(new THREE.Vector3()).length());
       controls.target.copy(center);
       camera.position.copy(center).add(new THREE.Vector3(size * 0.7, size * 0.8, size * 0.7));
       controls.update();
@@ -327,7 +329,7 @@
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
 
-    buildScene();
+    buildScene(true);   // frame the layout when entering 3D
     renderer.render(scene, camera);   // immediate first frame (RAF may be throttled)
   }
 
