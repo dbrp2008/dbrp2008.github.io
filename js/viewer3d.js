@@ -85,11 +85,16 @@
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(1, Math.max(2, Math.round((lenHint || 2) * 1.3)));
 
+    // The bands are additive emissive light, so the pipe's own surface colour
+    // would tint them (red on grey looks orange, red on purple looks pink).
+    // Darken the diffuse and push the emissive hard so the bands read as the
+    // true flow colour regardless of the pipe colour; the dimmed base colour
+    // still shows faintly between bands.
     var mat = new THREE.MeshStandardMaterial({
-      color: base, metalness: 0.55, roughness: 0.4,
+      color: new THREE.Color(base).multiplyScalar(0.3), metalness: 0.4, roughness: 0.5,
       emissive: new THREE.Color(flowColor),
       emissiveMap: tex,
-      emissiveIntensity: crit ? 1.15 : 0.95
+      emissiveIntensity: crit ? 1.6 : 1.3
     });
 
     // band scroll speed tracks the fluid velocity (shared mapping with the 2D
@@ -97,7 +102,7 @@
     var speed = 0.0012 * Flow.speedFactor(vel);
     flowMats.push({
       mat: mat, tex: tex, dir: scrollDir !== undefined ? scrollDir : (reachEntry.sign || 1), speed: speed,
-      base: crit ? 1.15 : 0.95, amp: crit ? 0.4 : 0.2, phase: Math.random() * 6.283
+      base: crit ? 1.6 : 1.3, amp: crit ? 0.5 : 0.3, phase: Math.random() * 6.283
     });
     return mat;
   }
