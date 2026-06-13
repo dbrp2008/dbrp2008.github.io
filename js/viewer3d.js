@@ -7,7 +7,8 @@
 
   var renderer, scene, camera, controls, container;
   var built = false;
-  var flowMats = [];   // materials of flow-reached meshes, pulsed while running
+  var flowMats = [];   // {mat,tex,dir,speed,...} for flow-reached meshes, animated while running
+  var prevNow = 0;     // last tick timestamp, for frame-rate-independent band scrolling
   var AXIS_H = 0.5;    // centerline height above ground
 
   // Ground/grid extend dynamically with camera distance so the world never
@@ -34,18 +35,56 @@
     return fallback;
   }
 
-  function matFor(c, reached) {
+  // One soft bright ring per texture tile; tiled and scrolled along a pipe's
+  // length it reads as glowing slugs of fluid travelling through the line.
+  function flowBandCanvas() {
+    var cv = document.createElement('canvas');
+    cv.width = 4; cv.height = 64;
+    var g = cv.getContext('2d');
+    g.fillStyle = '#000'; g.fillRect(0, 0, 4, 64);
+    var grd = g.createLinearGradient(0, 0, 0, 64);
+    grd.addColorStop(0.00, '#000000');
+    grd.addColorStop(0.24, '#5a5a5a');
+    grd.addColorStop(0.40, '#ffffff');
+    grd.addColorStop(0.56, '#5a5a5a');
+    grd.addColorStop(0.80, '#000000');
+    grd.addColorStop(1.00, '#000000');
+    g.fillStyle = grd; g.fillRect(0, 0, 4, 64);
+    return cv;
+  }
+
+  // reachEntry: the App.flow.reach[id] record for this component, or null when
+  // it carries no flow. lenHint (world units) sets how many bands tile the part.
+  function matFor(c, reachEntry, lenHint) {
     var m = PipeStandards.STANDARDS.materials[c.material];
-    var mat = new THREE.MeshStandardMaterial({
-      color: colorNum(c, m ? m.color3d : 0x8a8f98),
-      metalness: 0.6,
-      roughness: 0.4
-    });
-    if (reached) {
-      mat.emissive = new THREE.Color(0x1888aa);
-      mat.emissiveIntensity = 0.0;
-      flowMats.push(mat);
+    var base = colorNum(c, m ? m.color3d : 0x8a8f98);
+    if (!reachEntry) {
+      return new THREE.MeshStandardMaterial({ color: base, metalness: 0.6, roughness: 0.4 });
     }
+
+    // Faster, hotter flow shifts the bands from calm cyan to an alarming red,
+    // mirroring the velocity alert in the issues panel.
+    var vel = reachEntry.vel || 0;
+    var crit = vel > 30;
+    var flowColor = crit ? 0xff4530 : 0x39c0ff;
+
+    var tex = new THREE.CanvasTexture(flowBandCanvas());
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(1, Math.max(2, Math.round((lenHint || 2) * 1.3)));
+
+    var mat = new THREE.MeshStandardMaterial({
+      color: base, metalness: 0.55, roughness: 0.4,
+      emissive: new THREE.Color(flowColor),
+      emissiveMap: tex,
+      emissiveIntensity: crit ? 1.15 : 0.95
+    });
+
+    // band scroll speed scales gently with velocity; sign sets travel direction
+    var speed = (crit ? 0.0022 : 0.0012) * (0.7 + Math.min(vel, 30) / 30 * 0.6);
+    flowMats.push({
+      mat: mat, tex: tex, dir: reachEntry.sign || 1, speed: speed,
+      base: crit ? 1.15 : 0.95, amp: crit ? 0.4 : 0.2, phase: Math.random() * 6.283
+    });
     return mat;
   }
 
@@ -93,7 +132,7 @@
     var reach = App.flow.reach || {};
 
     App.components.forEach(function (c) {
-      var reached = App.flow.running && !!reach[c.id];
+      var rEntry = App.flow.running && reach[c.id] ? reach[c.id] : null;
       var mesh = null;
 
       if (c.type === 'pipe') {
@@ -102,7 +141,7 @@
         var len = a.distanceTo(b);
         var d = sizeOf(c.size);
         var geo = new THREE.CylinderGeometry(radiusGU(d ? d.od : 60), radiusGU(d ? d.od : 60), len, 20);
-        mesh = new THREE.Mesh(geo, matFor(c, reached));
+        mesh = new THREE.Mesh(geo, matFor(c, rEntry, len));
         mesh.position.copy(a).add(b).multiplyScalar(0.5);
         alignY(mesh, b.clone().sub(a));
       } else if (c.type === 'flange') {
@@ -124,14 +163,14 @@
         );
         var de = sizeOf(c.size);
         var geoE = new THREE.TubeGeometry(curve, 16, radiusGU(de ? de.od : 60), 16, false);
-        mesh = new THREE.Mesh(geoE, matFor(c, reached));
+        mesh = new THREE.Mesh(geoE, matFor(c, rEntry, curve.getLength()));
       } else if (c.type === 'branch') {
         var tipB = Comp.branchTrimmedTip(c);
         var ab = v3(c.pos.x, c.pos.y), bb = v3(tipB.x, tipB.y);
         var lenB = ab.distanceTo(bb);
         var dB = sizeOf(c.size);
         var geoB = new THREE.CylinderGeometry(radiusGU(dB ? dB.od : 60), radiusGU(dB ? dB.od : 60), lenB, 16);
-        mesh = new THREE.Mesh(geoB, matFor(c, reached));
+        mesh = new THREE.Mesh(geoB, matFor(c, rEntry, lenB));
         mesh.position.copy(ab).add(bb).multiplyScalar(0.5);
         alignY(mesh, bb.clone().sub(ab));
       } else if (c.type === 'reducer') {
@@ -139,7 +178,7 @@
         var h = 0.64;
         // CylinderGeometry: top (+Y) gets radiusTop -> small end faces away from rot
         var geoR = new THREE.CylinderGeometry(radiusGU(ds ? ds.od : 50), radiusGU(dl ? dl.od : 80), h, 20);
-        mesh = new THREE.Mesh(geoR, matFor(c, reached));
+        mesh = new THREE.Mesh(geoR, matFor(c, rEntry, h));
         mesh.position.copy(v3(c.pos.x, c.pos.y));
         alignY(mesh, dir3(c.rot + 180));
       }
@@ -269,8 +308,17 @@
     controls.update();
     updateGrid();
     if (App.flow.running) {
-      var pulse = 0.35 + 0.3 * Math.sin(performance.now() * 0.005);
-      flowMats.forEach(function (m) { m.emissiveIntensity = pulse; });
+      var now = performance.now();
+      var dt = prevNow ? Math.min(80, now - prevNow) : 16;
+      prevNow = now;
+      flowMats.forEach(function (f) {
+        // scroll the glowing bands along the part in the flow direction
+        f.tex.offset.y -= f.dir * f.speed * dt;
+        // gentle shimmer so the slugs throb as they travel
+        f.mat.emissiveIntensity = f.base + f.amp * Math.sin(now * 0.004 + f.phase);
+      });
+    } else {
+      prevNow = 0;
     }
     renderer.render(scene, camera);
   }
