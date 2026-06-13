@@ -53,11 +53,21 @@
     return cv;
   }
 
+  // Band scroll direction (+1 toward the mesh's local +Y, -1 away). When flow.js
+  // has resolved a real flow vector (reducers, tees) we dot it against the grid-
+  // space direction the mesh's +Y points, so the slugs always travel with the
+  // water regardless of how the geometry was built. Otherwise fall back to sign.
+  function bandDir(reachEntry, axGx, axGy) {
+    if (reachEntry.flowVec) {
+      return (reachEntry.flowVec.x * axGx + reachEntry.flowVec.y * axGy) >= 0 ? 1 : -1;
+    }
+    return reachEntry.sign || 1;
+  }
+
   // reachEntry: the App.flow.reach[id] record for this component, or null when
   // it carries no flow. lenHint (world units) sets how many bands tile the part.
-  // flip negates the band scroll direction for meshes whose geometry is built
-  // rotated 180° (the reducer), so the slugs still travel WITH the flow.
-  function matFor(c, reachEntry, lenHint, flip) {
+  // scrollDir sets the band travel direction along the mesh's local +Y axis.
+  function matFor(c, reachEntry, lenHint, scrollDir) {
     var m = PipeStandards.STANDARDS.materials[c.material];
     var base = colorNum(c, m ? m.color3d : 0x8a8f98);
     if (!reachEntry) {
@@ -84,7 +94,7 @@
     // band scroll speed scales gently with velocity; sign sets travel direction
     var speed = (crit ? 0.0022 : 0.0012) * (0.7 + Math.min(vel, 30) / 30 * 0.6);
     flowMats.push({
-      mat: mat, tex: tex, dir: (reachEntry.sign || 1) * (flip ? -1 : 1), speed: speed,
+      mat: mat, tex: tex, dir: scrollDir !== undefined ? scrollDir : (reachEntry.sign || 1), speed: speed,
       base: crit ? 1.15 : 0.95, amp: crit ? 0.4 : 0.2, phase: Math.random() * 6.283
     });
     return mat;
@@ -146,7 +156,7 @@
         var len = a.distanceTo(b);
         var d = sizeOf(c.size);
         var geo = new THREE.CylinderGeometry(radiusGU(d ? d.od : 60), radiusGU(d ? d.od : 60), len, 20);
-        mesh = new THREE.Mesh(geo, matFor(c, rEntry, len));
+        mesh = new THREE.Mesh(geo, matFor(c, rEntry, len, rEntry ? (rEntry.sign || 1) : 1));
         mesh.position.copy(a).add(b).multiplyScalar(0.5);
         alignY(mesh, b.clone().sub(a));
       } else if (c.type === 'flange') {
@@ -168,14 +178,15 @@
         );
         var de = sizeOf(c.size);
         var geoE = new THREE.TubeGeometry(curve, 16, radiusGU(de ? de.od : 60), 16, false);
-        mesh = new THREE.Mesh(geoE, matFor(c, rEntry, curve.getLength()));
+        mesh = new THREE.Mesh(geoE, matFor(c, rEntry, curve.getLength(), rEntry ? (rEntry.sign || 1) : 1));
       } else if (c.type === 'branch') {
         var tipB = Comp.branchTrimmedTip(c);
         var ab = v3(c.pos.x, c.pos.y), bb = v3(tipB.x, tipB.y);
         var lenB = ab.distanceTo(bb);
         var dB = sizeOf(c.size);
         var geoB = new THREE.CylinderGeometry(radiusGU(dB ? dB.od : 60), radiusGU(dB ? dB.od : 60), lenB, 16);
-        mesh = new THREE.Mesh(geoB, matFor(c, rEntry, lenB));
+        var ubB = Comp.unitVec(c.rot);   // branch mesh +Y points pos -> tip = +unitVec
+        mesh = new THREE.Mesh(geoB, matFor(c, rEntry, lenB, rEntry ? bandDir(rEntry, ubB.x, ubB.y) : 1));
         mesh.position.copy(ab).add(bb).multiplyScalar(0.5);
         alignY(mesh, bb.clone().sub(ab));
       } else if (c.type === 'reducer') {
@@ -183,7 +194,8 @@
         var h = 0.64;
         // CylinderGeometry: top (+Y) gets radiusTop -> small end faces away from rot
         var geoR = new THREE.CylinderGeometry(radiusGU(ds ? ds.od : 50), radiusGU(dl ? dl.od : 80), h, 20);
-        mesh = new THREE.Mesh(geoR, matFor(c, rEntry, h, true));
+        var uR = Comp.unitVec(c.rot);   // reducer mesh +Y points along rot+180 = -unitVec
+        mesh = new THREE.Mesh(geoR, matFor(c, rEntry, h, rEntry ? bandDir(rEntry, -uR.x, -uR.y) : 1));
         mesh.position.copy(v3(c.pos.x, c.pos.y));
         alignY(mesh, dir3(c.rot + 180));
       }
