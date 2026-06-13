@@ -141,7 +141,34 @@
       if (!carries) return;
       var sign = 1;
       if (c.type === 'elbow' && solved.fitSign[c.id] !== undefined) sign = solved.fitSign[c.id];
-      reach[c.id] = { sign: sign, vel: velocityFor(c.type === 'reducer' ? c.smallSize : c.size) };
+      var entry = { sign: sign, vel: velocityFor(c.type === 'reducer' ? c.smallSize : c.size) };
+
+      // Real flow direction (grid space) through reducers and tees, so the 3D
+      // band animation travels WITH the water instead of guessing from sign.
+      // A live pipe segment's spread direction (liveSeg = +1 means ra->rb,
+      // which is end0->end1 = +unitVec of that pipe) tells us where water goes.
+      if (c.type === 'reducer') {
+        // collinear with its run — borrow an adjacent live segment's direction
+        (sg.segAdj[n] || []).some(function (i) {
+          if (!liveSeg[i]) return false;
+          var u = Comp.unitVec(sg.segs[i].pipe.rot);
+          entry.flowVec = { x: u.x * liveSeg[i], y: u.y * liveSeg[i] };
+          return true;
+        });
+      } else if (c.type === 'branch') {
+        // does the tip-side segment carry water AWAY from the tap (host feeds
+        // the branch, base->tip) or TOWARD it (branch feeds the host, tip->base)?
+        var ub = Comp.unitVec(c.rot);
+        (sg.segAdj[n] || []).some(function (i) {
+          if (!liveSeg[i] || sg.segs[i].pipe === host) return false;
+          var s = sg.segs[i];
+          var away = (s.ra === n && liveSeg[i] === 1) || (s.rb === n && liveSeg[i] === -1);
+          var sgn = away ? 1 : -1;
+          entry.flowVec = { x: ub.x * sgn, y: ub.y * sgn };
+          return true;
+        });
+      }
+      reach[c.id] = entry;
     });
     return true;
   }
