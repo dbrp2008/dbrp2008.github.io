@@ -16,6 +16,15 @@
     wireToolbar();
     wirePaletteResizer();
 
+    // Clicking into the canvas should commit & blur a focused toolbar field
+    // (pressure/rate). The canvas/OrbitControls handlers preventDefault, which
+    // otherwise cancels the browser's default blur, so the field would stay
+    // focused and uncommitted. Capture phase runs before those handlers.
+    document.getElementById('canvasWrap').addEventListener('mousedown', function () {
+      var ae = document.activeElement;
+      if (ae && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) ae.blur();
+    }, true);
+
     History.onChange(function () {
       Validate.run();
       Flow.refresh();
