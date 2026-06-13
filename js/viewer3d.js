@@ -91,8 +91,9 @@
       emissiveIntensity: crit ? 1.15 : 0.95
     });
 
-    // band scroll speed scales gently with velocity; sign sets travel direction
-    var speed = (crit ? 0.0022 : 0.0012) * (0.7 + Math.min(vel, 30) / 30 * 0.6);
+    // band scroll speed tracks the fluid velocity (shared mapping with the 2D
+    // dash scroll) so faster lines visibly move faster
+    var speed = 0.0012 * Flow.speedFactor(vel);
     flowMats.push({
       mat: mat, tex: tex, dir: scrollDir !== undefined ? scrollDir : (reachEntry.sign || 1), speed: speed,
       base: crit ? 1.15 : 0.95, amp: crit ? 0.4 : 0.2, phase: Math.random() * 6.283
