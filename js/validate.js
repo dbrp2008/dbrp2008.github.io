@@ -384,20 +384,24 @@
     // velocity (typical limits: ~1.5-3 m/s for liquids, up to ~20-30 m/s for
     // gas/steam; API RP 14E erosional limits for low-density gas top out
     // around 60-80 m/s).
-    var V_WARN = 30;
+    var V_WARN = 8, V_ERR = 30;
     var flaggedSizes = {};
     App.components.forEach(function (c) {
       if (c.type !== 'pipe' || flaggedSizes[c.size]) return;
       var v = Flow.velocityFor(c.size);
-      if (v > V_WARN) {
-        flaggedSizes[c.size] = true;
-        issues.push({
-          compId: c.id, level: 'warn',
-          msg: 'At ' + App.flow.rateM3h + ' m³/h, ' + PipeStandards.sizeLabel(fam, c.size) +
-            ' pipe carries water at ~' + v + ' m/s — well above realistic limits ' +
-            '(~1.5-3 m/s liquids, ~20-30 m/s gas/steam). Lower the flow rate or use a larger pipe.'
-        });
-      }
+      if (v <= V_WARN) return;
+      flaggedSizes[c.size] = true;
+      var crit = v > V_ERR;
+      issues.push({
+        compId: c.id,
+        level: crit ? 'error' : 'warn',
+        anim: crit,            // pulse the issue chip when it's a hard limit breach
+        msg: 'At ' + App.flow.rateM3h + ' m³/h, ' + PipeStandards.sizeLabel(fam, c.size) +
+          ' pipe carries fluid at ~' + v + ' m/s — ' +
+          (crit
+            ? 'FAR beyond any realistic limit (~1.5-3 m/s liquids, ~20-30 m/s gas/steam). At this speed you get severe erosion, screaming noise and destructive water hammer. Drop the flow rate or use a much larger pipe.'
+            : 'above typical liquid limits (~1.5-3 m/s) — only acceptable for gas or steam (~20-30 m/s). Use a larger pipe if this line carries liquid.')
+      });
     });
 
     App.issues = issues;
