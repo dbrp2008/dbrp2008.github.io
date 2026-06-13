@@ -107,10 +107,20 @@
     return mat;
   }
 
-  function v3(gx, gy) { return new THREE.Vector3(gx, AXIS_H, gy); }
+  // In isometric ("elevation") mode the user reads grid-Y as real height, so the
+  // 3D view stands the layout up in a vertical plane (grid X -> world X, grid Y ->
+  // world height, no depth). In plan mode grid-Y is ground depth (the original
+  // flat-on-the-floor mapping). elevBase keeps the lowest point near the ground.
+  var elevBase = 0;
+
+  function v3(gx, gy) {
+    if (App.view.iso) return new THREE.Vector3(gx, elevBase - gy, 0);
+    return new THREE.Vector3(gx, AXIS_H, gy);
+  }
 
   function dir3(rot) {
     var u = Comp.unitVec(rot);
+    if (App.view.iso) return new THREE.Vector3(u.x, -u.y, 0);
     return new THREE.Vector3(u.x, 0, u.y);
   }
 
@@ -121,6 +131,19 @@
   function buildScene(recenter) {
     flowMats = [];
     warnMarkers = [];
+
+    // In elevation mode, offset heights so the lowest grid-Y sits on the ground.
+    elevBase = 0;
+    if (App.view.iso && App.components.length) {
+      var maxGy = -Infinity;
+      App.components.forEach(function (c) {
+        maxGy = Math.max(maxGy, c.pos.y);
+        if (c.type === 'pipe') Comp.pipeEnds(c).forEach(function (e) { maxGy = Math.max(maxGy, e.y); });
+        if (c.type === 'branch') maxGy = Math.max(maxGy, Comp.branchTip(c).y);
+      });
+      elevBase = maxGy + AXIS_H;
+    }
+
     scene = new THREE.Scene();
     var lightTheme = document.body.classList.contains('light');
     scene.background = new THREE.Color(lightTheme ? 0xe9edf3 : 0x11151c);
